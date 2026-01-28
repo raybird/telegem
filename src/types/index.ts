@@ -1,0 +1,36 @@
+export interface UserProfile {
+  id: string;
+  name: string;
+  platform: 'telegram' | 'console';
+}
+
+export interface UnifiedMessage {
+  id: string;
+  content: string;
+  sender: UserProfile;
+  timestamp: number;
+  raw?: any; // 原始訊息 payload，保留除錯用
+}
+
+export interface Connector {
+  name: string;
+  initialize(): Promise<void>;
+  
+  /**
+   * 發送一般訊息
+   */
+  sendMessage(chatId: string, text: string): Promise<void>;
+
+  /**
+   * 發送一個佔位訊息（例如 "Thinking..."），並回傳該訊息的 ID，以便後續編輯
+   * @returns messageId
+   */
+  sendPlaceholder(chatId: string, text: string): Promise<string>;
+
+  /**
+   * 編輯已發送的訊息
+   */
+  editMessage(chatId: string, messageId: string, newText: string): Promise<void>;
+
+  onMessage(handler: (msg: UnifiedMessage) => void): void;
+}
