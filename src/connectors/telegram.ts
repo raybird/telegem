@@ -15,6 +15,39 @@ export class TelegramConnector implements Connector {
     this.allowedUserIds = allowedUserIds;
   }
 
+  private splitMessage(text: string, limit: number = 4096): string[] {
+    const chunks: string[] = [];
+    let currentChunk = '';
+
+    const lines = text.split('\n');
+
+    for (const line of lines) {
+      if (currentChunk.length + line.length + 1 > limit) {
+        if (currentChunk.length > 0) {
+          chunks.push(currentChunk);
+          currentChunk = '';
+        }
+
+        // If a single line is too long, force split it
+        if (line.length > limit) {
+          for (let i = 0; i < line.length; i += limit) {
+            chunks.push(line.substring(i, i + limit));
+          }
+        } else {
+          currentChunk = line;
+        }
+      } else {
+        currentChunk += (currentChunk ? '\n' : '') + line;
+      }
+    }
+
+    if (currentChunk) {
+      chunks.push(currentChunk);
+    }
+
+    return chunks.length > 0 ? chunks : [text];
+  }
+
   private probeIPv6(): Promise<boolean> {
     return new Promise((resolve) => {
       const socket = createConnection({
@@ -93,7 +126,10 @@ export class TelegramConnector implements Connector {
 
   async sendMessage(chatId: string, text: string): Promise<void> {
     try {
-      await this.bot.telegram.sendMessage(chatId, text);
+      const chunks = this.splitMessage(text);
+      for (const chunk of chunks) {
+        await this.bot.telegram.sendMessage(chatId, chunk);
+      }
     } catch (error) {
       console.error(`[Telegram] Failed to send message to ${chatId}:`, error);
     }
@@ -111,11 +147,21 @@ export class TelegramConnector implements Connector {
 
   async editMessage(chatId: string, messageId: string, newText: string): Promise<void> {
     try {
-      // 轉換 messageId 為 number (Telegram API 要求 number)
-      await this.bot.telegram.editMessageText(chatId, parseInt(messageId), undefined, newText);
+      const chunks = this.splitMessage(newText);
+      const firstChunk = chunks[0] || '';
+
+      // 1. Edit the original message (placeholder) with the first chunk
+      await this.bot.telegram.editMessageText(chatId, parseInt(messageId), undefined, firstChunk);
+
+      // 2. Send remaining chunks as new messages
+      if (chunks.length > 1) {
+        for (let i = 1; i < chunks.length; i++) {
+          await this.bot.telegram.sendMessage(chatId, chunks[i]);
+        }
+      }
     } catch (error) {
       console.error(`[Telegram] Failed to edit message ${messageId}:`, error);
-      // 如果編輯失敗（例如訊息被刪除），嘗試發送一條新的
+      // Fallback: try sending as new message(s) if edit fails
       await this.sendMessage(chatId, newText);
     }
   }
