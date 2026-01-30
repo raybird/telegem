@@ -1,27 +1,66 @@
 import { Telegraf } from 'telegraf';
+import { Agent } from 'https';
+import { createConnection } from 'net';
 import type { Connector, UnifiedMessage } from '../types/index.js';
 
 export class TelegramConnector implements Connector {
   public name = 'Telegram';
-  private bot: Telegraf;
+  private bot!: Telegraf;
   private messageHandler: ((msg: UnifiedMessage) => void) | null = null;
   private allowedUserIds: string[];
+  private token: string;
 
   constructor(token: string, allowedUserIds: string[]) {
-    this.bot = new Telegraf(token);
+    this.token = token;
     this.allowedUserIds = allowedUserIds;
   }
 
+  private probeIPv6(): Promise<boolean> {
+    return new Promise((resolve) => {
+      const socket = createConnection({
+        host: 'api.telegram.org',
+        port: 443,
+        family: 6,
+        timeout: 2000 // 2s connection timeout
+      });
+
+      socket.on('connect', () => {
+        socket.end();
+        resolve(true);
+      });
+
+      socket.on('error', () => {
+        socket.destroy();
+        resolve(false);
+      });
+
+      socket.on('timeout', () => {
+        socket.destroy();
+        resolve(false);
+      });
+    });
+  }
+
   async initialize(): Promise<void> {
+    const ipv6Available = await this.probeIPv6();
+    const family = ipv6Available ? undefined : 4;
+    console.log(`[Telegram] Network probe: IPv6 is ${ipv6Available ? 'available' : 'unreachable'}. using IPv${family || 6}`);
+
+    this.bot = new Telegraf(this.token, {
+      telegram: {
+        agent: new Agent({ keepAlive: true, family })
+      }
+    });
+
     console.log(`[Telegram] Initializing with allowed users: ${this.allowedUserIds.join(', ')}`);
 
     this.bot.on('text', async (ctx) => {
       const userId = ctx.from.id.toString();
-      
+
       // 白名單檢查
       if (!this.allowedUserIds.includes(userId)) {
         console.warn(`[Telegram] Blocked unauthorized access from: ${userId} (${ctx.from.first_name})`);
-        return; 
+        return;
       }
 
       if (this.messageHandler) {
