@@ -7,6 +7,16 @@ export interface ChatMessage {
   timestamp: number;
 }
 
+export interface Schedule {
+  id: number;
+  user_id: string;
+  name: string;
+  cron: string;
+  prompt: string;
+  created_at: number;
+  is_active: boolean;
+}
+
 export class MemoryManager {
   private db: Database.Database;
   private readonly MAX_HISTORY = 20; // 讀取最近 20 則訊息作為 Context
@@ -34,9 +44,23 @@ export class MemoryManager {
       )
     `);
     stmt.run();
-    
+
     // 建立索引加速查詢
     this.db.prepare(`CREATE INDEX IF NOT EXISTS idx_user_timestamp ON messages(user_id, timestamp)`).run();
+
+    // 建立 schedules 表格
+    const scheduleStmt = this.db.prepare(`
+      CREATE TABLE IF NOT EXISTS schedules (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        cron TEXT NOT NULL,
+        prompt TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        is_active INTEGER DEFAULT 1 CHECK(is_active IN (0, 1))
+      )
+    `);
+    scheduleStmt.run();
   }
 
   /**
@@ -63,7 +87,7 @@ export class MemoryManager {
       ORDER BY timestamp DESC 
       LIMIT ?
     `);
-    
+
     const rows = stmt.all(userId, this.MAX_HISTORY) as { role: string, content: string }[];
 
     if (rows.length === 0) {
@@ -86,5 +110,84 @@ export class MemoryManager {
   clear(userId: string): void {
     const stmt = this.db.prepare('DELETE FROM messages WHERE user_id = ?');
     stmt.run(userId);
+  }
+
+  /**
+   * 新增排程任務
+   */
+  addSchedule(userId: string, name: string, cron: string, prompt: string): number {
+    const stmt = this.db.prepare(`
+      INSERT INTO schedules (user_id, name, cron, prompt, created_at)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+    const result = stmt.run(userId, name, cron, prompt, Date.now());
+    return result.lastInsertRowid as number;
+  }
+
+  /**
+   * 取得所有啟用中的排程
+   */
+  getActiveSchedules(): Schedule[] {
+    const stmt = this.db.prepare(`
+      SELECT id, user_id, name, cron, prompt, created_at, is_active
+      FROM schedules
+      WHERE is_active = 1
+    `);
+    const rows = stmt.all() as Array<{
+      id: number;
+      user_id: string;
+      name: string;
+      cron: string;
+      prompt: string;
+      created_at: number;
+      is_active: number;
+    }>;
+
+    return rows.map(row => ({
+      ...row,
+      is_active: row.is_active === 1
+    }));
+  }
+
+  /**
+   * 取得特定使用者的所有排程
+   */
+  getUserSchedules(userId: string): Schedule[] {
+    const stmt = this.db.prepare(`
+      SELECT id, user_id, name, cron, prompt, created_at, is_active
+      FROM schedules
+      WHERE user_id = ?
+      ORDER BY created_at DESC
+    `);
+    const rows = stmt.all(userId) as Array<{
+      id: number;
+      user_id: string;
+      name: string;
+      cron: string;
+      prompt: string;
+      created_at: number;
+      is_active: number;
+    }>;
+
+    return rows.map(row => ({
+      ...row,
+      is_active: row.is_active === 1
+    }));
+  }
+
+  /**
+   * 刪除排程
+   */
+  removeSchedule(id: number): void {
+    const stmt = this.db.prepare('DELETE FROM schedules WHERE id = ?');
+    stmt.run(id);
+  }
+
+  /**
+   * 切換排程的啟用狀態
+   */
+  toggleSchedule(id: number, isActive: boolean): void {
+    const stmt = this.db.prepare('UPDATE schedules SET is_active = ? WHERE id = ?');
+    stmt.run(isActive ? 1 : 0, id);
   }
 }
