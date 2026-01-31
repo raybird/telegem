@@ -28,11 +28,17 @@ export class CommandRouter {
     this.commands.push(command);
   }
 
+
   async handleMessage(
     msg: UnifiedMessage,
     deps: { connector: Connector; memory: MemoryManager; scheduler: Scheduler }
   ): Promise<boolean> {
-    const content = msg.content.trim();
+    // 清理訊息內容，移除可能導致 shell 錯誤的特殊字元
+    const content = msg.content.trim().replace(/[`'"]/g, '');
+
+    // 檢查是否為指令（以 / 開頭）
+    const isCommand = content.startsWith('/');
+
     for (const command of this.commands) {
       if (command.match(content)) {
         await command.execute({
@@ -46,6 +52,16 @@ export class CommandRouter {
         return true;
       }
     }
+
+    // 如果是指令但沒有匹配到任何已註冊的指令，回傳錯誤訊息
+    if (isCommand) {
+      await deps.connector.sendMessage(
+        msg.sender.id,
+        '❌ 未知指令。請使用 /start 查看可用指令列表。'
+      );
+      return true;
+    }
+
     return false;
   }
 
