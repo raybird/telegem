@@ -3,8 +3,16 @@ FROM node:22-slim
 WORKDIR /app
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends python3 python3-pip python3-venv make g++ curl jq bash \
+  && apt-get install -y --no-install-recommends \
+  python3 python3-pip python3-venv make g++ curl jq bash \
+  # Browser dependencies
+  chromium \
+  fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst fonts-freefont-ttf libxss1 \
   && rm -rf /var/lib/apt/lists/*
+
+# Puppeteer settings for Docker
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
 # Install uv (Python package manager for MCP servers)
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
