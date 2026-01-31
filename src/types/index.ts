@@ -9,7 +9,7 @@ export interface UnifiedMessage {
   content: string;
   sender: UserProfile;
   timestamp: number;
-  raw?: any; // 原始訊息 payload，保留除錯用
+  raw?: unknown; // 原始訊息 payload，保留除錯用
 }
 
 export interface Connector {

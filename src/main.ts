@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import { TelegramConnector } from './connectors/telegram.js';
+import { CommandRouter } from './core/command-router.js';
 import { GeminiAgent } from './core/gemini.js';
 import { MemoryManager } from './core/memory.js';
 import { Scheduler } from './core/scheduler.js';
@@ -24,6 +25,7 @@ async function bootstrap() {
   const gemini = new GeminiAgent();
   const memory = new MemoryManager();
   const scheduler = new Scheduler(memory, gemini, telegram);
+  const commandRouter = new CommandRouter();
 
   // 啟動排程器
   await scheduler.init();
@@ -46,65 +48,12 @@ async function bootstrap() {
     console.log(`📩 [${msg.sender.platform}] ${msg.sender.name}: ${msg.content}`);
     const userId = msg.sender.id;
 
-    if (msg.content.trim() === '/reset') {
-      memory.clear(userId);
-      await telegram.sendMessage(userId, "🧹 記憶已清除。");
-      return;
-    }
-
-    // 列出所有排程
-    if (msg.content.trim() === '/list_schedules') {
-      const schedules = scheduler.listSchedules(userId);
-      if (schedules.length === 0) {
-        await telegram.sendMessage(userId, "📋 目前沒有任何排程。");
-      } else {
-        const list = schedules.map((s, idx) =>
-          `${idx + 1}. [ID: ${s.id}] ${s.name}\n   ⏰ Cron: ${s.cron}\n   📝 Prompt: ${s.prompt}\n   ${s.is_active ? '✅ 啟用中' : '❌ 已停用'}`
-        ).join('\n\n');
-        await telegram.sendMessage(userId, `📋 您的排程列表：\n\n${list}`);
-      }
-      return;
-    }
-
-    // 刪除排程（格式：/remove_schedule <id>）
-    if (msg.content.trim().startsWith('/remove_schedule ')) {
-      const parts = msg.content.trim().split(' ');
-      if (parts.length !== 2) {
-        await telegram.sendMessage(userId, "❌ 格式錯誤。使用範例：/remove_schedule 1");
-        return;
-      }
-      const id = parseInt(parts[1]!, 10);
-      if (isNaN(id)) {
-        await telegram.sendMessage(userId, "❌ ID 必須是數字。");
-        return;
-      }
-      try {
-        scheduler.removeSchedule(id);
-        await telegram.sendMessage(userId, `✅ 已刪除排程 #${id}`);
-      } catch (error) {
-        const errMsg = error instanceof Error ? error.message : String(error);
-        await telegram.sendMessage(userId, `❌ 刪除失敗：${errMsg}`);
-      }
-      return;
-    }
-
-    // 新增排程（格式：/add_schedule <name>|<cron>|<prompt>）
-    if (msg.content.trim().startsWith('/add_schedule ')) {
-      const raw = msg.content.replace('/add_schedule ', '').trim();
-      const parts = raw.split('|').map(p => p.trim());
-      if (parts.length !== 3) {
-        await telegram.sendMessage(userId,
-          "❌ 格式錯誤。使用範例：\n/add_schedule 早安問候|0 9 * * *|早安！今天天氣如何？");
-        return;
-      }
-      const [name, cron, prompt] = parts;
-      try {
-        const id = scheduler.addSchedule(userId, name!, cron!, prompt!);
-        await telegram.sendMessage(userId, `✅ 成功新增排程 #${id}：${name}`);
-      } catch (error) {
-        const errMsg = error instanceof Error ? error.message : String(error);
-        await telegram.sendMessage(userId, `❌ 新增失敗：${errMsg}`);
-      }
+    const commandHandled = await commandRouter.handleMessage(msg, {
+      connector: telegram,
+      memory,
+      scheduler
+    });
+    if (commandHandled) {
       return;
     }
 

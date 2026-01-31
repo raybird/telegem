@@ -72,6 +72,30 @@ npm start
 
 ---
 
+## 🧑‍💻 開發者指引
+
+常用指令：
+
+```bash
+# 開發模式（自動重啟）
+npm run dev
+
+# 型別檢查
+npm run build
+
+# 程式碼品質檢查
+npm run lint
+
+# 格式化
+npm run format
+```
+
+延伸文件：
+- 架構說明：[ARCHITECTURE.md](ARCHITECTURE.md)
+- 貢獻指南：[CONTRIBUTING.md](CONTRIBUTING.md)
+
+---
+
 ## 💡 使用說明
 
 直接在 Telegram 視窗中與您的 Bot 對話即可。
