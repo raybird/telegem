@@ -1,0 +1,132 @@
+export class CommandRouter {
+    commands = [];
+    constructor() {
+        this.registerDefaultCommands();
+    }
+    registerCommand(command) {
+        this.commands.push(command);
+    }
+    async handleMessage(msg, deps) {
+        const content = msg.content.trim();
+        for (const command of this.commands) {
+            if (command.match(content)) {
+                await command.execute({
+                    msg,
+                    userId: msg.sender.id,
+                    content,
+                    connector: deps.connector,
+                    memory: deps.memory,
+                    scheduler: deps.scheduler
+                });
+                return true;
+            }
+        }
+        return false;
+    }
+    registerDefaultCommands() {
+        this.registerCommand({
+            name: 'start',
+            match: (content) => content === '/start',
+            execute: async ({ userId, connector }) => {
+                const helpMessage = `
+🤖 **歡迎使用 Moltbot Lite!**
+
+我是您的 AI 助理，隨時準備協助您。
+
+🛠 **基本指令**
+- \`/reset\`: 清除 AI 短期記憶 (Context Window)
+- \`/start\`: 顯示此說明訊息
+
+📅 **排程管理功能**
+目前的系統內建了強大的排程系統，您可以設定定時任務讓 AI 主動執行。
+
+**1. 新增排程**
+格式：\`/add_schedule 名稱 | Cron表達式 | 提示詞\`
+範例：
+\`\`\`
+/add_schedule 早安問候 | 0 9 * * * | 跟我說早安並報告天氣
+\`\`\`
+
+**2. 查看排程**
+指令：\`/list_schedules\`
+
+**3. 刪除排程**
+指令：\`/remove_schedule [ID]\`
+範例：\`/remove_schedule 1\`
+
+若有任何問題，直接跟我說即可！
+`.trim();
+                await connector.sendMessage(userId, helpMessage);
+            }
+        });
+        this.registerCommand({
+            name: 'reset',
+            match: (content) => content === '/reset',
+            execute: async ({ userId, connector, memory }) => {
+                memory.clear(userId);
+                await connector.sendMessage(userId, '🧹 記憶已清除。');
+            }
+        });
+        this.registerCommand({
+            name: 'list_schedules',
+            match: (content) => content === '/list_schedules',
+            execute: async ({ userId, connector, scheduler }) => {
+                const schedules = scheduler.listSchedules(userId);
+                if (schedules.length === 0) {
+                    await connector.sendMessage(userId, '📋 目前沒有任何排程。');
+                    return;
+                }
+                const list = schedules
+                    .map((schedule, idx) => `${idx + 1}. [ID: ${schedule.id}] ${schedule.name}\n   ⏰ Cron: ${schedule.cron}\n   📝 Prompt: ${schedule.prompt}\n   ${schedule.is_active ? '✅ 啟用中' : '❌ 已停用'}`)
+                    .join('\n\n');
+                await connector.sendMessage(userId, `📋 您的排程列表：\n\n${list}`);
+            }
+        });
+        this.registerCommand({
+            name: 'remove_schedule',
+            match: (content) => content.startsWith('/remove_schedule '),
+            execute: async ({ userId, connector, scheduler, content }) => {
+                const parts = content.split(' ');
+                if (parts.length !== 2) {
+                    await connector.sendMessage(userId, '❌ 格式錯誤。使用範例：/remove_schedule 1');
+                    return;
+                }
+                const id = Number.parseInt(parts[1], 10);
+                if (Number.isNaN(id)) {
+                    await connector.sendMessage(userId, '❌ ID 必須是數字。');
+                    return;
+                }
+                try {
+                    scheduler.removeSchedule(id);
+                    await connector.sendMessage(userId, `✅ 已刪除排程 #${id}`);
+                }
+                catch (error) {
+                    const errMsg = error instanceof Error ? error.message : String(error);
+                    await connector.sendMessage(userId, `❌ 刪除失敗：${errMsg}`);
+                }
+            }
+        });
+        this.registerCommand({
+            name: 'add_schedule',
+            match: (content) => content.startsWith('/add_schedule '),
+            execute: async ({ userId, connector, scheduler, content }) => {
+                const raw = content.replace('/add_schedule ', '').trim();
+                const parts = raw.split('|').map((part) => part.trim());
+                if (parts.length !== 3) {
+                    await connector.sendMessage(userId, '❌ 格式錯誤。使用範例：\n/add_schedule 早安問候|0 9 * * *|早安！今天天氣如何？');
+                    return;
+                }
+                const [name, cron, prompt] = parts;
+                try {
+                    const id = scheduler.addSchedule(userId, name, cron, prompt);
+                    await connector.sendMessage(userId, `✅ 成功新增排程 #${id}：${name}`);
+                }
+                catch (error) {
+                    const errMsg = error instanceof Error ? error.message : String(error);
+                    await connector.sendMessage(userId, `❌ 新增失敗：${errMsg}`);
+                }
+            }
+        });
+    }
+}
+//# sourceMappingURL=command-router.js.map

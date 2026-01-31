@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import { TelegramConnector } from './connectors/telegram.js';
+import { CommandRouter } from './core/command-router.js';
 import { GeminiAgent } from './core/gemini.js';
 import { MemoryManager } from './core/memory.js';
 import { Scheduler } from './core/scheduler.js';
@@ -18,6 +19,7 @@ async function bootstrap() {
     const gemini = new GeminiAgent();
     const memory = new MemoryManager();
     const scheduler = new Scheduler(memory, gemini, telegram);
+    const commandRouter = new CommandRouter();
     // 啟動排程器
     await scheduler.init();
     // 註冊優雅關閉處理器
@@ -35,68 +37,40 @@ async function bootstrap() {
     telegram.onMessage(async (msg) => {
         console.log(`📩 [${msg.sender.platform}] ${msg.sender.name}: ${msg.content}`);
         const userId = msg.sender.id;
-        if (msg.content.trim() === '/reset') {
-            memory.clear(userId);
-            await telegram.sendMessage(userId, "🧹 記憶已清除。");
+        const commandHandled = await commandRouter.handleMessage(msg, {
+            connector: telegram,
+            memory,
+            scheduler
+        });
+        if (commandHandled) {
             return;
         }
-        // 列出所有排程
-        if (msg.content.trim() === '/list_schedules') {
-            const schedules = scheduler.listSchedules(userId);
-            if (schedules.length === 0) {
-                await telegram.sendMessage(userId, "📋 目前沒有任何排程。");
-            }
-            else {
-                const list = schedules.map((s, idx) => `${idx + 1}. [ID: ${s.id}] ${s.name}\n   ⏰ Cron: ${s.cron}\n   📝 Prompt: ${s.prompt}\n   ${s.is_active ? '✅ 啟用中' : '❌ 已停用'}`).join('\n\n');
-                await telegram.sendMessage(userId, `📋 您的排程列表：\n\n${list}`);
-            }
-            return;
-        }
-        // 刪除排程（格式：/remove_schedule <id>）
-        if (msg.content.trim().startsWith('/remove_schedule ')) {
-            const parts = msg.content.trim().split(' ');
-            if (parts.length !== 2) {
-                await telegram.sendMessage(userId, "❌ 格式錯誤。使用範例：/remove_schedule 1");
-                return;
-            }
-            const id = parseInt(parts[1], 10);
-            if (isNaN(id)) {
-                await telegram.sendMessage(userId, "❌ ID 必須是數字。");
-                return;
-            }
-            try {
-                scheduler.removeSchedule(id);
-                await telegram.sendMessage(userId, `✅ 已刪除排程 #${id}`);
-            }
-            catch (error) {
-                const errMsg = error instanceof Error ? error.message : String(error);
-                await telegram.sendMessage(userId, `❌ 刪除失敗：${errMsg}`);
-            }
-            return;
-        }
-        // 新增排程（格式：/add_schedule <name>|<cron>|<prompt>）
-        if (msg.content.trim().startsWith('/add_schedule ')) {
-            const raw = msg.content.replace('/add_schedule ', '').trim();
-            const parts = raw.split('|').map(p => p.trim());
-            if (parts.length !== 3) {
-                await telegram.sendMessage(userId, "❌ 格式錯誤。使用範例：\n/add_schedule 早安問候|0 9 * * *|早安！今天天氣如何？");
-                return;
-            }
-            const [name, cron, prompt] = parts;
-            try {
-                const id = scheduler.addSchedule(userId, name, cron, prompt);
-                await telegram.sendMessage(userId, `✅ 成功新增排程 #${id}：${name}`);
-            }
-            catch (error) {
-                const errMsg = error instanceof Error ? error.message : String(error);
-                await telegram.sendMessage(userId, `❌ 新增失敗：${errMsg}`);
-            }
-            return;
-        }
-        // UX: 先發送 "Thinking..." 佔位訊息
+        // UX: 先發送 "Thinking..." 佔位訊息，並啟動輪播
         let placeholderMsgId = '';
+        let thinkingInterval = null;
+        const thinkingMessages = [
+            "🤔 思考中...",
+            "🧠 正在理解問題...",
+            "🔍 搜尋相關資訊...",
+            "⚡ 處理中...",
+            "💭 組織回答...",
+            "🎯 分析脈絡..."
+        ];
+        let messageIndex = 0;
         try {
-            placeholderMsgId = await telegram.sendPlaceholder(userId, "🤔 Thinking...");
+            placeholderMsgId = await telegram.sendPlaceholder(userId, thinkingMessages[0]);
+            // 每 3 秒切換一次訊息
+            if (placeholderMsgId) {
+                thinkingInterval = setInterval(async () => {
+                    messageIndex = (messageIndex + 1) % thinkingMessages.length;
+                    try {
+                        await telegram.editMessage(userId, placeholderMsgId, thinkingMessages[messageIndex]);
+                    }
+                    catch (e) {
+                        console.warn("Failed to update thinking message", e);
+                    }
+                }, 3000);
+            }
         }
         catch (e) {
             console.warn("Failed to send placeholder", e);
@@ -124,6 +98,13 @@ System: 你是 Moltbot，一個具備強大工具執行能力的本地 AI 助理
 node dist/tools/search_memory.js "關鍵字"
 這會從資料庫搜尋相關的歷史對話並顯示給你。
 
+【知識管理 - 重要】
+你有 MCP Memory 工具可以儲存長期知識與關係：
+- 當對話包含重要資訊（如：使用者偏好、專案細節、重要決策）時，請主動使用 create_entities 儲存
+- 當發現實體間的關係時，使用 create_relations 建立連結
+- 需要回想相關知識時，使用 search_entities 搜尋
+- 在對話結束前，如果有值得記住的內容，請務必儲存到 Memory
+
 Conversation History:
 ${historyContext}
 
@@ -142,7 +123,10 @@ AI Response:
                 }
                 memory.addMessage(userId, 'model', response, responseSummary);
             }
-            // 6. 更新訊息 (取代 Thinking...)
+            // 6. 停止輪播並更新訊息 (取代 Thinking...)
+            if (thinkingInterval) {
+                clearInterval(thinkingInterval);
+            }
             if (placeholderMsgId) {
                 await telegram.editMessage(userId, placeholderMsgId, response);
             }
@@ -154,6 +138,10 @@ AI Response:
         catch (error) {
             console.error('❌ Error processing message:', error);
             const errorMsg = "Sorry, I encountered an error while exercising my powers.";
+            // 停止輪播
+            if (thinkingInterval) {
+                clearInterval(thinkingInterval);
+            }
             if (placeholderMsgId) {
                 await telegram.editMessage(userId, placeholderMsgId, errorMsg);
             }

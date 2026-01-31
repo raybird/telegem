@@ -1,6 +1,9 @@
 import { Cron } from 'croner';
 import { MemoryManager } from './memory.js';
 import { GeminiAgent } from './gemini.js';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+const execAsync = promisify(exec);
 export class Scheduler {
     jobs = new Map();
     memory;
@@ -45,19 +48,50 @@ export class Scheduler {
         }
     }
     /**
+     * 從 MCP Memory 檢索長期記憶
+     * 呼叫 retrieve-memory.sh 並解析結果
+     */
+    async retrieveLongTermMemory(prompt) {
+        try {
+            const hookPath = `${process.env.GEMINI_PROJECT_DIR}/.gemini/hooks/retrieve-memory.sh`;
+            const input = JSON.stringify({ prompt });
+            console.log(`[Scheduler] Retrieving long-term memory for prompt...`);
+            // 執行 hook script
+            const { stdout } = await execAsync(`echo '${input}' | bash "${hookPath}"`, {
+                env: {
+                    ...process.env,
+                    GEMINI_PROJECT_DIR: process.env.GEMINI_PROJECT_DIR || process.cwd()
+                }
+            });
+            // 解析 JSON 回應
+            const response = JSON.parse(stdout.trim());
+            if (response.systemMessage) {
+                console.log(`[Scheduler] Retrieved memory context: ${response.systemMessage.substring(0, 100)}...`);
+                return response.systemMessage;
+            }
+            return '';
+        }
+        catch (error) {
+            console.error('[Scheduler] Failed to retrieve long-term memory:', error);
+            return '';
+        }
+    }
+    /**
      * 執行排程任務
      */
     async executeTask(schedule) {
         try {
             // 1. 準備 Context (載入使用者歷史記憶)
             const historyContext = this.memory.getHistoryContext(schedule.user_id);
-            // 2. 組合 Prompt
+            // 2. 檢索長期記憶 (MCP Memory)
+            const longTermMemory = await this.retrieveLongTermMemory(schedule.prompt);
+            // 3. 組合 Prompt
             const fullPrompt = `
 System: 你是 Moltbot，一個具備強大工具執行能力的本地 AI 助理。
 這是一個排程任務觸發的自動執行。
 請用繁體中文回應。
 
-Conversation History:
+${longTermMemory ? longTermMemory + '\n\n' : ''}Conversation History:
 ${historyContext}
 
 Scheduled Task: ${schedule.name}
@@ -65,14 +99,14 @@ User Request: ${schedule.prompt}
 
 AI Response:
 `.trim();
-            // 3. 呼叫 Gemini CLI
+            // 4. 呼叫 Gemini CLI
             const response = await this.gemini.chat(fullPrompt);
             console.log(`[Scheduler] Task #${schedule.id} completed. Response length: ${response.length}`);
-            // 4. 儲存 AI 回應到記憶
+            // 5. 儲存 AI 回應到記憶
             if (response && !response.startsWith('Error')) {
                 this.memory.addMessage(schedule.user_id, 'model', response);
             }
-            // 5. 將結果傳送給使用者
+            // 6. 將結果傳送給使用者
             const messageHeader = `🕐 [排程: ${schedule.name}]\n\n`;
             await this.connector.sendMessage(schedule.user_id, messageHeader + response);
         }

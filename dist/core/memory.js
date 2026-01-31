@@ -4,12 +4,23 @@ export class MemoryManager {
     db;
     MAX_HISTORY = 5; // 讀取最近 5 則訊息作為 Context
     constructor() {
-        // 初始化資料庫，檔案存在專案根目錄
-        const dbPath = path.resolve(process.cwd(), 'moltbot.db');
+        // 初始化資料庫，允許由環境變數指定路徑
+        const dbPath = this.resolveDbPath();
         this.db = new Database(dbPath); // verbose: console.log 可選
         // 啟用 WAL 模式 (Write-Ahead Logging) 提升效能與並發性
         this.db.pragma('journal_mode = WAL');
         this.initTable();
+    }
+    resolveDbPath() {
+        const explicitPath = process.env.DB_PATH?.trim();
+        if (explicitPath) {
+            return path.resolve(explicitPath);
+        }
+        const dbDir = process.env.DB_DIR?.trim();
+        if (dbDir) {
+            return path.resolve(dbDir, 'moltbot.db');
+        }
+        return path.resolve(process.cwd(), 'moltbot.db');
     }
     initTable() {
         // 建立 messages 表格

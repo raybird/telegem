@@ -17,6 +17,11 @@ export declare class Scheduler {
      */
     private startJob;
     /**
+     * 從 MCP Memory 檢索長期記憶
+     * 呼叫 retrieve-memory.sh 並解析結果
+     */
+    private retrieveLongTermMemory;
+    /**
      * 執行排程任務
      */
     private executeTask;

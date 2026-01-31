@@ -8,7 +8,7 @@ export interface UnifiedMessage {
     content: string;
     sender: UserProfile;
     timestamp: number;
-    raw?: any;
+    raw?: unknown;
 }
 export interface Connector {
     name: string;

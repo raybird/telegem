@@ -16,6 +16,7 @@ export declare class MemoryManager {
     private db;
     private readonly MAX_HISTORY;
     constructor();
+    private resolveDbPath;
     private initTable;
     /**
      * 新增訊息到資料庫
