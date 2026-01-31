@@ -26,11 +26,15 @@ fi
 
 # 使用 Node.js 查詢資料庫（使用專案中已安裝的 better-sqlite3）
 # 改進的搜尋策略：提取實體名稱和關鍵詞
+# 安全修復：使用環境變數傳遞 USER_PROMPT，避免 Injection
+export USER_PROMPT="$user_prompt"
+
 query_result=$(node -e "
 const Database = require('better-sqlite3');
 const db = new Database('$DB_PATH', { readonly: true });
 
-const prompt = \`$user_prompt\`;
+// 安全：從環境變數讀取 Prompt，而非字串插值
+const prompt = process.env.USER_PROMPT || '';
 
 // 改進的關鍵字提取：
 // 1. 先提取所有已知的實體名稱
