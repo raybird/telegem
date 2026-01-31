@@ -27,8 +27,7 @@ async function bootstrap() {
   const scheduler = new Scheduler(memory, gemini, telegram);
   const commandRouter = new CommandRouter();
 
-  // 啟動排程器
-  await scheduler.init();
+
 
   // 註冊優雅關閉處理器
   process.on('SIGINT', () => {
@@ -185,8 +184,11 @@ AI Response:
     }
   });
 
-  // 啟動連接器
+  // 啟動連接器 (確保 bot instance 存在)
   await telegram.initialize();
+
+  // 啟動排程器 (可能需要發送歡迎訊息)
+  await scheduler.init();
 }
 
 bootstrap().catch(err => {

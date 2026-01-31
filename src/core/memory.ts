@@ -258,6 +258,21 @@ export class MemoryManager {
   }
 
   /**
+   * 取得使用者最後一次對話的時間戳
+   * @param userId 使用者 ID
+   * @returns 最後對話的 timestamp，若無紀錄則返回 null
+   */
+  getLastMessageTime(userId: string): number | null {
+    const stmt = this.db.prepare(`
+      SELECT MAX(timestamp) as lastTime
+      FROM messages
+      WHERE user_id = ?
+    `);
+    const row = stmt.get(userId) as { lastTime: number | null } | undefined;
+    return row?.lastTime || null;
+  }
+
+  /**
    * 取得指定時間範圍內的對話歷史 (供追蹤系統使用)
    * @param userId 使用者 ID
    * @param hours 往前查詢的小時數
@@ -282,23 +297,5 @@ export class MemoryManager {
       content: row.content,
       timestamp: row.timestamp
     }));
-  }
-
-  /**
-   * 取得使用者最後一則訊息的時間戳
-   * @param userId 使用者 ID
-   * @returns 時間戳 (ms)，若無訊息則返回 0
-   */
-  getLastMessageTime(userId: string): number {
-    const stmt = this.db.prepare(`
-      SELECT timestamp
-      FROM messages
-      WHERE user_id = ?
-      ORDER BY timestamp DESC
-      LIMIT 1
-    `);
-
-    const row = stmt.get(userId) as { timestamp: number } | undefined;
-    return row?.timestamp ?? 0;
   }
 }

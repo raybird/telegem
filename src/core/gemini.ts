@@ -54,7 +54,11 @@ export class GeminiAgent {
       // 設定 10 分鐘超時，並在 workspace/ 目錄執行，避免意外修改源碼
       const { stdout, stderr } = await execAsync(command, {
         timeout: 600000,
-        cwd: 'workspace'
+        cwd: 'workspace',
+        env: {
+          ...process.env,
+          GEMINI_PROJECT_DIR: process.env.GEMINI_PROJECT_DIR || process.cwd()
+        }
       });
 
       if (stderr && stderr.trim().length > 0) {

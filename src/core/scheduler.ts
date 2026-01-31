@@ -35,6 +35,49 @@ export class Scheduler {
 
         // 初始化系統排程
         await this.initSystemSchedules();
+
+        // 啟動時檢查使用者最後活動時間
+        await this.checkStartupActivity();
+    }
+
+    /**
+     * 啟動時檢查使用者活動狀態，決定是否觸發問候或追蹤
+     */
+    private async checkStartupActivity(): Promise<void> {
+        const userId = process.env.ALLOWED_USER_ID;
+        if (!userId) {
+            console.log('[Scheduler] No ALLOWED_USER_ID set, skipping startup activity check.');
+            return;
+        }
+
+        const lastMessageTime = this.memory.getLastMessageTime(userId);
+        const now = Date.now();
+
+        if (lastMessageTime === null) {
+            // 資料庫沒有任何訊息紀錄，發送問候訊息
+            console.log('[Scheduler] No message history found, sending greeting...');
+            await this.connector.sendMessage(userId, '👋 嗨！我是 TeleGem，您的 AI 助理。有什麼需要幫忙的嗎？');
+            this.resetSilenceTimer(userId);
+        } else {
+            const silenceMs = now - lastMessageTime;
+            const silenceMinutes = Math.floor(silenceMs / 1000 / 60);
+            console.log(`[Scheduler] Last message was ${silenceMinutes} minutes ago.`);
+
+            if (silenceMs >= this.SILENCE_TIMEOUT_MS) {
+                // 超過沉默時間，立即觸發追蹤
+                console.log('[Scheduler] Silence exceeded threshold, triggering follow-up...');
+                await this.triggerReflection(userId, 'silence');
+            } else {
+                // 尚未超過，設定剩餘時間的計時器
+                const remainingMs = this.SILENCE_TIMEOUT_MS - silenceMs;
+                console.log(`[Scheduler] Setting follow-up timer for ${Math.floor(remainingMs / 1000 / 60)} minutes...`);
+                const timer = setTimeout(async () => {
+                    console.log(`[Scheduler] Startup timer triggered for user ${userId}`);
+                    await this.triggerReflection(userId, 'silence');
+                }, remainingMs);
+                this.silenceTimers.set(userId, timer);
+            }
+        }
     }
 
     /**
