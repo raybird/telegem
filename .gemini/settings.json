@@ -2,7 +2,10 @@
   "mcpServers": {
     "mcp-memory-libsql": {
       "command": "npx",
-      "args": ["-y", "mcp-memory-libsql"],
+      "args": [
+        "-y",
+        "mcp-memory-libsql"
+      ],
       "env": {
         "LIBSQL_URL": "file:./data/memory.db"
       }
@@ -12,16 +15,16 @@
     "skills": true
   },
   "hooks": {
-    "AfterAgent": [
+    "BeforeAgent": [
       {
         "matcher": "*",
         "hooks": [
           {
-            "name": "memory-reminder",
+            "name": "memory-retrieval",
             "type": "command",
-            "command": "echo '{\"decision\": \"allow\", \"systemMessage\": \"💡 提醒：如果這次對話有重要資訊，請記得使用 MCP Memory 工具儲存！\"}' 2>&1",
-            "timeout": 1000,
-            "description": "提醒 AI 儲存重要記憶"
+            "command": "$GEMINI_PROJECT_DIR/.gemini/hooks/retrieve-memory.sh",
+            "timeout": 3000,
+            "description": "自動從 MCP Memory 檢索相關記憶並注入 Prompt"
           }
         ]
       }
