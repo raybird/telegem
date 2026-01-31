@@ -16,9 +16,9 @@ RUN npm install -g @google/gemini-cli
 COPY package.json package-lock.json ./
 RUN npm install
 
-# 複製 .gemini 配置與 hooks（需要在 build 之前）
-COPY .gemini ./.gemini
-RUN chmod +x .gemini/hooks/*.sh 2>/dev/null || true
+# 複製 workspace 目錄結構（含 .gemini 配置與 hooks）
+COPY workspace ./workspace
+RUN chmod +x workspace/.gemini/hooks/*.sh 2>/dev/null || true
 
 # 預先安裝 mcp-memory-libsql 以避免執行時下載問題
 RUN npm install -g mcp-memory-libsql
