@@ -4,7 +4,7 @@
       "command": "npx",
       "args": ["-y", "mcp-memory-libsql"],
       "env": {
-        "LIBSQL_URL": "file:/data/memory.db"
+        "LIBSQL_URL": "file:./data/memory.db"
       }
     }
   },

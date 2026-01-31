@@ -10,3 +10,5 @@ moltbot.db**
 .gemini/auth/
 .gemini/cache/
 .gemini/.credentials
+
+data/
