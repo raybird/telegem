@@ -10,7 +10,7 @@ services:
       GEMINI_PROJECT_DIR: /app
     volumes:
       - ./data:/app/data
-      - ./.gemini:/app/.gemini
+      - ./workspace/.gemini:/app/workspace/.gemini
       - gemini_auth:/root/.gemini
     restart: unless-stopped
 

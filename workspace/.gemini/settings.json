@@ -7,7 +7,7 @@
         "mcp-memory-libsql"
       ],
       "env": {
-        "LIBSQL_URL": "file:./data/memory.db"
+        "LIBSQL_URL": "file:../data/memory.db"
       }
     }
   },
@@ -22,7 +22,7 @@
           {
             "name": "memory-retrieval",
             "type": "command",
-            "command": "$GEMINI_PROJECT_DIR/.gemini/hooks/retrieve-memory.sh",
+            "command": "$GEMINI_PROJECT_DIR/workspace/.gemini/hooks/retrieve-memory.sh",
             "timeout": 3000,
             "description": "自動從 MCP Memory 檢索相關記憶並注入 Prompt"
           }

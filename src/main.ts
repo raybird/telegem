@@ -126,6 +126,12 @@ node dist/tools/search_memory.js "關鍵字"
 - 需要回想相關知識時，使用 search_entities 搜尋
 - 在對話結束前，如果有值得記住的內容，請務必儲存到 Memory
 
+【工作目錄限制 - 重要】
+- 你的當前工作目錄是 workspace/
+- ⚠️ 不要修改或執行 ../src/ 目錄下的任何檔案
+- 所有臨時檔案請放在 temp/ 目錄
+- 如需讀取專案資訊，請使用完整路徑（例如：../src/core/scheduler.ts）
+
 Conversation History:
 ${historyContext}
 

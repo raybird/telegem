@@ -112,7 +112,7 @@ docker compose up -d --build
 
 ### 3. Gemini CLI 設定
 專案使用獨立的 gemini-cli 設定：
-- **專案設定**：`./.gemini/settings.json`（含 MCP servers 設定）
+- **專案設定**：`./workspace/.gemini/settings.json`（含 MCP servers 設定）
 - **認證資訊**：由 Docker volume 管理（`gemini_auth`）
 
 **首次使用 - 登入**：
@@ -122,7 +122,7 @@ docker compose exec telegem gemini
 登入資訊會保存到 volume，重建容器不會遺失。
 
 **調整 MCP 設定**：
-編輯 `./.gemini/settings.json` 後重啟容器：
+編輯 `./workspace/.gemini/settings.json` 後重啟容器：
 ```bash
 docker compose restart
 ```
@@ -157,7 +157,7 @@ docker compose exec telegem bash
 **自動記憶機制**：
 - System prompt 已引導 AI 主動使用 MCP memory
 - `BeforeAgent` hook 會在每次對話前自動檢索相關記憶並注入 Prompt
-- 透過 `.gemini/hooks/retrieve-memory.sh` 實現語義搜尋與記憶增強
+- 透過 `workspace/.gemini/hooks/retrieve-memory.sh` 實現語義搜尋與記憶增強
 
 **手動管理**：
 ```bash
@@ -171,7 +171,7 @@ docker compose exec telegem bash
 ### 7. 擴充 Skills 與其他 MCP Servers（選用）
 
 **MCP Servers 設定**：
-- 編輯 `./.gemini/settings.json` 中的 `mcpServers` 區塊
+- 編輯 `./workspace/.gemini/settings.json` 中的 `mcpServers` 區塊
 - 容器已預裝 `uv`/`uvx`，支援 Python MCP servers
 
 **安裝 Skills**：

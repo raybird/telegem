@@ -8,8 +8,11 @@ moltbot.db**
 .env
 
 # Gemini CLI - 只保留設定檔，忽略認證與快取
-.gemini/auth/
-.gemini/cache/
-.gemini/.credentials
+workspace/.gemini/auth/
+workspace/.gemini/cache/
+workspace/.gemini/.credentials
+
+# Workspace temp files
+workspace/temp/
 
 data/

@@ -82,7 +82,7 @@ export class Scheduler {
     private async retrieveLongTermMemory(prompt: string): Promise<string> {
         try {
             const projectDir = process.env.GEMINI_PROJECT_DIR || process.cwd();
-            const hookPath = `${projectDir}/.gemini/hooks/retrieve-memory.sh`;
+            const hookPath = `${projectDir}/workspace/.gemini/hooks/retrieve-memory.sh`;
             const input = JSON.stringify({ prompt });
 
             console.log(`[Scheduler] Retrieving long-term memory for prompt...`);

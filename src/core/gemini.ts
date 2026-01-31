@@ -51,8 +51,11 @@ export class GeminiAgent {
 
       console.log(`[Gemini] Executing (YOLO Mode): ${command.substring(0, 50)}...`);
 
-      // 設定 10 分鐘超時，避免無限等待
-      const { stdout, stderr } = await execAsync(command, { timeout: 600000 });
+      // 設定 10 分鐘超時，並在 workspace/ 目錄執行，避免意外修改源碼
+      const { stdout, stderr } = await execAsync(command, {
+        timeout: 600000,
+        cwd: 'workspace'
+      });
 
       if (stderr && stderr.trim().length > 0) {
         // 工具執行的過程通常會輸出很多 stderr 資訊，這裡我們記錄下來但不中斷流程
