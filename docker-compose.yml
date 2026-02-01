@@ -13,6 +13,8 @@ services:
       - ./workspace/.gemini:/app/workspace/.gemini
       - ./ai-config.yaml:/app/ai-config.yaml
       - gemini_auth:/root/.gemini
+      # 掛載本地 opencode 認證和資料 (需先確保本地已登入)
+      - ${HOME}/.local/share/opencode:/root/.local/share/opencode
     restart: unless-stopped
 
 volumes:

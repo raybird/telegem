@@ -44,7 +44,13 @@ ${text}
                 command += ` --model ${JSON.stringify(options.model)}`;
             }
 
-            const { stdout } = await execAsync(command);
+            console.log(`[Opencode Summarize] Starting...`);
+            const { stdout, stderr } = await execAsync(command);
+
+            if (stderr && stderr.trim().length > 0) {
+                console.log(`[Opencode Summarize] stderr: ${stderr.substring(0, 200)}`);
+            }
+
             const cleaned = this.cleanOutput(stdout);
 
             // 驗證摘要長度，過長則截斷
@@ -54,7 +60,7 @@ ${text}
 
             return cleaned || '(摘要失敗)';
         } catch (error: any) {
-            console.error('[Opencode] Summarization failed:', error);
+            console.error('[Opencode] Summarization failed:', error.message);
             // Fallback: 截斷原文
             return text.substring(0, 200) + '...';
         }
@@ -67,11 +73,11 @@ ${text}
         try {
             const safePrompt = JSON.stringify(prompt);
 
-            // 使用 echo 透過 stdin 傳遞訊息，比直接作為參數更快
-            // 使用 2>/dev/null 忽略 stderr，因為 opencode 會產生工具掃描錯誤
-            let command = `echo ${safePrompt} | opencode run 2>/dev/null`;
+            // 使用 echo 透過 stdin 傳遞訊息,比直接作為參數更快
+            // 暫時移除 stderr 過濾以便 debug
+            let command = `echo ${safePrompt} | opencode run`;
 
-            // 若有指定 model，加入參數
+            // 若有指定 model,加入參數
             if (options?.model) {
                 command += ` --model ${JSON.stringify(options.model)}`;
                 console.log(`[Opencode] Executing with model: ${options.model}`);
@@ -79,12 +85,19 @@ ${text}
                 console.log(`[Opencode] Executing (default model)`);
             }
 
+            // 取得絕對工作目錄路徑
+            const workspacePath = process.env.GEMINI_PROJECT_DIR
+                ? `${process.env.GEMINI_PROJECT_DIR}/workspace`
+                : 'workspace';
+
+            console.log(`[Opencode] Command: ${command}`);
+            console.log(`[Opencode] Working directory: ${workspacePath}`);
             console.log(`[Opencode] Starting execution...`);
 
-            // 設定 10 分鐘超時，並在 workspace/ 目錄執行
+            // 設定 10 分鐘超時,並在 workspace/ 目錄執行
             const { stdout, stderr } = await execAsync(command, {
                 timeout: 600000,
-                cwd: 'workspace',
+                cwd: workspacePath,
                 env: {
                     ...process.env
                 }
@@ -92,27 +105,40 @@ ${text}
 
             console.log(`[Opencode] Execution completed. Output length: ${stdout.length}`);
 
-            // 只記錄 stderr，不影響結果
+            // 顯示完整 stderr 以便 debug
             if (stderr && stderr.trim().length > 0) {
-                console.log(`[Opencode] stderr (ignored): ${stderr.substring(0, 100)}...`);
+                console.log(`[Opencode] stderr:\n${stderr}`);
             }
 
             const cleaned = this.cleanOutput(stdout);
 
             if (!cleaned || cleaned.length === 0) {
                 console.warn('[Opencode] Warning: No output after cleaning');
-                return "Opencode 執行完成，但沒有返回任何文字內容。";
+                console.log(`[Opencode] Raw stdout:\n${stdout.substring(0, 500)}...`);
+                return "Opencode 執行完成,但沒有返回任何文字內容。";
             }
 
             console.log(`[Opencode] Reply length: ${cleaned.length}`);
             return cleaned;
 
         } catch (error: any) {
-            console.error('[Opencode] Execution failed:', error.message);
+            console.error('[Opencode] Execution failed:');
+            console.error(`  Message: ${error.message}`);
+            console.error(`  Code: ${error.code}`);
+            console.error(`  Signal: ${error.signal}`);
+            console.error(`  Stack: ${error.stack}`);
+
+            if (error.stdout) {
+                console.error(`  Stdout: ${error.stdout.substring(0, 500)}`);
+            }
+            if (error.stderr) {
+                console.error(`  Stderr: ${error.stderr.substring(0, 500)}`);
+            }
+
             if (error.code === 'ETIMEDOUT' || error.signal === 'SIGTERM') {
                 return '✨ 10分鐘內未完成';
             }
-            // 返回錯誤但不包含 stderr，因為那些是工具掃描錯誤
+
             return `Error calling Opencode: ${error.message}`;
         }
     }

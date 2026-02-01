@@ -22,7 +22,7 @@ ENV PATH="/root/.local/bin:$PATH"
 RUN npm install -g @google/gemini-cli
 
 # Install opencode CLI globally (for multi-provider support)
-RUN npm install -g @opencodehq/opencode
+RUN npm install -g opencode-ai
 
 COPY package.json package-lock.json ./
 RUN npm install
@@ -36,6 +36,10 @@ RUN npm install -g mcp-memory-libsql
 
 COPY src ./src
 COPY tsconfig.json ./
+
+# 複製 debug 腳本
+COPY debug-container.sh ./
+RUN chmod +x debug-container.sh
 
 RUN npm run build
 
