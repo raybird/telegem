@@ -45,7 +45,7 @@
 ### 2. 下載與安裝
 ```bash
 # 進入專案目錄
-cd telegem
+cd telenexus
 
 # 安裝依賴
 npm install
