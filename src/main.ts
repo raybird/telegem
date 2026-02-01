@@ -9,6 +9,23 @@ import type { UnifiedMessage } from './types/index.js';
 // 載入環境變數
 dotenv.config();
 
+/**
+ * 判斷是否需要生成摘要
+ * 簡化的觸發條件：字元長度 + 程式碼區塊 + 行數
+ */
+function shouldSummarize(content: string): boolean {
+  // 條件 1: 超過 200 字元
+  if (content.length > 200) return true;
+
+  // 條件 2: 包含程式碼區塊或工具輸出
+  if (content.includes('```') || content.includes('tool_result')) return true;
+
+  // 條件 3: 超過 6 行
+  if ((content.match(/\n/g) || []).length >= 6) return true;
+
+  return false;
+}
+
 async function bootstrap() {
   console.log('🚀 Starting TeleGem (YOLO Agent + Stream UX)...');
 
@@ -92,12 +109,11 @@ async function bootstrap() {
     }
 
     try {
-      // 1. 存入使用者訊息 (長文自動摘要)
-      const userContentLength = msg.content.length;
+      // 1. 存入使用者訊息 (依條件自動摘要)
       let userSummary: string | undefined;
 
-      if (userContentLength > 800) {
-        console.log(`📝 [Memory] User input is long (${userContentLength} chars), generating summary...`);
+      if (shouldSummarize(msg.content)) {
+        console.log(`📝 [Memory] User input meets summary criteria, generating summary...`);
         userSummary = await gemini.summarize(msg.content);
       }
 
@@ -142,13 +158,12 @@ AI Response:
 
       console.log(`🤖 [Gemini] Reply length: ${response.length}`);
 
-      // 5. 存入 AI 回應 (長文自動摘要)
+      // 5. 存入 AI 回應 (依條件自動摘要)
       if (response && !response.startsWith('Error')) {
-        const responseLength = response.length;
         let responseSummary: string | undefined;
 
-        if (responseLength > 800) {
-          console.log(`📝 [Memory] AI response is long (${responseLength} chars), generating summary...`);
+        if (shouldSummarize(response)) {
+          console.log(`📝 [Memory] AI response meets summary criteria, generating summary...`);
           responseSummary = await gemini.summarize(response);
         }
 

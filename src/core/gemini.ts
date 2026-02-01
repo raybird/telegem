@@ -19,19 +19,38 @@ export class GeminiAgent {
   }
 
   /**
-   * 生成文字的摘要 (使用 JSON 格式化輸出縮小 Token)
+   * 生成結構化摘要
+   * 格式固定為 Goal/Decision/Todo/Facts 欄位
    */
   async summarize(text: string): Promise<string> {
     try {
-      const prompt = `請將以下內容濃縮成 1-2 句話的精簡摘要，保留最重要的資訊：\n\n${text}`;
+      const prompt = `請將以下內容整理成結構化摘要，使用以下格式（省略空白欄位）：
+
+Goal: [目標或意圖，若無則省略]
+Decision: [做出的決定，若無則省略]
+Todo: [待辦事項，若無則省略]
+Facts: [重要事實或資訊]
+
+內容：
+${text}
+
+只輸出摘要，不要加任何說明。`;
+
       const safePrompt = JSON.stringify(prompt);
       const command = `gemini -p ${safePrompt}`;
 
       const { stdout } = await execAsync(command);
-      return this.cleanOutput(stdout) || '(摘要失敗)';
+      const cleaned = this.cleanOutput(stdout);
+
+      // 驗證摘要長度，過長則截斷
+      if (cleaned.length > 280) {
+        return cleaned.substring(0, 280) + '...';
+      }
+
+      return cleaned || '(摘要失敗)';
     } catch (error: any) {
       console.error('[Gemini] Summarization failed:', error);
-      // 如果摘要失敗，返回截斷的原文
+      // Fallback: 截斷原文
       return text.substring(0, 200) + '...';
     }
   }

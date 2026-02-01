@@ -19,7 +19,9 @@ export interface Schedule {
 
 export class MemoryManager {
   private db: Database.Database;
-  private readonly MAX_HISTORY = 5; // 讀取最近 5 則訊息作為 Context
+  private readonly MAX_HISTORY = 15;       // 擴充到 15 則對話
+  private readonly FULL_TEXT_COUNT = 5;    // 保留最新 5 則原文
+  private readonly OLD_TEXT_MAX_LEN = 300; // [Old] 訊息的硬截斷上限
 
   constructor() {
     // 初始化資料庫，允許由環境變數指定路徑
@@ -108,36 +110,64 @@ export class MemoryManager {
   }
 
   /**
-   * 取得格式化後的歷史紀錄 Prompt
-   * 讀取該使用者最近 N 筆對話
-   * 優先使用 summary（若存在），否則使用完整 content
+   * 取得混合式歷史紀錄 Prompt
+   * - 最舊的 10 則：使用「結構化摘要」或截斷原文
+   * - 最新的 5 則：一律用完整原文
    */
   getHistoryContext(userId: string): string {
-    // 1. 取出最近的 MAX_HISTORY 筆 (依照時間倒序取，這樣才能拿到最新的)
     const stmt = this.db.prepare(`
-      SELECT role, content, summary 
-      FROM messages 
-      WHERE user_id = ? 
-      ORDER BY timestamp DESC 
+      SELECT role, content, summary
+      FROM messages
+      WHERE user_id = ?
+      ORDER BY timestamp DESC
       LIMIT ?
     `);
 
-    const rows = stmt.all(userId, this.MAX_HISTORY) as { role: string, content: string, summary: string | null }[];
+    const rows = stmt.all(userId, this.MAX_HISTORY) as {
+      role: string;
+      content: string;
+      summary: string | null;
+    }[];
 
     if (rows.length === 0) {
       return '';
     }
 
-    // 2. 因為是倒序取出的 (最新 -> 最舊)，要反轉回 (最舊 -> 最新) 才能符合閱讀順序
+    // 反轉為 (最舊 -> 最新)
     rows.reverse();
 
-    // 3. 格式化為 Prompt (優先使用 summary)
-    return rows.map(msg => {
+    // 分割為舊對話和新對話
+    const cutIndex = Math.max(0, rows.length - this.FULL_TEXT_COUNT);
+    const older = rows.slice(0, cutIndex);
+    const recent = rows.slice(cutIndex);
+
+    // 較舊的：優先用 summary，沒有時用截斷原文 + [Old] 標記
+    const olderContext = older.map(msg => {
       const roleName = msg.role === 'user' ? 'User' : 'AI';
-      const displayText = msg.summary || msg.content;
-      const prefix = msg.summary ? '[Summary]' : '';
-      return `${roleName}${prefix}: ${displayText}`;
+
+      if (msg.summary) {
+        return `${roleName}[Summary]: ${msg.summary}`;
+      }
+
+      // 硬截斷避免 token 浪費
+      const truncated = msg.content.length > this.OLD_TEXT_MAX_LEN
+        ? msg.content.substring(0, this.OLD_TEXT_MAX_LEN) + '...'
+        : msg.content;
+      return `${roleName}[Old]: ${truncated}`;
     }).join('\n');
+
+    // 最新的：一律用原文
+    const recentContext = recent.map(msg => {
+      const roleName = msg.role === 'user' ? 'User' : 'AI';
+      return `${roleName}: ${msg.content}`;
+    }).join('\n');
+
+    // 使用純 ASCII 分隔符，避免 LLM 誤解
+    if (olderContext && recentContext) {
+      return `${olderContext}\n\n--- [Recent Messages] ---\n${recentContext}`;
+    }
+
+    return recentContext || olderContext;
   }
 
   /**

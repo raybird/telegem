@@ -16,3 +16,8 @@ workspace/.gemini/.credentials
 workspace/temp/
 
 data/
+
+# Docker local dev override
+docker-compose.override.yml
+
+# docs
