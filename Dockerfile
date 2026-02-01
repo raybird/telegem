@@ -1,11 +1,31 @@
+# ==========================================
+# Stage 1: Builder (Compilers & Build Tools)
+# ==========================================
+FROM node:22-slim AS builder
+
+WORKDIR /app
+
+# 安裝建置依賴 (僅在建置階段存在)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  python3 make g++ python3-pip \
+  && rm -rf /var/lib/apt/lists/*
+
+COPY package.json package-lock.json ./
+RUN npm install
+COPY . .
+RUN npm run build
+
+# ==========================================
+# Stage 2: Runtime (Production Environment)
+# ==========================================
 FROM node:22-slim
 
 WORKDIR /app
 
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends \
-  python3 python3-pip python3-venv make g++ curl jq bash \
-  # Browser dependencies
+# 安裝執行時依賴 (不含編譯器 g++/make，比較安全)
+# 保留 python3 (許多 MCP 需要), curl/jq/bash (工具與除錯), chromium (Puppeteer)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  python3 python3-venv curl jq bash \
   chromium \
   fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst fonts-freefont-ttf libxss1 \
   && rm -rf /var/lib/apt/lists/*
@@ -14,34 +34,23 @@ RUN apt-get update \
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
-# Install uv (Python package manager for MCP servers)
+# Install uv (確保 uvx 可用，這是 MCP 必需的)
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:$PATH"
 
-# Install gemini-cli globally
-RUN npm install -g @google/gemini-cli
+# Install global CLI tools
+RUN npm install -g @google/gemini-cli opencode-ai mcp-memory-libsql
 
-# Install opencode CLI globally (for multi-provider support)
-RUN npm install -g opencode-ai
+# 從 Builder 階段複製編譯好的檔案
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/package-lock.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
 
-COPY package.json package-lock.json ./
-RUN npm install
-
-# 複製 workspace 目錄結構（含 .gemini 配置與 hooks）
+# 複製 workspace 和腳本
 COPY workspace ./workspace
-RUN chmod +x workspace/.gemini/hooks/*.sh 2>/dev/null || true
-
-# 預先安裝 mcp-memory-libsql 以避免執行時下載問題
-RUN npm install -g mcp-memory-libsql
-
-COPY src ./src
-COPY tsconfig.json ./
-
-# 複製 debug 腳本
 COPY debug-container.sh ./
-RUN chmod +x debug-container.sh
-
-RUN npm run build
+RUN chmod +x debug-container.sh && chmod +x workspace/.gemini/hooks/*.sh 2>/dev/null || true
 
 ENV NODE_ENV=production
 ENV GEMINI_PROJECT_DIR=/app

@@ -61,10 +61,19 @@ export class DynamicAIAgent implements AIAgent {
             mergedOptions.model = modelValue;
         }
 
+        let response: string;
+        let providerName: string;
+
         if (config.provider === 'opencode') {
-            return this.opencodeAgent.chat(prompt, mergedOptions);
+            response = await this.opencodeAgent.chat(prompt, mergedOptions);
+            providerName = 'Opencode';
+        } else {
+            response = await this.geminiAgent.chat(prompt, mergedOptions);
+            providerName = 'Gemini';
         }
-        return this.geminiAgent.chat(prompt, mergedOptions);
+
+        // 在回應開頭加上 provider 標記
+        return `[${providerName}] ${response}`;
     }
 
     async summarize(text: string, options?: AIAgentOptions): Promise<string> {

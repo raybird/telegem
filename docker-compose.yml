@@ -10,8 +10,8 @@ services:
       GEMINI_PROJECT_DIR: /app
     volumes:
       - ./data:/app/data
-      - ./workspace/.gemini:/app/workspace/.gemini
-      - ./ai-config.yaml:/app/ai-config.yaml
+      - ./workspace/.gemini:/app/workspace/.gemini:ro
+      - ./ai-config.yaml:/app/ai-config.yaml:ro
       - gemini_auth:/root/.gemini
       # 掛載本地 opencode 認證和資料 (需先確保本地已登入)
       - ${HOME}/.local/share/opencode:/root/.local/share/opencode
