@@ -3,6 +3,7 @@ services:
     build: .
     env_file: .env
     environment:
+      TZ: Asia/Taipei
       TELEGRAM_TOKEN: ${TELEGRAM_TOKEN}
       ALLOWED_USER_ID: ${ALLOWED_USER_ID}
       DB_PATH: /app/data/moltbot.db
@@ -10,7 +11,8 @@ services:
       GEMINI_PROJECT_DIR: /app
     volumes:
       - ./data:/app/data
-      - ./workspace/.gemini:/app/workspace/.gemini:ro
+      - ./workspace/.gemini:/app/workspace/.gemini
+      - ./workspace/.opencode:/app/workspace/.opencode
       - ./ai-config.yaml:/app/ai-config.yaml:ro
       - gemini_auth:/root/.gemini
       # 掛載本地 opencode 認證和資料 (需先確保本地已登入)

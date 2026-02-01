@@ -25,13 +25,23 @@ export class Scheduler {
     }
 
     private getTimezone(): string {
-        try {
-            const fileContent = fs.readFileSync('ai-config.yaml', 'utf8');
-            const config = yaml.load(fileContent) as any;
-            return config?.timezone || 'Asia/Taipei';
-        } catch (error) {
-            return 'Asia/Taipei';
+        // 優先使用環境變數 (與 Docker 容器一致)
+        if (process.env.TZ) {
+            return process.env.TZ;
         }
+
+        // 其次嘗試讀取設定檔
+        try {
+            if (fs.existsSync('ai-config.yaml')) {
+                const fileContent = fs.readFileSync('ai-config.yaml', 'utf8');
+                const config = yaml.load(fileContent) as any;
+                return config?.timezone || 'Asia/Taipei';
+            }
+        } catch (error) {
+            // ignore error
+        }
+
+        return 'Asia/Taipei';
     }
 
     /**

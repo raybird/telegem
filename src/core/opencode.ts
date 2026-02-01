@@ -20,6 +20,40 @@ export class OpencodeAgent implements AIAgent {
     }
 
     /**
+     * 從 MCP Memory 檢索長期記憶 (模擬 Gemini BeforeAgent Hook)
+     */
+    private async retrieveMemory(prompt: string): Promise<string> {
+        try {
+            const projectDir = process.env.GEMINI_PROJECT_DIR || process.cwd();
+            const hookPath = `${projectDir}/workspace/.gemini/hooks/retrieve-memory.sh`;
+            const input = JSON.stringify({ prompt });
+
+            console.log(`[Opencode] Retrieving long-term memory for prompt...`);
+
+            // 執行 hook script (重用 Gemini 的檢索邏輯)
+            const { stdout } = await execAsync(`echo '${input}' | bash "${hookPath}"`, {
+                env: {
+                    ...process.env,
+                    GEMINI_PROJECT_DIR: process.env.GEMINI_PROJECT_DIR || process.cwd()
+                }
+            });
+
+            // 解析 JSON 回應
+            const response = JSON.parse(stdout.trim());
+
+            if (response.systemMessage) {
+                console.log(`[Opencode] Retrieved memory context: ${response.systemMessage.substring(0, 100)}...`);
+                return response.systemMessage;
+            }
+
+            return '';
+        } catch (error) {
+            console.error('[Opencode] Failed to retrieve long-term memory:', error);
+            return '';
+        }
+    }
+
+    /**
      * 生成結構化摘要
      */
     async summarize(text: string, options?: AIAgentOptions): Promise<string> {
@@ -71,7 +105,15 @@ ${text}
      */
     async chat(prompt: string, options?: AIAgentOptions): Promise<string> {
         try {
-            const safePrompt = JSON.stringify(prompt);
+            // 1. 呼叫 opencode 前先檢索記憶 (模擬 Gemini BeforeAgent Hook)
+            const memoryContext = await this.retrieveMemory(prompt);
+
+            // 2. 如果有記憶內容,注入到 prompt 前面
+            const enrichedPrompt = memoryContext
+                ? `${memoryContext}\n\n${prompt}`
+                : prompt;
+
+            const safePrompt = JSON.stringify(enrichedPrompt);
 
             // 使用 echo 透過 stdin 傳遞訊息,比直接作為參數更快
             // 暫時移除 stderr 過濾以便 debug
