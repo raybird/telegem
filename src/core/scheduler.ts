@@ -1,5 +1,7 @@
 import { Cron } from 'croner';
 import { MemoryManager, type Schedule } from './memory.js';
+import fs from 'fs';
+import yaml from 'js-yaml';
 import type { AIAgent } from './agent.js';
 import type { Connector } from '../types/index.js';
 import { exec } from 'child_process';
@@ -20,6 +22,16 @@ export class Scheduler {
         this.memory = memory;
         this.gemini = gemini;
         this.connector = connector;
+    }
+
+    private getTimezone(): string {
+        try {
+            const fileContent = fs.readFileSync('ai-config.yaml', 'utf8');
+            const config = yaml.load(fileContent) as any;
+            return config?.timezone || 'Asia/Taipei';
+        } catch (error) {
+            return 'Asia/Taipei';
+        }
     }
 
     /**
@@ -85,12 +97,13 @@ export class Scheduler {
      */
     private async initSystemSchedules(): Promise<void> {
         // 每日 09:00 發送「每日對話摘要」
-        const dailySummaryJob = new Cron('0 9 * * *', async () => {
+        const timezone = this.getTimezone();
+        const dailySummaryJob = new Cron('0 9 * * *', { timezone }, async () => {
             console.log('[Scheduler] Triggering daily summary...');
             await this.executeDailySummary();
         });
         this.systemJobs.set('daily_summary', dailySummaryJob);
-        console.log('[Scheduler] Registered system job: daily_summary (09:00 daily)');
+        console.log(`[Scheduler] Registered system job: daily_summary (09:00 daily) in timezone ${timezone}`);
     }
 
     /**
@@ -106,13 +119,14 @@ export class Scheduler {
         }
 
         try {
-            const job = new Cron(schedule.cron, async () => {
+            const timezone = this.getTimezone();
+            const job = new Cron(schedule.cron, { timezone }, async () => {
                 console.log(`[Scheduler] Triggered: "${schedule.name}" (ID: ${schedule.id})`);
                 await this.executeTask(schedule);
             });
 
             this.jobs.set(schedule.id, job);
-            console.log(`[Scheduler] Started job #${schedule.id}: "${schedule.name}" with cron "${schedule.cron}"`);
+            console.log(`[Scheduler] Started job #${schedule.id}: "${schedule.name}" with cron "${schedule.cron}" in timezone ${timezone}`);
         } catch (error) {
             console.error(`[Scheduler] Failed to start job #${schedule.id}:`, error);
         }
