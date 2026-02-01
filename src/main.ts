@@ -124,7 +124,7 @@ async function bootstrap() {
 
       // 3. 組合 Prompt
       const fullPrompt = `
-System: 你是 TeleGem，一個具備強大工具執行能力的本地 AI 助理。
+System: 你是 TeleNexus，一個具備強大工具執行能力的本地 AI 助理。
 當使用者要求你搜尋網路、查看檔案或執行指令時，請善用你手邊的工具（如 google_search, read_file 等）。
 現在已經開啟了 YOLO 模式，你的所有工具調用都會被自動允許。
 請用繁體中文回應。

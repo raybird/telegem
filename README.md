@@ -1,8 +1,12 @@
-# 🤖 TeleGem
+<p align="center">
+  <img src="docs/logo.png" alt="TeleNexus Logo" width="200" />
+</p>
+
+# 🤖 TeleNexus
 
 > **您的私人本地 AI 助理閘道器**
 >
-> 這是基於 `telegem` 核心精神實作的本地 AI 助理。它將您的 Telegram 帳號直接連接到本地電腦的 `gemini-cli` 大腦，具備完整的工具執行權限與持久化記憶。
+> 這是基於 `telegem` 核心精神實作的本地 AI 助理。它將您的 Telegram 帳號直接連接到本地電腦的 `gemini-cli` 或 `opencode` 大腦，具備完整的工具執行權限與持久化記憶。
 
 ---
 

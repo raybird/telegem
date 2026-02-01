@@ -316,7 +316,7 @@ AI Response:
 
             // 組合追蹤提醒 Prompt
             const reflectionPrompt = `
-System: 你是 TeleGem，正在執行「追蹤提醒」任務。
+System: 你是 TeleNexus，正在執行「追蹤提醒」任務。
 請用繁體中文回應。
 
 ${longTermMemory ? longTermMemory + '\n\n' : ''}【任務說明】
@@ -392,7 +392,7 @@ ${historyText}
 
         try {
             const summaryPrompt = `
-System: 你是 TeleGem，正在執行「每日對話摘要」任務。
+System: 你是 TeleNexus，正在執行「每日對話摘要」任務。
 請用繁體中文回應。
 
 【任務說明】
