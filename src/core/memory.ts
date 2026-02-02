@@ -328,4 +328,53 @@ export class MemoryManager {
       timestamp: row.timestamp
     }));
   }
+
+  /**
+   * 取得記憶統計資訊
+   */
+  getStats(userId: string): { totalMessages: number; lastActive: number } {
+    const stmt = this.db.prepare(`
+      SELECT COUNT(*) as count, MAX(timestamp) as last_active
+      FROM messages
+      WHERE user_id = ?
+    `);
+    const result = stmt.get(userId) as { count: number; last_active: number };
+    return {
+      totalMessages: result.count || 0,
+      lastActive: result.last_active || 0
+    };
+  }
+
+  /**
+   * 刪除最近的 N 則對話
+   */
+  deleteRecentMessages(userId: string, count: number): number {
+    // 1. 找出要刪除的 ID
+    const selectStmt = this.db.prepare(`
+      SELECT id FROM messages
+      WHERE user_id = ?
+      ORDER BY timestamp DESC
+      LIMIT ?
+    `);
+    const rows = selectStmt.all(userId, count) as { id: number }[];
+
+    if (rows.length === 0) return 0;
+
+    const ids = rows.map(r => r.id);
+    const placeholders = ids.map(() => '?').join(',');
+
+    // 2. 刪除 messages
+    const deleteStmt = this.db.prepare(`
+      DELETE FROM messages WHERE id IN (${placeholders})
+    `);
+    deleteStmt.run(...ids);
+
+    // 3. 刪除 FTS5
+    const deleteFtsStmt = this.db.prepare(`
+      DELETE FROM messages_fts WHERE rowid IN (${placeholders})
+    `);
+    deleteFtsStmt.run(...ids);
+
+    return ids.length;
+  }
 }

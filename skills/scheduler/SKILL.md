@@ -1,8 +1,9 @@
-# AI Agent 能力說明文件
+---
+name: scheduler
+description: Manage scheduled tasks (cron jobs) for the Moltbot system.
+---
 
-本文件說明 AI Agent 在此環境中可用的工具與機制。
-
-## Scheduler Tool - 排程管理工具
+# Scheduler Tool - 排程管理工具
 
 ### 概述
 你可以透過執行 CLI 工具來管理使用者的排程任務。所有排程會持久化到 SQLite 資料庫，並在主程序中自動執行。
@@ -67,10 +68,3 @@ node dist/tools/scheduler-cli.js remove 1
 node dist/tools/scheduler-cli.js add "早安市場分析" "0 8 * * *" "請分析今日市場動態並提供重點摘要"
 node dist/tools/scheduler-cli.js add "晚間市場分析" "0 17 * * *" "請分析今日市場動態並提供重點摘要"
 ```
-
-然後回應使用者：
-「✅ 已為您設定兩個定時報告：
-- 早上 8:00：早安市場分析
-- 下午 5:00：晚間市場分析
-
-系統會在指定時間自動生成並發送報告給您。」
