@@ -1,8 +1,71 @@
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { spawn } from 'child_process';
 import type { AIAgent, AIAgentOptions } from './agent.js';
 
-const execAsync = promisify(exec);
+type RunOptions = {
+    cwd?: string;
+    env?: NodeJS.ProcessEnv;
+    timeoutMs?: number;
+    stdin?: string;
+};
+
+function runProcess(command: string, args: string[], options: RunOptions = {}): Promise<{ stdout: string; stderr: string }> {
+    return new Promise((resolve, reject) => {
+        const child = spawn(command, args, {
+            cwd: options.cwd,
+            env: options.env,
+            stdio: ['pipe', 'pipe', 'pipe']
+        });
+
+        let stdout = '';
+        let stderr = '';
+        const timer = options.timeoutMs
+            ? setTimeout(() => {
+                child.kill('SIGTERM');
+                const err: any = new Error('Process timed out');
+                err.code = 'ETIMEDOUT';
+                reject(err);
+            }, options.timeoutMs)
+            : null;
+
+        child.stdout?.on('data', (chunk) => {
+            stdout += chunk.toString();
+        });
+        child.stderr?.on('data', (chunk) => {
+            stderr += chunk.toString();
+        });
+
+        child.on('error', (err) => {
+            if (timer) clearTimeout(timer);
+            reject(err);
+        });
+
+        child.on('close', (code, signal) => {
+            if (timer) clearTimeout(timer);
+            if (signal) {
+                const err: any = new Error(`Process terminated with signal ${signal}`);
+                err.signal = signal;
+                err.stdout = stdout;
+                err.stderr = stderr;
+                reject(err);
+                return;
+            }
+            if (code && code !== 0) {
+                const err: any = new Error(`Process exited with code ${code}`);
+                err.code = code;
+                err.stdout = stdout;
+                err.stderr = stderr;
+                reject(err);
+                return;
+            }
+            resolve({ stdout, stderr });
+        });
+
+        if (options.stdin && child.stdin) {
+            child.stdin.write(options.stdin);
+        }
+        child.stdin?.end();
+    });
+}
 
 export class OpencodeAgent implements AIAgent {
     /**
@@ -31,11 +94,12 @@ export class OpencodeAgent implements AIAgent {
             console.log(`[Opencode] Retrieving long-term memory for prompt...`);
 
             // 執行 hook script (重用 Gemini 的檢索邏輯)
-            const { stdout } = await execAsync(`echo '${input}' | bash "${hookPath}"`, {
+            const { stdout } = await runProcess('bash', [hookPath], {
                 env: {
                     ...process.env,
                     GEMINI_PROJECT_DIR: process.env.GEMINI_PROJECT_DIR || process.cwd()
-                }
+                },
+                stdin: input
             });
 
             // 解析 JSON 回應
@@ -70,16 +134,15 @@ ${text}
 
 只輸出摘要，不要加任何說明。`;
 
-            const safePrompt = JSON.stringify(prompt);
-            let command = `echo ${safePrompt} | opencode run`;
+            const args = ['run'];
 
             // 若有指定 model，加入參數
             if (options?.model) {
-                command += ` --model ${JSON.stringify(options.model)}`;
+                args.push('--model', options.model);
             }
 
             console.log(`[Opencode Summarize] Starting...`);
-            const { stdout, stderr } = await execAsync(command);
+            const { stdout, stderr } = await runProcess('opencode', args, { stdin: prompt });
 
             if (stderr && stderr.trim().length > 0) {
                 console.log(`[Opencode Summarize] stderr: ${stderr.substring(0, 200)}`);
@@ -113,15 +176,12 @@ ${text}
                 ? `${memoryContext}\n\n${prompt}`
                 : prompt;
 
-            const safePrompt = JSON.stringify(enrichedPrompt);
-
             // 使用 echo 透過 stdin 傳遞訊息,比直接作為參數更快
-            // 暫時移除 stderr 過濾以便 debug
-            let command = `echo ${safePrompt} | opencode run`;
+            const args = ['run'];
 
             // 若有指定 model,加入參數
             if (options?.model) {
-                command += ` --model ${JSON.stringify(options.model)}`;
+                args.push('--model', options.model);
                 console.log(`[Opencode] Executing with model: ${options.model}`);
             } else {
                 console.log(`[Opencode] Executing (default model)`);
@@ -132,17 +192,18 @@ ${text}
                 ? `${process.env.GEMINI_PROJECT_DIR}/workspace`
                 : 'workspace';
 
-            console.log(`[Opencode] Command: ${command}`);
+            console.log(`[Opencode] Command: opencode ${args.join(' ')}`);
             console.log(`[Opencode] Working directory: ${workspacePath}`);
             console.log(`[Opencode] Starting execution...`);
 
             // 設定 10 分鐘超時,並在 workspace/ 目錄執行
-            const { stdout, stderr } = await execAsync(command, {
-                timeout: 600000,
+            const { stdout, stderr } = await runProcess('opencode', args, {
+                timeoutMs: 600000,
                 cwd: workspacePath,
                 env: {
                     ...process.env
-                }
+                },
+                stdin: enrichedPrompt
             });
 
             console.log(`[Opencode] Execution completed. Output length: ${stdout.length}`);

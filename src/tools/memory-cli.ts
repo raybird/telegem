@@ -7,7 +7,7 @@ const program = new Command();
 program
     .name('memory-cli')
     .description('CLI tool for managing Moltbot AI memory')
-    .version('1.0.0');
+    .version('2.2.0');
 
 // Helper to get User ID
 function getUserId(options: { user?: string }): string {

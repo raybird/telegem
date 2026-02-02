@@ -11,7 +11,7 @@ const program = new Command();
 program
     .name('scheduler-cli')
     .description('CLI tool for managing TeleNexus schedules')
-    .version('1.0.0');
+    .version('2.2.0');
 
 /**
  * 尋找主程序的 PID 並發送 SIGUSR1 信號

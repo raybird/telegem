@@ -1,8 +1,71 @@
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { spawn } from 'child_process';
 import type { AIAgent, AIAgentOptions } from './agent.js';
 
-const execAsync = promisify(exec);
+type RunOptions = {
+  cwd?: string;
+  env?: NodeJS.ProcessEnv;
+  timeoutMs?: number;
+  stdin?: string;
+};
+
+function runProcess(command: string, args: string[], options: RunOptions = {}): Promise<{ stdout: string; stderr: string }> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      cwd: options.cwd,
+      env: options.env,
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+
+    let stdout = '';
+    let stderr = '';
+    const timer = options.timeoutMs
+      ? setTimeout(() => {
+          child.kill('SIGTERM');
+          const err: any = new Error('Process timed out');
+          err.code = 'ETIMEDOUT';
+          reject(err);
+        }, options.timeoutMs)
+      : null;
+
+    child.stdout?.on('data', (chunk) => {
+      stdout += chunk.toString();
+    });
+    child.stderr?.on('data', (chunk) => {
+      stderr += chunk.toString();
+    });
+
+    child.on('error', (err) => {
+      if (timer) clearTimeout(timer);
+      reject(err);
+    });
+
+    child.on('close', (code, signal) => {
+      if (timer) clearTimeout(timer);
+      if (signal) {
+        const err: any = new Error(`Process terminated with signal ${signal}`);
+        err.signal = signal;
+        err.stdout = stdout;
+        err.stderr = stderr;
+        reject(err);
+        return;
+      }
+      if (code && code !== 0) {
+        const err: any = new Error(`Process exited with code ${code}`);
+        err.code = code;
+        err.stdout = stdout;
+        err.stderr = stderr;
+        reject(err);
+        return;
+      }
+      resolve({ stdout, stderr });
+    });
+
+    if (options.stdin && child.stdin) {
+      child.stdin.write(options.stdin);
+    }
+    child.stdin?.end();
+  });
+}
 
 export class GeminiAgent implements AIAgent {
   /**
@@ -37,15 +100,14 @@ ${text}
 
 只輸出摘要，不要加任何說明。`;
 
-      const safePrompt = JSON.stringify(prompt);
-      let command = `gemini -p ${safePrompt}`;
+      const args = ['-p', prompt];
 
       // 若有指定 model，加入參數
       if (options?.model) {
-        command += ` --model ${JSON.stringify(options.model)}`;
+        args.push('--model', options.model);
       }
 
-      const { stdout } = await execAsync(command);
+      const { stdout } = await runProcess('gemini', args);
       const cleaned = this.cleanOutput(stdout);
 
       // 驗證摘要長度，過長則截斷
@@ -69,23 +131,21 @@ ${text}
    */
   async chat(prompt: string, options?: AIAgentOptions): Promise<string> {
     try {
-      const safePrompt = JSON.stringify(prompt);
-
       // 開啟 --yolo 模式，允許自動執行所有工具 (搜尋、讀取檔案、執行指令等)
       // 使用 -p 進入非互動模式
-      let command = `gemini --yolo -p ${safePrompt}`;
+      const args = ['--yolo', '-p', prompt];
 
       // 若有指定 model，加入參數
       if (options?.model) {
-        command += ` --model ${JSON.stringify(options.model)}`;
+        args.push('--model', options.model);
         console.log(`[Gemini] Executing (YOLO Mode) with model: ${options.model}`);
       } else {
-        console.log(`[Gemini] Executing (YOLO Mode): ${command.substring(0, 50)}...`);
+        console.log(`[Gemini] Executing (YOLO Mode): gemini --yolo -p ...`);
       }
 
       // 設定 10 分鐘超時，並在 workspace/ 目錄執行，避免意外修改源碼
-      const { stdout, stderr } = await execAsync(command, {
-        timeout: 600000,
+      const { stdout, stderr } = await runProcess('gemini', args, {
+        timeoutMs: 600000,
         cwd: 'workspace',
         env: {
           ...process.env,

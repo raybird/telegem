@@ -5,8 +5,8 @@
 ### 現況分析
 
 - **檔案位置**: `src/core/memory.ts:22`
-- **當前設定**: `MAX_HISTORY = 5`，只保留最近 5 則對話作為 context
-- **摘要機制**: 只對超過 800 字元的訊息生成摘要，短訊息沒有摘要，超出範圍後直接遺失
+- **當前設定**: `MAX_HISTORY = 15`，保留最近 15 則對話作為 context（最新 5 則為原文）
+- **摘要機制**: 依條件觸發（長度 > 200 字、包含程式碼區塊/工具輸出、行數 >= 6）
 
 ### 主要痛點
 
@@ -47,7 +47,7 @@ export class MemoryManager {
   private db: Database.Database;
   private readonly MAX_HISTORY = 15; // 擴充到 15 則
   private readonly FULL_TEXT_COUNT = 5; // 保留最新 5 則原文
-  private readonly SUMMARY_MAX_LEN = 280; // 結構化摘要上限（避免過長）
+  private readonly OLD_TEXT_MAX_LEN = 300; // [Old] 訊息的硬截斷上限
   // ...
 }
 ```
@@ -84,15 +84,20 @@ getHistoryContext(userId: string): string {
   rows.reverse();
 
   // 分割為舊對話和新對話
-  const older = rows.slice(0, -this.FULL_TEXT_COUNT); // 較舊的
-  const recent = rows.slice(-this.FULL_TEXT_COUNT);  // 最新 5 則
+  const cutIndex = Math.max(0, rows.length - this.FULL_TEXT_COUNT);
+  const older = rows.slice(0, cutIndex);
+  const recent = rows.slice(cutIndex);
 
-  // 較舊的：優先用 summary，沒有時標記 [Old]
+  // 較舊的：優先用 summary，沒有時標記 [Old] 並硬截斷
   const olderContext = older.map(msg => {
     const roleName = msg.role === 'user' ? 'User' : 'AI';
-    const displayText = msg.summary || msg.content;
-    const prefix = msg.summary ? '[Summary]' : '[Old]';
-    return `${roleName}${prefix}: ${displayText}`;
+    if (msg.summary) {
+      return `${roleName}[Summary]: ${msg.summary}`;
+    }
+    const truncated = msg.content.length > this.OLD_TEXT_MAX_LEN
+      ? msg.content.substring(0, this.OLD_TEXT_MAX_LEN) + '...'
+      : msg.content;
+    return `${roleName}[Old]: ${truncated}`;
   }).join('\n');
 
   // 最新的：一律用原文
@@ -101,7 +106,7 @@ getHistoryContext(userId: string): string {
     return `${roleName}: ${msg.content}`;
   }).join('\n');
 
-  return `${olderContext}\n\n=== Recent Context (最新 5 則原文) ===\n${recentContext}`;
+  return `${olderContext}\n\n--- [Recent Messages] ---\n${recentContext}`;
 }
 ```
 
@@ -111,8 +116,8 @@ getHistoryContext(userId: string): string {
 
 建議觸發條件（擇一或組合）：
 - 訊息包含工具輸出/清單/程式碼段落
-- 超過 N 句或 N 行（例如 6 句或 10 行）
-- 短訊息但包含關鍵字（例如「決定」「下一步」「TODO」「優先」）
+- 行數 >= 6
+- 長度 > 200 字元
 
 建議摘要格式（結構化）：
 ```
@@ -147,7 +152,7 @@ Summary:
 User: 幫我查 package.json 依賴
 AI: [執行 ls/read_file] ...
 User: 這些依賶有什麼特別的用途？
-AI: [需要回憶第 6 則] 可透過 search_memory 回顧
+AI: [需要回憶第 6 則] 可透過 `memory-cli search` 回顧
 ```
 
 → 改進後：AI 直接從 context 看到第 6 則內容
@@ -167,9 +172,8 @@ AI: [需要回憶第 6 則] 可透過 search_memory 回顧
 
 ### 已知問題
 
-1. **短訊息無摘要** - 沒有 `summary` 欄位的短訊息會以 `[Old]` 前綴完整顯示，略佔用 token
-2. **未結構化摘要** - 摘要目前是自由文字，未區分「任務/待辦/偏好」等結構
-3. **摘要一致性** - 需要統一的摘要格式提示詞，避免不同風格
+1. **短訊息無摘要** - 沒有 `summary` 欄位的短訊息會以 `[Old]` 前綴顯示，略佔用 token
+2. **摘要一致性** - 仍需持續優化摘要格式與觸發條件
 
 ### 未來擴充方向
 
@@ -182,14 +186,13 @@ AI: [需要回憶第 6 則] 可透過 search_memory 回顧
 
 ## 🚀 實作檢查清單
 
-- [ ] 修改 `src/core/memory.ts` 常數定義
-- [ ] 重寫 `getHistoryContext()` 方法
-- [ ] 更新摘要提示詞為「結構化摘要」
-- [ ] 加入動態摘要觸發條件（短訊息規則）
+- [x] 修改 `src/core/memory.ts` 常數定義
+- [x] 重寫 `getHistoryContext()` 方法
+- [x] 更新摘要提示詞為「結構化摘要」
+- [x] 加入動態摘要觸發條件（長度/程式碼區塊/行數）
 - [ ] 測試：驗證 15 則對話正確分割
 - [ ] 測試：確認最新 5 則使用原文
 - [ ] 測試：檢查舊對話優先使用 summary
-- [ ] 測試：確認 summary 不超過 `SUMMARY_MAX_LEN`
 - [ ] 測試：執行 `npm run lint` 確認程式碼品質
 - [ ] 測試：執行 `npm run build` 確認編譯成功
 

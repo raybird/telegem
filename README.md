@@ -158,8 +158,8 @@ docker compose exec telegem bash
 ```
 
 ### 5. 資料庫位置
-- 本機開發：`./data/telegem.db`（透過 `DB_DIR` 設定）
-- 容器內：`/data/telegem.db`（透過 volume 掛載 `./data`）
+- 本機開發：`./data/moltbot.db`（透過 `DB_DIR` 設定）
+- 容器內：`/data/moltbot.db`（透過 volume 掛載 `./data`）
 - 資料會保存在主機的 `./data` 目錄，重建容器不會遺失
 
 ### 6. 長期記憶與知識管理
@@ -226,13 +226,14 @@ docker compose restart
 
 TeleGem 採用**智慧混合式記憶架構**：
 
-1. **短期記憶 (最近 5 則)**：直接載入到 AI 的上下文中
-   - 短訊息：顯示完整內容
-   - 長訊息 (>800 字元)：自動生成並顯示摘要
+1. **短期記憶 (最近 15 則)**：直接載入到 AI 的上下文中（最新 5 則完整原文）
+   - 長度 > 200 字元：自動生成並顯示摘要
+   - 包含程式碼區塊或工具輸出：自動生成摘要
+   - 行數 >= 6：自動生成摘要
    
 2. **長期記憶 (全文檢索)**：當 AI 需要回想更早的對話時，它會自動執行：
    ```bash
-   node dist/tools/search_memory.js "關鍵字"
+   node dist/tools/memory-cli.js search "關鍵字"
    ```
    這會從資料庫搜尋相關的歷史對話並提供給 AI 參考。
 
@@ -257,7 +258,7 @@ src/
 ├── connectors/
 │   └── telegram.ts    # Telegram 介面實作
 ├── tools/
-│   └── search_memory.ts  # 記憶搜尋工具 (供 AI 主動呼叫)
+│   └── memory-cli.ts  # 記憶搜尋工具 (供 AI 主動呼叫)
 ├── types/             # 共用型別定義
 └── main.ts            # 程式入口點
 ```
