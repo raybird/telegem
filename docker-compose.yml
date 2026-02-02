@@ -19,6 +19,7 @@ services:
       - ${HOME}/.local/share/opencode:/root/.local/share/opencode
       - ./skills:/app/skills:ro
       - ./GEMINI.md:/app/workspace/GEMINI.md:ro
+      - ./AGENTS.md:/app/workspace/AGENTS.md:ro
     restart: unless-stopped
 
 volumes:
