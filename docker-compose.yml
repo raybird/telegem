@@ -17,6 +17,8 @@ services:
       - gemini_auth:/root/.gemini
       # 掛載本地 opencode 認證和資料 (需先確保本地已登入)
       - ${HOME}/.local/share/opencode:/root/.local/share/opencode
+      - ./AGENTS.md:/app/workspace/AGENTS.md:ro
+      - ./GEMINI.md:/app/workspace/GEMINI.md:ro
     restart: unless-stopped
 
 volumes:
