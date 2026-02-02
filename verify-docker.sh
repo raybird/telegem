@@ -52,6 +52,14 @@ docker compose run --rm telegem ls -la /app/data/
 echo "✅ /app/data volume is mounted"
 echo ""
 
+# Test 8: Check workspace symlinks and CLI visibility
+echo "8️⃣ Verifying workspace symlinks and CLI access..."
+docker compose run --rm telegem bash -c 'ls -l /app/workspace/dist /app/workspace/src'
+echo "✅ Symlinks exist"
+docker compose run --rm telegem bash -c 'cd /app/workspace && node dist/tools/scheduler-cli.js --help'
+echo "✅ scheduler-cli is accessible from workspace"
+echo ""
+
 echo "======================================="
 echo "✅ All Docker verification tests passed!"
 echo ""

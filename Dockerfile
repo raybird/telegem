@@ -55,4 +55,8 @@ RUN chmod +x debug-container.sh && chmod +x workspace/.gemini/hooks/*.sh 2>/dev/
 ENV NODE_ENV=production
 ENV GEMINI_PROJECT_DIR=/app
 
+# Create symlinks for AI environment visibility
+RUN ln -s /app/dist /app/workspace/dist && \
+  ln -s /app/src /app/workspace/src
+
 CMD ["node", "dist/main.js"]
