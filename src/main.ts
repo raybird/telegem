@@ -59,6 +59,11 @@ async function bootstrap() {
     process.exit(0);
   });
 
+  process.on('SIGUSR1', async () => {
+    console.log('\n[System] Received SIGUSR1, reloading schedules...');
+    await scheduler.reload();
+  });
+
   // 設定訊息處理邏輯
   telegram.onMessage(async (msg: UnifiedMessage) => {
     console.log(`📩 [${msg.sender.platform}] ${msg.sender.name}: ${msg.content}`);

@@ -290,6 +290,31 @@ AI Response:
     }
 
     /**
+     * 重新載入排程（當外部工具修改資料庫時調用）
+     * 透過 SIGUSR1 信號觸發
+     */
+    async reload(): Promise<void> {
+        console.log('[Scheduler] Reloading schedules from database...');
+
+        // 停止所有使用者排程（保留系統排程）
+        for (const [id, job] of this.jobs.entries()) {
+            job.stop();
+            console.log(`[Scheduler] Stopped job #${id} for reload`);
+        }
+        this.jobs.clear();
+
+        // 重新載入啟用的排程
+        const schedules = this.memory.getActiveSchedules();
+        console.log(`[Scheduler] Reloading ${schedules.length} active schedule(s)...`);
+
+        for (const schedule of schedules) {
+            this.startJob(schedule);
+        }
+
+        console.log('[Scheduler] Reload completed.');
+    }
+
+    /**
      * 重置使用者的沉默計時器 (每次收到訊息時呼叫)
      */
     resetSilenceTimer(userId: string): void {
