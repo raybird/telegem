@@ -9,54 +9,54 @@ echo ""
 
 # Test 1: Check jq installation
 echo "1️⃣ Testing jq installation..."
-docker compose run --rm telegem jq --version
+docker compose run --rm telenexus jq --version
 echo "✅ jq is installed"
 echo ""
 
 # Test 2: Check bash installation
 echo "2️⃣ Testing bash availability..."
-docker compose run --rm telegem bash --version | head -1
+docker compose run --rm telenexus bash --version | head -1
 echo "✅ bash is available"
 echo ""
 
 # Test 3: Check .gemini directory and hooks
 echo "3️⃣ Checking .gemini hooks..."
-docker compose run --rm telegem ls -la /app/workspace/.gemini/hooks/
+docker compose run --rm telenexus ls -la /app/workspace/.gemini/hooks/
 echo "✅ .gemini hooks are present"
 echo ""
 
 # Test 4: Check hook script permissions
 echo "4️⃣ Verifying hook script permissions..."
-docker compose run --rm telegem stat -c '%a %n' /app/workspace/.gemini/hooks/retrieve-memory.sh
+docker compose run --rm telenexus stat -c '%a %n' /app/workspace/.gemini/hooks/retrieve-memory.sh
 echo "✅ retrieve-memory.sh is executable"
 echo ""
 
 # Test 5: Check environment variables
 echo "5️⃣ Checking environment variables..."
-docker compose run --rm telegem bash -c 'echo "GEMINI_PROJECT_DIR=$GEMINI_PROJECT_DIR"'
-docker compose run --rm telegem bash -c 'echo "DB_DIR=$DB_DIR"'
-docker compose run --rm telegem bash -c 'echo "DB_PATH=$DB_PATH"'
+docker compose run --rm telenexus bash -c 'echo "GEMINI_PROJECT_DIR=$GEMINI_PROJECT_DIR"'
+docker compose run --rm telenexus bash -c 'echo "DB_DIR=$DB_DIR"'
+docker compose run --rm telenexus bash -c 'echo "DB_PATH=$DB_PATH"'
 echo "✅ Environment variables are set"
 echo ""
 
 # Test 6: Test Hook script execution
 echo "6️⃣ Testing retrieve-memory.sh Hook..."
-docker compose run --rm telegem bash -c \
+docker compose run --rm telenexus bash -c \
   'GEMINI_PROJECT_DIR=/app echo "{\"prompt\": \"TeleGem\"}" | /app/workspace/.gemini/hooks/retrieve-memory.sh'
 echo "✅ Hook script executes successfully"
 echo ""
 
 # Test 7: Check volume mounting
 echo "7️⃣ Verifying volume mounting..."
-docker compose run --rm telegem ls -la /app/data/
+docker compose run --rm telenexus ls -la /app/data/
 echo "✅ /app/data volume is mounted"
 echo ""
 
 # Test 8: Check workspace symlinks and CLI visibility
 echo "8️⃣ Verifying workspace symlinks and CLI access..."
-docker compose run --rm telegem bash -c 'ls -l /app/workspace/dist /app/workspace/src'
+docker compose run --rm telenexus bash -c 'ls -l /app/workspace/dist /app/workspace/src'
 echo "✅ Symlinks exist"
-docker compose run --rm telegem bash -c 'cd /app/workspace && node dist/tools/scheduler-cli.js --help'
+docker compose run --rm telenexus bash -c 'cd /app/workspace && node dist/tools/scheduler-cli.js --help'
 echo "✅ scheduler-cli is accessible from workspace"
 echo ""
 

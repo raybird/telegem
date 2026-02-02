@@ -141,7 +141,7 @@ export class Scheduler {
         if (lastMessageTime === null) {
             // 資料庫沒有任何訊息紀錄，發送問候訊息
             console.log('[Scheduler] No message history found, sending greeting...');
-            await this.connector.sendMessage(userId, '👋 嗨！我是 TeleGem，您的 AI 助理。有什麼需要幫忙的嗎？');
+            await this.connector.sendMessage(userId, '👋 嗨！我是 TeleNexus，您的 AI 助理。有什麼需要幫忙的嗎？');
             this.resetSilenceTimer(userId);
         } else {
             const silenceMs = now - lastMessageTime;
@@ -254,7 +254,7 @@ export class Scheduler {
 
             // 3. 組合 Prompt
             const fullPrompt = `
-System: 你是 TeleGem，一個具備強大工具執行能力的本地 AI 助理。
+System: 你是 TeleNexus，一個具備強大工具執行能力的本地 AI 助理。
 這是一個排程任務觸發的自動執行。
 請用繁體中文回應。
 

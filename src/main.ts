@@ -27,7 +27,7 @@ function shouldSummarize(content: string): boolean {
 }
 
 async function bootstrap() {
-  console.log('🚀 Starting TeleGem (YOLO Agent + Stream UX)...');
+  console.log('🚀 Starting TeleNexus (YOLO Agent + Stream UX)...');
 
   const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
   const ALLOWED_USER_ID = process.env.ALLOWED_USER_ID;

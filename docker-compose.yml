@@ -1,5 +1,5 @@
 services:
-  telegem:
+  telenexus:
     build: .
     env_file: .env
     environment:

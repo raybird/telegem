@@ -6,7 +6,7 @@
 
 > **您的私人本地 AI 助理閘道器**
 >
-> 這是基於 `telegem` 核心精神實作的本地 AI 助理。它將您的 Telegram 帳號直接連接到本地電腦的 `gemini-cli` 或 `opencode` 大腦，具備完整的工具執行權限與持久化記憶。
+> 這是基於 TeleNexus 核心精神實作的本地 AI 助理。它將您的 Telegram 帳號直接連接到本地電腦的 `gemini-cli` 或 `opencode` 大腦，具備完整的工具執行權限與持久化記憶。
 
 ---
 
@@ -16,10 +16,12 @@
 *   **🔄 動態切換**: 透過 `ai-config.yaml` 實現熱切換 (Hot Swap)，不必重啟服務。
 *   **🛠️ YOLO 模式**: 開啟 Agent 行動能力，可直接進行 **網路搜尋**、**讀取本地檔案** 與 **執行系統指令**。
 *   **💾 智慧記憶系統**: 
-    *   **混合式上下文**: 自動摘要長訊息，保持 Prompt 輕量（最近 5 則對話）
+    *   **混合式上下文**: 最近 15 則對話（最新 5 則保留原文），長度/程式碼區塊/行數超標會自動摘要
     *   **全文檢索 (FTS5)**: 可用關鍵字快速搜尋所有歷史對話
     *   **主動式記憶**: AI 可主動呼叫工具回想早期對話內容
+    *   **長期記憶整合**: Gemini 與 Opencode 皆可透過 MCP Memory 檢索長期記憶
     *   **輸出清洗**: 自動過濾 `<thinking>` 區塊，提供乾淨的回應
+*   **🧩 Skills 模組化**: 內建 skills（memory/scheduler/skill-creator），可擴充專屬工作流程與工具
 *   **🔒 安全至上**: 嚴格的 Telegram User ID 白名單機制，確保只有您能控制您的電腦。
 *   **⚡ 流暢體驗**: 支援非同步訊息處理，提供「🤔 Thinking...」狀態回傳並在完成後自動更新。
 *   **🚀 極簡架構**: 採用 TypeScript + ESM + SQLite，輕量、快速、易於擴充。
@@ -32,7 +34,7 @@
 - **Framework**: Telegraf (Telegram Bot API)
 - **AI Backend**: 支援 `gemini-cli` 與 `opencode run` (可動態切換)
 - **Database**: Better-SQLite3
-- **Execution**: tsx / esbuild
+- **Execution**: tsx / tsc
 
 ---
 
@@ -40,6 +42,7 @@
 
 ### 1. 前置需求
 - 確保系統已安裝 [Gemini CLI](https://github.com/google/gemini-cli) 並已完成登入。
+- 若使用 Opencode，請先安裝並完成本機登入（容器內會掛載認證）。
 - 擁有一個 Telegram Bot Token (透過 [@BotFather](https://t.me/BotFather) 申請)。
 
 ### 2. 下載與安裝
@@ -65,6 +68,7 @@ v2.1 起支援多提供者，請編輯 `ai-config.yaml`（若不存在請根據 
 # ai-config.yaml
 provider: gemini  # 選項：gemini, opencode
 model: gemini-2.0-flash-exp  # 可選，指定模型名稱
+timezone: Asia/Taipei # 可選，排程時區（Croner）
 ```
 > [!TIP]
 > 此設定檔支援**動態重載**，您可以在服務運行時隨時修改 Provider，下次對話將自動生效。
@@ -104,6 +108,15 @@ npm run lint
 npm run format
 ```
 
+CLI 工具：
+```bash
+# 記憶搜尋/管理
+node dist/tools/memory-cli.js --help
+
+# 排程管理
+node dist/tools/scheduler-cli.js --help
+```
+
 延伸文件：
 - 架構說明：[ARCHITECTURE.md](ARCHITECTURE.md)
 - 貢獻指南：[CONTRIBUTING.md](CONTRIBUTING.md)
@@ -119,6 +132,8 @@ TELEGRAM_TOKEN=你的_BOT_TOKEN
 ALLOWED_USER_ID=你的_TELEGRAM_ID
 DB_DIR=./data
 ```
+> [!NOTE]
+> Docker Compose 會將多數程式與設定以唯讀方式掛載，並透過 multi-stage build 減少執行時工具，提升安全性。
 
 ### 2. 啟動容器
 ```bash
@@ -129,10 +144,12 @@ docker compose up -d --build
 專案使用獨立的 gemini-cli 設定：
 - **專案設定**：`./workspace/.gemini/settings.json`（含 MCP servers 設定）
 - **認證資訊**：由 Docker volume 管理（`gemini_auth`）
+> [!NOTE]
+> Docker 會將 `GEMINI.md` 與 `AGENTS.md` 掛載到 `/app/workspace/`，作為 AI 的行為指引。
 
 **首次使用 - 登入**：
 ```bash
-docker compose exec telegem gemini
+docker compose exec telenexus gemini
 ```
 登入資訊會保存到 volume，重建容器不會遺失。
 
@@ -142,10 +159,20 @@ docker compose exec telegem gemini
 docker compose restart
 ```
 
+### 3b. Opencode CLI 設定
+專案會掛載本機 opencode 認證與資料（請先在本機完成登入）：
+- 本機：`${HOME}/.local/share/opencode`
+- 容器：`/root/.local/share/opencode`
+
+若需要重新登入，可在容器內執行：
+```bash
+docker compose exec telenexus opencode auth login
+```
+
 ### 4. 常用指令
 ```bash
 # 查看日誌
-docker compose logs -f telegem
+docker compose logs -f telenexus
 
 # 停止容器
 docker compose down
@@ -154,19 +181,24 @@ docker compose down
 docker compose restart
 
 # 進入容器 shell
-docker compose exec telegem bash
+docker compose exec telenexus bash
+
+# 驗證 Docker 記憶/掛載配置
+./verify-docker.sh
 ```
 
 ### 5. 資料庫位置
 - 本機開發：`./data/moltbot.db`（透過 `DB_DIR` 設定）
-- 容器內：`/data/moltbot.db`（透過 volume 掛載 `./data`）
+- 容器內：`/app/data/moltbot.db`（透過 volume 掛載 `./data`）
 - 資料會保存在主機的 `./data` 目錄，重建容器不會遺失
+> [!TIP]
+> 容器內 `/app/workspace` 會建立 `dist`/`src` 的符號連結，方便 CLI 在工作區內操作。
 
 ### 6. 長期記憶與知識管理
 
 **MCP Memory Server**：
 - 專案已整合 `mcp-memory-libsql`，提供向量搜尋與知識圖譜功能
-- AI 會自動判斷重要資訊並儲存到 `/data/memory.db`
+- AI 會自動判斷重要資訊並儲存到 `/app/data/memory.db`
 - 支援實體（entities）、關係（relations）與語義搜尋
 
 **自動記憶機制**：
@@ -192,11 +224,19 @@ docker compose exec telegem bash
 **安裝 Skills**：
 ```bash
 # 進容器安裝
-docker compose exec telegem npx skill-linker --from https://github.com/...
+docker compose exec telenexus npx skill-linker --from https://github.com/...
 
 # 重啟生效
 docker compose restart
 ```
+**內建 Skills**：
+- `skills/memory`: 記憶工具與最佳實務
+- `skills/scheduler`: 排程任務與追蹤機制
+- `skills/skill-creator`: Skill 建立流程、模板與腳本
+**建立新 Skill（快速流程）**：
+1. 進入 `skills/skill-creator/`
+2. 參考 `SKILL.md` 與 `scripts/` 產生新 skill 結構
+3. 將新 skill 目錄加入 `skills/` 並重新啟動容器
 
 ---
 
@@ -221,10 +261,12 @@ docker compose restart
   - 範例：`/add_schedule 早安問候|0 9 * * *|早安！今天天氣如何？`
 - `/remove_schedule <id>`: 刪除指定的排程任務
 - `/reflect`: 手動觸發追蹤分析（分析過去 24 小時的對話）
+> [!NOTE]
+> 目前系統以單一 `ALLOWED_USER_ID` 為主（啟動問候、每日摘要、排程預設皆依此使用者），多使用者需自行擴充。
 
 ### 記憶系統運作方式
 
-TeleGem 採用**智慧混合式記憶架構**：
+TeleNexus 採用**智慧混合式記憶架構**：
 
 1. **短期記憶 (最近 15 則)**：直接載入到 AI 的上下文中（最新 5 則完整原文）
    - 長度 > 200 字元：自動生成並顯示摘要
@@ -259,6 +301,7 @@ src/
 │   └── telegram.ts    # Telegram 介面實作
 ├── tools/
 │   └── memory-cli.ts  # 記憶搜尋工具 (供 AI 主動呼叫)
+├── skills/            # Skills 模組化資產 (memory/scheduler/skill-creator)
 ├── types/             # 共用型別定義
 └── main.ts            # 程式入口點
 ```
@@ -266,6 +309,14 @@ src/
 ---
 
 ## 📜 變更日誌
+
+### v2.2.0
+- **新增**: Skills 模組化（含 skill-creator）與相關 Docker 掛載。
+- **新增**: 記憶體管理 CLI 工具與對應文件。
+- **新增**: GEMINI.md / AGENTS.md 掛載作為行為指引。
+- **優化**: Opencode 支援長期記憶檢索與登入/掛載流程。
+- **優化**: Docker 安全性（multi-stage build、唯讀掛載）與驗證腳本。
+- **改進**: Opencode 執行改用 `spawn` 以支援標準輸入與逾時處理。
 
 ### v2.1.0
 - **新增**: 整合 `opencode run` 作為替代 AI 提供者。
