@@ -438,17 +438,12 @@ ${longTermMemory ? longTermMemory + '\n\n' : ''}【任務說明】
 2. 🟡 可優化事項：討論過但可以做得更好的地方
 3. 🟢 待辦提醒：用戶提到想做但可能忘記的事
 
-【工具使用】
-- 使用 search_entities 查詢現有的 reflection 實體
-- 對於新發現，使用 create_entities 建立 type=reflection 的實體
-- 對於已存在的事項，使用 add_observation 更新 (reminder_count +1)
-
 【過去 24 小時對話】
 ${historyText}
 
 【輸出格式】
-請簡潔彙整你的發現，並說明你建立或更新了哪些 reflection 實體。
-如果沒有需要提醒的事項，請簡短說明「近期對話無待處理事項」。
+請簡潔彙整你的發現。如果沒有需要提醒的事項，請簡短說明「近期對話無待處理事項」。
+你的回應會自動儲存到記憶系統中，供未來參考。
 `.trim();
 
             const response = await this.gemini.chat(reflectionPrompt);
@@ -509,8 +504,8 @@ System: 你是 TeleNexus，正在執行「每日對話摘要」任務。
 請用繁體中文回應。
 
 【任務說明】
-1. 使用 search_entities 查詢所有 type=reflection 的實體
-2. 彙整成一份簡潔的日報
+請回顧最近的對話記錄，彙整成一份簡潔的日報。
+你可以搜尋過去包含「待辦」、「問題」、「優化」等關鍵字的對話。
 
 【輸出格式】
 📅 每日摘要 - ${new Date().toLocaleDateString('zh-TW')}
@@ -524,7 +519,7 @@ System: 你是 TeleNexus，正在執行「每日對話摘要」任務。
 🟢 已解決/低優先：
 - ...
 
-如果沒有任何 reflection，請回覆「✨ 目前沒有待處理事項！」
+如果沒有待處理事項，請回覆「✨ 目前沒有待處理事項！」
 `.trim();
 
             const response = await this.gemini.chat(summaryPrompt);
