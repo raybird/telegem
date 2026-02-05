@@ -6,6 +6,7 @@ moltbot.db**
 .serena/
 
 .env
+ai-config.yaml
 
 # Gemini CLI - 只保留設定檔，忽略認證與快取
 workspace/.gemini/auth/
