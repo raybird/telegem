@@ -39,7 +39,8 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:$PATH"
 
 # Install global CLI tools
-RUN npm install -g @google/gemini-cli opencode-ai mcp-memory-libsql
+RUN npm install -g @google/gemini-cli opencode-ai mcp-memory-libsql agent-browser
+RUN agent-browser install
 
 # 從 Builder 階段複製編譯好的檔案
 COPY --from=builder /app/package.json ./

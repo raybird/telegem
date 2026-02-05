@@ -39,9 +39,9 @@ async function bootstrap() {
 
   // 初始化元件
   const telegram = new TelegramConnector(TELEGRAM_TOKEN, [ALLOWED_USER_ID]);
-  const gemini = new DynamicAIAgent(); // 使用動態代理人，支援切換 provider
+  const agent = new DynamicAIAgent(); // 使用動態代理人，支援切換 Provider
   const memory = new MemoryManager();
-  const scheduler = new Scheduler(memory, gemini, telegram);
+  const scheduler = new Scheduler(memory, agent, telegram);
   const commandRouter = new CommandRouter();
 
 
@@ -119,7 +119,7 @@ async function bootstrap() {
 
       if (shouldSummarize(msg.content)) {
         console.log(`📝 [Memory] User input meets summary criteria, generating summary...`);
-        userSummary = await gemini.summarize(msg.content);
+        userSummary = await agent.summarize(msg.content);
       }
 
       memory.addMessage(userId, 'user', msg.content, userSummary);
@@ -161,7 +161,7 @@ AI Response:
       console.log(`📤 [System] Sending prompt to AI (length: ${fullPrompt.length} chars)`);
 
       // 4. 呼叫 AI Agent (DynamicAgent 會根據 ai-config.yaml 選擇 provider)
-      const response = await gemini.chat(fullPrompt);
+      const response = await agent.chat(fullPrompt);
 
       console.log(`📥 [AI] Reply length: ${response.length}`);
 
@@ -171,7 +171,7 @@ AI Response:
 
         if (shouldSummarize(response)) {
           console.log(`📝 [Memory] AI response meets summary criteria, generating summary...`);
-          responseSummary = await gemini.summarize(response);
+          responseSummary = await agent.summarize(response);
         }
 
         memory.addMessage(userId, 'model', response, responseSummary);
