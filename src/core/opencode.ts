@@ -177,7 +177,8 @@ ${text}
                 : prompt;
 
             // 使用 echo 透過 stdin 傳遞訊息,比直接作為參數更快
-            const args = ['run'];
+            // 使用 -c 接續上次 session,減少重複注入記憶
+            const args = ['run', '-c'];
 
             // 若有指定 model,加入參數
             if (options?.model) {

@@ -17,8 +17,12 @@ Moltbot Lite 由數個可替換的模組組成，核心目標是以 Telegram 作
 3. `CommandRouter` 嘗試處理指令；若無匹配，進入一般聊天流程。
 4. 記憶模組保存使用者訊息，並組合近期上下文。
 5. **`DynamicAIAgent`** 讀取 `ai-config.yaml` 決定使用的後端：
-   - 若為 `gemini`：呼叫 `GeminiAgent` 透過 `gemini-cli` 取得回應。
-   - 若為 `opencode`：呼叫 `OpencodeAgent` 透過 `opencode run` 取得回應。
+   - 若為 `gemini`：呼叫 `GeminiAgent` 透過 `gemini-cli --resume` 取得回應。
+   - 若為 `opencode`：呼叫 `OpencodeAgent` 透過 `opencode run -c` 取得回應。
+2. **記憶整合層**：
+   - 使用 CLI 原生 Session 維護對話連貫性。
+   - SQLite 儲存 15 則歷史對話作為摘要 Fallback。
+   - MCP Memory 處理長期知識點。
 6. 回應儲存至記憶，並回傳 Telegram。
 
 ### 擴充建議

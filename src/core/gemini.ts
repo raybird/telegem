@@ -20,11 +20,11 @@ function runProcess(command: string, args: string[], options: RunOptions = {}): 
     let stderr = '';
     const timer = options.timeoutMs
       ? setTimeout(() => {
-          child.kill('SIGTERM');
-          const err: any = new Error('Process timed out');
-          err.code = 'ETIMEDOUT';
-          reject(err);
-        }, options.timeoutMs)
+        child.kill('SIGTERM');
+        const err: any = new Error('Process timed out');
+        err.code = 'ETIMEDOUT';
+        reject(err);
+      }, options.timeoutMs)
       : null;
 
     child.stdout?.on('data', (chunk) => {
@@ -133,7 +133,8 @@ ${text}
     try {
       // 開啟 --yolo 模式，允許自動執行所有工具 (搜尋、讀取檔案、執行指令等)
       // 使用 -p 進入非互動模式
-      const args = ['--yolo', '-p', prompt];
+      // 使用 --resume 接續上次 session，減少重複注入記憶
+      const args = ['--yolo', '--resume', '-p', prompt];
 
       // 若有指定 model，加入參數
       if (options?.model) {
