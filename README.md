@@ -36,6 +36,9 @@ TeleNexus 讓您用 Telegram 控制本機 AI CLI（Gemini / Opencode），並提
   - 輸出 `runner-audit.log` 與 `runner-status.md`
 - `workspace/context/`
   - 系統狀態快照（runtime/provider/scheduler/error/runner）
+- `workspace/.gemini/skills`（容器內）
+  - 使用獨立 Docker volume，AI 可安裝自訂 skill 而不污染 repo
+  - 啟動時會把 `/app/skills` 內建 skills 同步進可寫區
 
 ---
 
@@ -75,6 +78,26 @@ docker compose --profile phase3 up -d --build
 ```bash
 docker compose ps
 docker compose logs -f telenexus
+```
+
+---
+
+## Skills（不污染 repo）
+
+- 內建 skills 來源：`/app/skills`（唯讀）
+- AI 可寫技能目錄：`/app/workspace/.gemini/skills`（獨立 volume）
+- 啟動時會自動同步內建 skills 到可寫目錄（不覆蓋已存在的自訂 skills）
+
+容器內檢查：
+
+```bash
+docker compose exec telenexus ls -la /app/workspace/.gemini/skills
+```
+
+手動安裝自訂 skill（範例）：
+
+```bash
+docker compose exec telenexus npx skill-linker --from https://github.com/your-org/your-skill-repo
 ```
 
 ---

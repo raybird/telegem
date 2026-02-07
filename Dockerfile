@@ -50,6 +50,7 @@ COPY --from=builder /app/dist ./dist
 
 # 複製 workspace 和腳本
 COPY workspace ./workspace
+COPY --from=builder /app/scripts ./scripts
 COPY debug-container.sh ./
 RUN chmod +x debug-container.sh && chmod +x workspace/.gemini/hooks/*.sh 2>/dev/null || true
 

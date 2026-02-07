@@ -19,6 +19,7 @@ services:
     volumes:
       - ./data:/app/data
       - ./workspace/.gemini:/app/workspace/.gemini
+      - gemini_workspace_skills:/app/workspace/.gemini/skills
       - ./workspace/.opencode:/app/workspace/.opencode
       - ./ai-config.yaml:/app/ai-config.yaml:ro
       - gemini_auth:/root/.gemini
@@ -45,6 +46,7 @@ services:
     volumes:
       - ./data:/app/data
       - ./workspace:/app/workspace
+      - gemini_workspace_skills:/app/workspace/.gemini/skills
       - ./ai-config.yaml:/app/ai-config.yaml:ro
       - gemini_auth:/root/.gemini
       - ${HOME}/.local/share/opencode:/root/.local/share/opencode
@@ -68,3 +70,4 @@ services:
 
 volumes:
   gemini_auth:
+  gemini_workspace_skills:

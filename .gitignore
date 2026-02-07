@@ -12,6 +12,8 @@ ai-config.yaml
 workspace/.gemini/auth/
 workspace/.gemini/cache/
 workspace/.gemini/.credentials
+workspace/.gemini/skills/*
+!workspace/.gemini/skills/.gitkeep
 
 # Workspace temp files
 workspace/temp/
@@ -20,10 +22,10 @@ workspace/AGENTS.md
 workspace/GEMINI.md
 
 # Local AI tool state
-.agent/
-.codex/
-.gemini/
-.opencode/
+/.agent/
+/.codex/
+/.gemini/
+/.opencode/
 
 data/
 
