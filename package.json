@@ -6,8 +6,10 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/main.ts",
+    "dev:runner": "tsx watch --ignore \"workspace/context/**\" src/runner.ts",
     "build": "tsc",
     "start": "node dist/main.js",
+    "start:runner": "node dist/runner.js",
     "lint": "eslint \"src/**/*.ts\"",
     "format": "prettier --write \"src/**/*.ts\" \"*.md\""
   },

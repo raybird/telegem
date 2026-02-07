@@ -4,17 +4,45 @@ import { GeminiAgent } from './gemini.js';
 import { OpencodeAgent } from './opencode.js';
 
 export interface AIAgentOptions {
-    model?: string;
+  model?: string;
+}
+
+type RunnerTask = 'chat' | 'summarize';
+
+interface RunnerRequest {
+  task: RunnerTask;
+  input: string;
+  provider: string;
+  model?: string;
+}
+
+interface RunnerResponse {
+  ok: boolean;
+  output?: string;
+  provider?: string;
+  requestId?: string;
+  durationMs?: number;
+  error?: string;
+}
+
+export interface DynamicAgentOptions {
+  runnerEndpoint?: string;
+  preferRunner?: boolean;
+  fallbackToLocal?: boolean;
+  runnerTimeoutMs?: number;
+  runnerToken?: string;
+  runnerFailureThreshold?: number;
+  runnerCooldownMs?: number;
 }
 
 export interface AIAgent {
-    chat(prompt: string, options?: AIAgentOptions): Promise<string>;
-    summarize(text: string, options?: AIAgentOptions): Promise<string>;
+  chat(prompt: string, options?: AIAgentOptions): Promise<string>;
+  summarize(text: string, options?: AIAgentOptions): Promise<string>;
 }
 
 interface AIConfig {
-    provider?: string;
-    model?: string | undefined;
+  provider?: string;
+  model?: string | undefined;
 }
 
 /**
@@ -22,72 +50,208 @@ interface AIConfig {
  * 每次呼叫時重新讀取 ai-config.yaml 來決定使用哪個 provider
  */
 export class DynamicAIAgent implements AIAgent {
-    private geminiAgent: GeminiAgent;
-    private opencodeAgent: OpencodeAgent;
-    private configPath: string;
+  private geminiAgent: GeminiAgent;
+  private opencodeAgent: OpencodeAgent;
+  private configPath: string;
+  private runnerEndpoint: string | null;
+  private preferRunner: boolean;
+  private fallbackToLocal: boolean;
+  private runnerTimeoutMs: number;
+  private runnerToken: string | null;
+  private runnerFailureThreshold: number;
+  private runnerCooldownMs: number;
+  private consecutiveRunnerFailures: number;
+  private runnerOpenUntil: number;
 
-    constructor(configPath = 'ai-config.yaml') {
-        this.configPath = configPath;
-        this.geminiAgent = new GeminiAgent();
-        this.opencodeAgent = new OpencodeAgent();
+  constructor(configPath = 'ai-config.yaml', options: DynamicAgentOptions = {}) {
+    this.configPath = configPath;
+    this.geminiAgent = new GeminiAgent();
+    this.opencodeAgent = new OpencodeAgent();
+    this.runnerEndpoint = options.runnerEndpoint?.trim() || null;
+    this.preferRunner = options.preferRunner ?? false;
+    this.fallbackToLocal = options.fallbackToLocal ?? true;
+    this.runnerTimeoutMs = options.runnerTimeoutMs ?? 650000;
+    this.runnerToken = options.runnerToken?.trim() || null;
+    this.runnerFailureThreshold =
+      options.runnerFailureThreshold && options.runnerFailureThreshold > 0
+        ? options.runnerFailureThreshold
+        : 3;
+    this.runnerCooldownMs =
+      options.runnerCooldownMs && options.runnerCooldownMs >= 1000
+        ? options.runnerCooldownMs
+        : 60000;
+    this.consecutiveRunnerFailures = 0;
+    this.runnerOpenUntil = 0;
+  }
+
+  private isRunnerCircuitOpen(): boolean {
+    return this.runnerOpenUntil > Date.now();
+  }
+
+  private markRunnerFailure(errorMessage: string): void {
+    this.consecutiveRunnerFailures += 1;
+    if (this.consecutiveRunnerFailures >= this.runnerFailureThreshold) {
+      this.runnerOpenUntil = Date.now() + this.runnerCooldownMs;
+      console.warn(
+        `[DynamicAgent] Runner circuit opened for ${this.runnerCooldownMs}ms after ${this.consecutiveRunnerFailures} failures. Last error: ${errorMessage}`
+      );
+      this.consecutiveRunnerFailures = 0;
+    }
+  }
+
+  private markRunnerSuccess(): void {
+    this.consecutiveRunnerFailures = 0;
+    this.runnerOpenUntil = 0;
+  }
+
+  private async callRunner(payload: RunnerRequest): Promise<RunnerResponse> {
+    if (!this.runnerEndpoint) {
+      return { ok: false, error: 'RUNNER_ENDPOINT is not configured.' };
     }
 
-    /**
-     * 載入設定檔
-     * 若檔案不存在或解析失敗，回退至預設值 { provider: 'gemini' }
-     */
-    private loadProviderConfig(): AIConfig {
-        try {
-            const fileContent = fs.readFileSync(this.configPath, 'utf8');
-            const config = yaml.load(fileContent) as AIConfig;
-            return {
-                provider: config?.provider || 'gemini',
-                model: config?.model
-            };
-        } catch (error) {
-            // 檔案不存在或解析失敗，使用預設值
-            return { provider: 'gemini' };
-        }
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), this.runnerTimeoutMs);
+
+    try {
+      const response = await fetch(`${this.runnerEndpoint}/run`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(this.runnerToken ? { 'x-runner-token': this.runnerToken } : {})
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        return { ok: false, error: `Runner HTTP ${response.status}: ${text}` };
+      }
+
+      const result = (await response.json()) as RunnerResponse;
+      return result;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      return { ok: false, error: `Runner request failed: ${message}` };
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  private async executeLocal(
+    task: RunnerTask,
+    provider: string,
+    input: string,
+    options?: AIAgentOptions
+  ): Promise<string> {
+    const mergedOptions: AIAgentOptions = {};
+    if (options?.model) {
+      mergedOptions.model = options.model;
     }
 
-    async chat(prompt: string, options?: AIAgentOptions): Promise<string> {
-        const config = this.loadProviderConfig();
-        console.log(`[DynamicAgent] Provider: ${config.provider}, Model: ${config.model || 'default'}`);
-
-        const mergedOptions: AIAgentOptions = {};
-
-        const modelValue = options?.model || config.model;
-        if (modelValue) {
-            mergedOptions.model = modelValue;
-        }
-
-        let response: string;
-        let providerName: string;
-
-        if (config.provider === 'opencode') {
-            response = await this.opencodeAgent.chat(prompt, mergedOptions);
-            providerName = 'Opencode';
-        } else {
-            response = await this.geminiAgent.chat(prompt, mergedOptions);
-            providerName = 'Gemini';
-        }
-
-        // 在回應開頭加上 provider 標記
-        return `[${providerName}] ${response}`;
+    if (provider === 'opencode') {
+      if (task === 'chat') {
+        const response = await this.opencodeAgent.chat(input, mergedOptions);
+        return `[Opencode] ${response}`;
+      }
+      return this.opencodeAgent.summarize(input, mergedOptions);
     }
 
-    async summarize(text: string, options?: AIAgentOptions): Promise<string> {
-        const config = this.loadProviderConfig();
-        const mergedOptions: AIAgentOptions = {};
-
-        const modelValue = options?.model || config.model;
-        if (modelValue) {
-            mergedOptions.model = modelValue;
-        }
-
-        if (config.provider === 'opencode') {
-            return this.opencodeAgent.summarize(text, mergedOptions);
-        }
-        return this.geminiAgent.summarize(text, mergedOptions);
+    if (task === 'chat') {
+      const response = await this.geminiAgent.chat(input, mergedOptions);
+      return `[Gemini] ${response}`;
     }
+    return this.geminiAgent.summarize(input, mergedOptions);
+  }
+
+  private async executeTask(
+    task: RunnerTask,
+    input: string,
+    options?: AIAgentOptions
+  ): Promise<string> {
+    const config = this.loadProviderConfig();
+    const provider = config.provider === 'opencode' ? 'opencode' : 'gemini';
+    const model = options?.model || config.model;
+    const mergedOptions: AIAgentOptions = {};
+    if (model) {
+      mergedOptions.model = model;
+    }
+
+    console.log(
+      `[DynamicAgent] Provider: ${provider}, Model: ${model || 'default'}, PreferRunner: ${this.preferRunner}`
+    );
+
+    if (this.preferRunner && this.runnerEndpoint) {
+      if (this.isRunnerCircuitOpen()) {
+        const remainingMs = this.runnerOpenUntil - Date.now();
+        console.warn(`[DynamicAgent] Runner circuit open, skip runner for ${remainingMs}ms.`);
+        if (!this.fallbackToLocal) {
+          return `Error calling runner: circuit open (${remainingMs}ms remaining)`;
+        }
+        return this.executeLocal(task, provider, input, mergedOptions);
+      }
+
+      const runnerPayload: RunnerRequest = {
+        task,
+        input,
+        provider
+      };
+      if (model) {
+        runnerPayload.model = model;
+      }
+
+      const runnerResult = await this.callRunner(runnerPayload);
+
+      if (runnerResult.ok && runnerResult.output) {
+        this.markRunnerSuccess();
+        const runnerMeta = runnerResult.requestId ? ` requestId=${runnerResult.requestId}` : '';
+        const durationMeta =
+          typeof runnerResult.durationMs === 'number'
+            ? ` duration=${runnerResult.durationMs}ms`
+            : '';
+        console.log(`[DynamicAgent] Runner success.${runnerMeta}${durationMeta}`);
+        if (task === 'chat') {
+          const providerLabel = runnerResult.provider === 'opencode' ? 'Opencode' : 'Gemini';
+          return `[${providerLabel}] ${runnerResult.output}`;
+        }
+        return runnerResult.output;
+      }
+
+      const errorMessage = runnerResult.error || 'Unknown runner error';
+      this.markRunnerFailure(errorMessage);
+      console.warn(`[DynamicAgent] Runner failed: ${errorMessage}`);
+      if (!this.fallbackToLocal) {
+        return `Error calling runner: ${errorMessage}`;
+      }
+      console.log('[DynamicAgent] Falling back to local execution...');
+    }
+
+    return this.executeLocal(task, provider, input, mergedOptions);
+  }
+
+  /**
+   * 載入設定檔
+   * 若檔案不存在或解析失敗，回退至預設值 { provider: 'gemini' }
+   */
+  private loadProviderConfig(): AIConfig {
+    try {
+      const fileContent = fs.readFileSync(this.configPath, 'utf8');
+      const config = yaml.load(fileContent) as AIConfig;
+      return {
+        provider: config?.provider || 'gemini',
+        model: config?.model
+      };
+    } catch {
+      // 檔案不存在或解析失敗，使用預設值
+      return { provider: 'gemini' };
+    }
+  }
+
+  async chat(prompt: string, options?: AIAgentOptions): Promise<string> {
+    return this.executeTask('chat', prompt, options);
+  }
+
+  async summarize(text: string, options?: AIAgentOptions): Promise<string> {
+    return this.executeTask('summarize', text, options);
+  }
 }

@@ -9,6 +9,13 @@ services:
       DB_PATH: /app/data/moltbot.db
       DB_DIR: /app/data
       GEMINI_PROJECT_DIR: /app
+      RUNNER_ENDPOINT: ${RUNNER_ENDPOINT:-}
+      SCHEDULE_USE_RUNNER: ${SCHEDULE_USE_RUNNER:-false}
+      CHAT_USE_RUNNER_PERCENT: ${CHAT_USE_RUNNER_PERCENT:-0}
+      CHAT_USE_RUNNER_ONLY_USERS: ${CHAT_USE_RUNNER_ONLY_USERS:-}
+      RUNNER_SHARED_SECRET: ${RUNNER_SHARED_SECRET:-}
+      RUNNER_FAILURE_THRESHOLD: ${RUNNER_FAILURE_THRESHOLD:-3}
+      RUNNER_COOLDOWN_MS: ${RUNNER_COOLDOWN_MS:-60000}
     volumes:
       - ./data:/app/data
       - ./workspace/.gemini:/app/workspace/.gemini
@@ -20,6 +27,43 @@ services:
       - ./skills:/app/skills:ro
       - ./GEMINI.md:/app/workspace/GEMINI.md:ro
       - ./AGENTS.md:/app/workspace/AGENTS.md:ro
+    restart: unless-stopped
+
+  agent-runner:
+    profiles:
+      - phase3
+    build: .
+    env_file: .env
+    environment:
+      TZ: Asia/Taipei
+      DB_PATH: /app/data/moltbot.db
+      DB_DIR: /app/data
+      GEMINI_PROJECT_DIR: /app
+      RUNNER_MODE: standalone
+      RUNNER_PORT: 8787
+      RUNNER_SHARED_SECRET: ${RUNNER_SHARED_SECRET:-}
+    volumes:
+      - ./data:/app/data
+      - ./workspace:/app/workspace
+      - ./ai-config.yaml:/app/ai-config.yaml:ro
+      - gemini_auth:/root/.gemini
+      - ${HOME}/.local/share/opencode:/root/.local/share/opencode
+      - ./skills:/app/skills:ro
+      - ./GEMINI.md:/app/workspace/GEMINI.md:ro
+      - ./AGENTS.md:/app/workspace/AGENTS.md:ro
+    command: ['node', 'dist/runner.js']
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:8787/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     restart: unless-stopped
 
 volumes:

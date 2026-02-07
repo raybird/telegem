@@ -52,12 +52,16 @@ docker compose run --rm telenexus ls -la /app/data/
 echo "✅ /app/data volume is mounted"
 echo ""
 
-# Test 8: Check workspace symlinks and CLI visibility
-echo "8️⃣ Verifying workspace symlinks and CLI access..."
-docker compose run --rm telenexus bash -c 'ls -l /app/workspace/dist /app/workspace/src'
-echo "✅ Symlinks exist"
-docker compose run --rm telenexus bash -c 'cd /app/workspace && node dist/tools/scheduler-cli.js --help'
-echo "✅ scheduler-cli is accessible from workspace"
+# Test 8: Check context snapshots and CLI visibility
+echo "8️⃣ Verifying context snapshots and CLI access..."
+docker compose run --rm telenexus ls -la /app/workspace/context/
+docker compose run --rm telenexus test -f /app/workspace/context/runtime-status.md
+docker compose run --rm telenexus test -f /app/workspace/context/provider-status.md
+docker compose run --rm telenexus test -f /app/workspace/context/scheduler-status.md
+docker compose run --rm telenexus test -f /app/workspace/context/error-summary.md
+echo "✅ Context snapshots directory is available"
+docker compose run --rm telenexus node /app/dist/tools/scheduler-cli.js --help
+echo "✅ scheduler-cli is accessible via /app/dist"
 echo ""
 
 echo "======================================="

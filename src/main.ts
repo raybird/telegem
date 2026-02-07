@@ -1,4 +1,7 @@
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
+import yaml from 'js-yaml';
 import { TelegramConnector } from './connectors/telegram.js';
 import { CommandRouter } from './core/command-router.js';
 import { DynamicAIAgent } from './core/agent.js';
@@ -26,6 +29,250 @@ function shouldSummarize(content: string): boolean {
   return false;
 }
 
+type RuntimeIssue = {
+  timestamp: number;
+  scope: string;
+  message: string;
+};
+
+const RECENT_ISSUE_LIMIT = 20;
+const recentIssues: RuntimeIssue[] = [];
+
+function toErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return `${error.name}: ${error.message}`;
+  }
+  if (typeof error === 'string') {
+    return error;
+  }
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
+}
+
+function recordRuntimeIssue(scope: string, error: unknown): void {
+  recentIssues.push({
+    timestamp: Date.now(),
+    scope,
+    message: toErrorMessage(error)
+  });
+  if (recentIssues.length > RECENT_ISSUE_LIMIT) {
+    recentIssues.splice(0, recentIssues.length - RECENT_ISSUE_LIMIT);
+  }
+}
+
+function loadProviderStatus(): { provider: string; model: string; timezone: string } {
+  try {
+    const configPath = path.resolve(process.cwd(), 'ai-config.yaml');
+    const content = fs.readFileSync(configPath, 'utf8');
+    const parsed = yaml.load(content) as Record<string, unknown> | undefined;
+
+    const provider = typeof parsed?.provider === 'string' ? parsed.provider : 'gemini';
+    const model = typeof parsed?.model === 'string' ? parsed.model : 'default';
+    const timezone =
+      typeof parsed?.timezone === 'string' ? parsed.timezone : process.env.TZ || 'Asia/Taipei';
+    return { provider, model, timezone };
+  } catch {
+    return {
+      provider: 'gemini',
+      model: 'default',
+      timezone: process.env.TZ || 'Asia/Taipei'
+    };
+  }
+}
+
+function resolveSchedulerHealthPath(): string {
+  const explicitPath = process.env.DB_PATH?.trim();
+  if (explicitPath) {
+    return path.resolve(path.dirname(explicitPath), 'scheduler-health.json');
+  }
+
+  const dbDir = process.env.DB_DIR?.trim();
+  if (dbDir) {
+    return path.resolve(dbDir, 'scheduler-health.json');
+  }
+
+  return path.resolve(process.cwd(), 'scheduler-health.json');
+}
+
+function writeSchedulerHealth(trigger: string, memory: MemoryManager): void {
+  try {
+    const healthPath = resolveSchedulerHealthPath();
+    const payload = {
+      updatedAt: Date.now(),
+      lastReloadAt: Date.now(),
+      lastLoadedScheduleCount: memory.getActiveSchedules().length,
+      trigger,
+      pid: process.pid
+    };
+
+    fs.mkdirSync(path.dirname(healthPath), { recursive: true });
+    fs.writeFileSync(healthPath, JSON.stringify(payload, null, 2), 'utf8');
+  } catch (error) {
+    console.warn('[System] Failed to write scheduler health marker:', error);
+  }
+}
+
+function resolveContextDir(): string {
+  const projectDir = process.env.GEMINI_PROJECT_DIR?.trim() || process.cwd();
+  return path.resolve(projectDir, 'workspace', 'context');
+}
+
+function writeContextSnapshots(memory: MemoryManager): void {
+  try {
+    const contextDir = resolveContextDir();
+    fs.mkdirSync(contextDir, { recursive: true });
+
+    const now = new Date();
+    const provider = loadProviderStatus();
+    const runtimeStatus = [
+      '# Runtime Status',
+      '',
+      `- Updated: ${now.toLocaleString('zh-TW')}`,
+      `- Node PID: ${process.pid}`,
+      `- NODE_ENV: ${process.env.NODE_ENV || 'unknown'}`,
+      `- Provider Config File: ai-config.yaml`,
+      `- Active Provider: ${provider.provider}`,
+      `- Active Model: ${provider.model}`,
+      `- Timezone (TZ): ${process.env.TZ || 'Asia/Taipei (default)'}`,
+      `- Runner Endpoint: ${process.env.RUNNER_ENDPOINT || '(disabled)'}`,
+      `- Scheduler Runner Mode: ${process.env.SCHEDULE_USE_RUNNER || 'false'}`,
+      `- Chat Runner Percent: ${process.env.CHAT_USE_RUNNER_PERCENT || '0'}`,
+      `- Chat Runner Whitelist: ${process.env.CHAT_USE_RUNNER_ONLY_USERS || '(all users)'}`,
+      `- Runner Failure Threshold: ${process.env.RUNNER_FAILURE_THRESHOLD || '3'}`,
+      `- Runner Cooldown (ms): ${process.env.RUNNER_COOLDOWN_MS || '60000'}`,
+      `- DB_PATH: ${process.env.DB_PATH || '(auto-resolved)'}`,
+      `- DB_DIR: ${process.env.DB_DIR || '(not set)'}`,
+      `- GEMINI_PROJECT_DIR: ${process.env.GEMINI_PROJECT_DIR || process.cwd()}`
+    ].join('\n');
+
+    const providerStatus = [
+      '# Provider Status',
+      '',
+      `- Updated: ${now.toLocaleString('zh-TW')}`,
+      `- Provider: ${provider.provider}`,
+      `- Model: ${provider.model}`,
+      `- Timezone: ${provider.timezone}`
+    ].join('\n');
+
+    const schedules = memory.getActiveSchedules();
+    const schedulerLines = schedules.map((schedule) => {
+      return `- #${schedule.id} | ${schedule.name} | ${schedule.cron} | user=${schedule.user_id}`;
+    });
+    const schedulerStatus = [
+      '# Scheduler Status',
+      '',
+      `- Updated: ${now.toLocaleString('zh-TW')}`,
+      `- Active Schedules: ${schedules.length}`,
+      '',
+      '## Active Schedule List',
+      ...(schedulerLines.length > 0 ? schedulerLines : ['- (none)'])
+    ].join('\n');
+
+    const systemArchitecture = [
+      '# System Architecture Snapshot',
+      '',
+      '- Input channel: Telegram -> CommandRouter -> Scheduler/Agent',
+      '- Scheduler source of truth: SQLite schedules table',
+      '- Agent runtime: Gemini/Opencode CLI executed from workspace/',
+      '- Long-term memory hook: workspace/.gemini/hooks/retrieve-memory.sh',
+      '- Main runtime service: TeleNexus orchestrator'
+    ].join('\n');
+
+    const operationsPolicy = [
+      '# Operations Policy',
+      '',
+      '- Read system context from files in workspace/context/',
+      '- Do not modify application source code unless explicitly requested by user',
+      '- Prefer scheduler commands via Telegram command router',
+      '- In Docker, use `docker compose exec telenexus ...` for maintenance commands',
+      '- Avoid using one-off `docker compose run` for scheduler modifications'
+    ].join('\n');
+
+    const recentIssueLines = recentIssues
+      .slice(-10)
+      .map(
+        (issue) =>
+          `- [${new Date(issue.timestamp).toLocaleString('zh-TW')}] (${issue.scope}) ${issue.message}`
+      );
+    const errorSummary = [
+      '# Error Summary',
+      '',
+      `- Updated: ${now.toLocaleString('zh-TW')}`,
+      '',
+      '## Recent Runtime Issues',
+      ...(recentIssueLines.length > 0 ? recentIssueLines : ['- (none)'])
+    ].join('\n');
+
+    fs.writeFileSync(path.join(contextDir, 'runtime-status.md'), runtimeStatus, 'utf8');
+    fs.writeFileSync(path.join(contextDir, 'provider-status.md'), providerStatus, 'utf8');
+    fs.writeFileSync(path.join(contextDir, 'scheduler-status.md'), schedulerStatus, 'utf8');
+    fs.writeFileSync(path.join(contextDir, 'system-architecture.md'), systemArchitecture, 'utf8');
+    fs.writeFileSync(path.join(contextDir, 'operations-policy.md'), operationsPolicy, 'utf8');
+    fs.writeFileSync(path.join(contextDir, 'error-summary.md'), errorSummary, 'utf8');
+  } catch (error) {
+    console.warn('[System] Failed to write context snapshots:', error);
+  }
+}
+
+function getContextRefreshMs(): number {
+  const raw = process.env.CONTEXT_REFRESH_MS?.trim();
+  if (!raw) return 60000;
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed < 10000) {
+    return 60000;
+  }
+  return parsed;
+}
+
+function getChatRunnerPercent(): number {
+  const raw = process.env.CHAT_USE_RUNNER_PERCENT?.trim();
+  if (!raw) return 0;
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed)) return 0;
+  return Math.min(100, Math.max(0, parsed));
+}
+
+function getRunnerFailureThreshold(): number {
+  const raw = process.env.RUNNER_FAILURE_THRESHOLD?.trim();
+  if (!raw) return 3;
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) return 3;
+  return parsed;
+}
+
+function getRunnerCooldownMs(): number {
+  const raw = process.env.RUNNER_COOLDOWN_MS?.trim();
+  if (!raw) return 60000;
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed < 1000) return 60000;
+  return parsed;
+}
+
+function getChatRunnerOnlyUsers(defaultUserId?: string): Set<string> {
+  const raw = process.env.CHAT_USE_RUNNER_ONLY_USERS?.trim();
+  if (!raw) {
+    return defaultUserId ? new Set<string>([defaultUserId]) : new Set<string>();
+  }
+  return new Set(
+    raw
+      .split(',')
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0)
+  );
+}
+
+function hashToBucket(input: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0) % 100;
+}
+
 async function bootstrap() {
   console.log('🚀 Starting TeleNexus (YOLO Agent + Stream UX)...');
 
@@ -39,29 +286,79 @@ async function bootstrap() {
 
   // 初始化元件
   const telegram = new TelegramConnector(TELEGRAM_TOKEN, [ALLOWED_USER_ID]);
-  const agent = new DynamicAIAgent(); // 使用動態代理人，支援切換 Provider
+  const userAgent = new DynamicAIAgent();
+  const runnerEndpoint = process.env.RUNNER_ENDPOINT?.trim();
+  const runnerToken = process.env.RUNNER_SHARED_SECRET?.trim();
+  const runnerFailureThreshold = getRunnerFailureThreshold();
+  const runnerCooldownMs = getRunnerCooldownMs();
+  const useRunnerForSchedule =
+    process.env.SCHEDULE_USE_RUNNER === 'true' && Boolean(runnerEndpoint);
+  const chatRunnerPercent = getChatRunnerPercent();
+  const chatRunnerOnlyUsers = getChatRunnerOnlyUsers(ALLOWED_USER_ID);
+  const useRunnerForChat = chatRunnerPercent > 0 && Boolean(runnerEndpoint);
+  const runnerOptions = runnerEndpoint
+    ? {
+        runnerEndpoint,
+        ...(runnerToken ? { runnerToken } : {}),
+        runnerFailureThreshold,
+        runnerCooldownMs,
+        preferRunner: true,
+        fallbackToLocal: true
+      }
+    : undefined;
+  const schedulerAgent = useRunnerForSchedule
+    ? new DynamicAIAgent('ai-config.yaml', runnerOptions)
+    : userAgent;
+  const chatRunnerAgent = useRunnerForChat
+    ? new DynamicAIAgent('ai-config.yaml', runnerOptions)
+    : userAgent;
+  console.log(
+    `[System] Scheduler execution mode: ${useRunnerForSchedule ? `runner (${runnerEndpoint})` : 'local'}`
+  );
+  console.log(
+    `[System] Chat runner canary: ${useRunnerForChat ? `${chatRunnerPercent}% via ${runnerEndpoint}` : 'disabled'}`
+  );
+  if (chatRunnerOnlyUsers.size > 0) {
+    console.log(`[System] Chat runner whitelist: ${Array.from(chatRunnerOnlyUsers).join(', ')}`);
+  }
   const memory = new MemoryManager();
-  const scheduler = new Scheduler(memory, agent, telegram);
+  const scheduler = new Scheduler(memory, schedulerAgent, telegram);
   const commandRouter = new CommandRouter();
+  let contextRefreshTimer: NodeJS.Timeout | null = null;
 
-
+  const stopContextRefresh = () => {
+    if (contextRefreshTimer) {
+      clearInterval(contextRefreshTimer);
+      contextRefreshTimer = null;
+    }
+  };
 
   // 註冊優雅關閉處理器
   process.on('SIGINT', () => {
     console.log('\n[System] Shutting down gracefully...');
+    stopContextRefresh();
     scheduler.shutdown();
     process.exit(0);
   });
 
   process.on('SIGTERM', () => {
     console.log('\n[System] Shutting down gracefully...');
+    stopContextRefresh();
     scheduler.shutdown();
     process.exit(0);
   });
 
   process.on('SIGUSR1', async () => {
-    console.log('\n[System] Received SIGUSR1, reloading schedules...');
-    await scheduler.reload();
+    try {
+      console.log('\n[System] Received SIGUSR1, reloading schedules...');
+      await scheduler.reload();
+      writeSchedulerHealth('signal:SIGUSR1', memory);
+      writeContextSnapshots(memory);
+    } catch (error) {
+      console.error('[System] Failed handling SIGUSR1 reload:', error);
+      recordRuntimeIssue('signal:SIGUSR1', error);
+      writeContextSnapshots(memory);
+    }
   });
 
   // 設定訊息處理邏輯
@@ -71,6 +368,7 @@ async function bootstrap() {
 
     // 重置沉默計時器 (30 分鐘無訊息後觸發追蹤提醒)
     scheduler.resetSilenceTimer(userId);
+    writeContextSnapshots(memory);
 
     const commandHandled = await commandRouter.handleMessage(msg, {
       connector: telegram,
@@ -81,17 +379,25 @@ async function bootstrap() {
       return;
     }
 
+    const isWhitelisted = chatRunnerOnlyUsers.size === 0 || chatRunnerOnlyUsers.has(msg.sender.id);
+    const bucket = hashToBucket(`${msg.sender.id}:${msg.id}`);
+    const useRunnerThisMessage = useRunnerForChat && isWhitelisted && bucket < chatRunnerPercent;
+    const activeAgent = useRunnerThisMessage ? chatRunnerAgent : userAgent;
+    console.log(
+      `[System] Message execution mode: ${useRunnerThisMessage ? 'runner' : 'local'} (bucket=${bucket}, canary=${chatRunnerPercent}%, whitelist=${isWhitelisted})`
+    );
+
     // UX: 先發送 "Thinking..." 佔位訊息，並啟動輪播
     let placeholderMsgId = '';
     let thinkingInterval: NodeJS.Timeout | null = null;
 
     const thinkingMessages = [
-      "🤔 思考中...",
-      "🧠 正在理解問題...",
-      "🔍 搜尋相關資訊...",
-      "⚡ 處理中...",
-      "💭 組織回答...",
-      "🎯 分析脈絡..."
+      '🤔 思考中...',
+      '🧠 正在理解問題...',
+      '🔍 搜尋相關資訊...',
+      '⚡ 處理中...',
+      '💭 組織回答...',
+      '🎯 分析脈絡...'
     ];
     let messageIndex = 0;
 
@@ -105,12 +411,12 @@ async function bootstrap() {
           try {
             await telegram.editMessage(userId, placeholderMsgId, thinkingMessages[messageIndex]!);
           } catch (e) {
-            console.warn("Failed to update thinking message", e);
+            console.warn('Failed to update thinking message', e);
           }
         }, 3000);
       }
     } catch (e) {
-      console.warn("Failed to send placeholder", e);
+      console.warn('Failed to send placeholder', e);
     }
 
     try {
@@ -119,7 +425,7 @@ async function bootstrap() {
 
       if (shouldSummarize(msg.content)) {
         console.log(`📝 [Memory] User input meets summary criteria, generating summary...`);
-        userSummary = await agent.summarize(msg.content);
+        userSummary = await activeAgent.summarize(msg.content);
       }
 
       memory.addMessage(userId, 'user', msg.content, userSummary);
@@ -148,9 +454,9 @@ node dist/tools/memory-cli.js search "關鍵字"
 
 【工作目錄限制 - 重要】
 - 你的當前工作目錄是 workspace/
-- ⚠️ 不要修改或執行 ../src/ 目錄下的任何檔案
-- 所有臨時檔案請放在 temp/ 目錄
-- 如需讀取專案資訊，請使用完整路徑（例如：../src/core/scheduler.ts）
+- 優先讀取 workspace/context/ 內的系統快照檔案理解運行狀態
+- 若需產生暫存資料，請放在 workspace/temp/
+- 不要主動修改應用程式原始碼或部署設定，除非使用者明確要求
 
 Conversation History:
 ${historyContext}
@@ -161,7 +467,7 @@ AI Response:
       console.log(`📤 [System] Sending prompt to AI (length: ${fullPrompt.length} chars)`);
 
       // 4. 呼叫 AI Agent (DynamicAgent 會根據 ai-config.yaml 選擇 provider)
-      const response = await agent.chat(fullPrompt);
+      const response = await activeAgent.chat(fullPrompt);
 
       console.log(`📥 [AI] Reply length: ${response.length}`);
 
@@ -171,7 +477,7 @@ AI Response:
 
         if (shouldSummarize(response)) {
           console.log(`📝 [Memory] AI response meets summary criteria, generating summary...`);
-          responseSummary = await agent.summarize(response);
+          responseSummary = await activeAgent.summarize(response);
         }
 
         memory.addMessage(userId, 'model', response, responseSummary);
@@ -188,10 +494,11 @@ AI Response:
         // 如果佔位訊息發送失敗，就直接發新的
         await telegram.sendMessage(userId, response);
       }
-
     } catch (error) {
       console.error('❌ Error processing message:', error);
-      const errorMsg = "Sorry, I encountered an error while exercising my powers.";
+      recordRuntimeIssue('message-processing', error);
+      writeContextSnapshots(memory);
+      const errorMsg = 'Sorry, I encountered an error while exercising my powers.';
 
       // 停止輪播
       if (thinkingInterval) {
@@ -211,9 +518,18 @@ AI Response:
 
   // 啟動排程器 (可能需要發送歡迎訊息)
   await scheduler.init();
+  writeSchedulerHealth('startup:init', memory);
+  writeContextSnapshots(memory);
+
+  const contextRefreshMs = getContextRefreshMs();
+  contextRefreshTimer = setInterval(() => {
+    writeContextSnapshots(memory);
+  }, contextRefreshMs);
+  contextRefreshTimer.unref();
+  console.log(`[System] Context snapshots auto-refresh every ${contextRefreshMs}ms`);
 }
 
-bootstrap().catch(err => {
+bootstrap().catch((err) => {
   console.error('❌ Fatal Error:', err);
 });
 

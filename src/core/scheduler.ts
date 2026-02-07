@@ -7,253 +7,268 @@ import type { Connector } from '../types/index.js';
 import { spawn } from 'child_process';
 
 type RunOptions = {
-    cwd?: string;
-    env?: NodeJS.ProcessEnv;
-    timeoutMs?: number;
-    stdin?: string;
+  cwd?: string;
+  env?: NodeJS.ProcessEnv;
+  timeoutMs?: number;
+  stdin?: string;
 };
 
-function runProcess(command: string, args: string[], options: RunOptions = {}): Promise<{ stdout: string; stderr: string }> {
-    return new Promise((resolve, reject) => {
-        const child = spawn(command, args, {
-            cwd: options.cwd,
-            env: options.env,
-            stdio: ['pipe', 'pipe', 'pipe']
-        });
-
-        let stdout = '';
-        let stderr = '';
-        const timer = options.timeoutMs
-            ? setTimeout(() => {
-                child.kill('SIGTERM');
-                const err: any = new Error('Process timed out');
-                err.code = 'ETIMEDOUT';
-                reject(err);
-            }, options.timeoutMs)
-            : null;
-
-        child.stdout?.on('data', (chunk) => {
-            stdout += chunk.toString();
-        });
-        child.stderr?.on('data', (chunk) => {
-            stderr += chunk.toString();
-        });
-
-        child.on('error', (err) => {
-            if (timer) clearTimeout(timer);
-            reject(err);
-        });
-
-        child.on('close', (code, signal) => {
-            if (timer) clearTimeout(timer);
-            if (signal) {
-                const err: any = new Error(`Process terminated with signal ${signal}`);
-                err.signal = signal;
-                err.stdout = stdout;
-                err.stderr = stderr;
-                reject(err);
-                return;
-            }
-            if (code && code !== 0) {
-                const err: any = new Error(`Process exited with code ${code}`);
-                err.code = code;
-                err.stdout = stdout;
-                err.stderr = stderr;
-                reject(err);
-                return;
-            }
-            resolve({ stdout, stderr });
-        });
-
-        if (options.stdin && child.stdin) {
-            child.stdin.write(options.stdin);
-        }
-        child.stdin?.end();
+function runProcess(
+  command: string,
+  args: string[],
+  options: RunOptions = {}
+): Promise<{ stdout: string; stderr: string }> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      cwd: options.cwd,
+      env: options.env,
+      stdio: ['pipe', 'pipe', 'pipe']
     });
+
+    let stdout = '';
+    let stderr = '';
+    const timer = options.timeoutMs
+      ? setTimeout(() => {
+          child.kill('SIGTERM');
+          const err: any = new Error('Process timed out');
+          err.code = 'ETIMEDOUT';
+          reject(err);
+        }, options.timeoutMs)
+      : null;
+
+    child.stdout?.on('data', (chunk) => {
+      stdout += chunk.toString();
+    });
+    child.stderr?.on('data', (chunk) => {
+      stderr += chunk.toString();
+    });
+
+    child.on('error', (err) => {
+      if (timer) clearTimeout(timer);
+      reject(err);
+    });
+
+    child.on('close', (code, signal) => {
+      if (timer) clearTimeout(timer);
+      if (signal) {
+        const err: any = new Error(`Process terminated with signal ${signal}`);
+        err.signal = signal;
+        err.stdout = stdout;
+        err.stderr = stderr;
+        reject(err);
+        return;
+      }
+      if (code && code !== 0) {
+        const err: any = new Error(`Process exited with code ${code}`);
+        err.code = code;
+        err.stdout = stdout;
+        err.stderr = stderr;
+        reject(err);
+        return;
+      }
+      resolve({ stdout, stderr });
+    });
+
+    if (options.stdin && child.stdin) {
+      child.stdin.write(options.stdin);
+    }
+    child.stdin?.end();
+  });
 }
 
 export class Scheduler {
-    private jobs: Map<number, Cron> = new Map();
-    private systemJobs: Map<string, Cron> = new Map();
-    private silenceTimers: Map<string, NodeJS.Timeout> = new Map();
-    private readonly SILENCE_TIMEOUT_MS = 30 * 60 * 1000; // 正式環境：30 分鐘
-    private memory: MemoryManager;
-    private gemini: AIAgent; // 改用 AIAgent 介面
-    private connector: Connector;
+  private jobs: Map<number, Cron> = new Map();
+  private systemJobs: Map<string, Cron> = new Map();
+  private silenceTimers: Map<string, NodeJS.Timeout> = new Map();
+  private readonly SILENCE_TIMEOUT_MS = 30 * 60 * 1000; // 正式環境：30 分鐘
+  private memory: MemoryManager;
+  private gemini: AIAgent; // 改用 AIAgent 介面
+  private connector: Connector;
 
-    constructor(memory: MemoryManager, gemini: AIAgent, connector: Connector) {
-        this.memory = memory;
-        this.gemini = gemini;
-        this.connector = connector;
+  constructor(memory: MemoryManager, gemini: AIAgent, connector: Connector) {
+    this.memory = memory;
+    this.gemini = gemini;
+    this.connector = connector;
+  }
+
+  private getTimezone(): string {
+    // 優先使用環境變數 (與 Docker 容器一致)
+    if (process.env.TZ) {
+      return process.env.TZ;
     }
 
-    private getTimezone(): string {
-        // 優先使用環境變數 (與 Docker 容器一致)
-        if (process.env.TZ) {
-            return process.env.TZ;
-        }
-
-        // 其次嘗試讀取設定檔
-        try {
-            if (fs.existsSync('ai-config.yaml')) {
-                const fileContent = fs.readFileSync('ai-config.yaml', 'utf8');
-                const config = yaml.load(fileContent) as any;
-                return config?.timezone || 'Asia/Taipei';
-            }
-        } catch (error) {
-            // ignore error
-        }
-
-        return 'Asia/Taipei';
+    // 其次嘗試讀取設定檔
+    try {
+      if (fs.existsSync('ai-config.yaml')) {
+        const fileContent = fs.readFileSync('ai-config.yaml', 'utf8');
+        const config = yaml.load(fileContent) as any;
+        return config?.timezone || 'Asia/Taipei';
+      }
+    } catch {
+      // ignore error
     }
 
-    /**
-     * 初始化排程器：從資料庫載入所有啟用的排程並啟動
-     */
-    async init(): Promise<void> {
-        const schedules = this.memory.getActiveSchedules();
-        console.log(`[Scheduler] Loading ${schedules.length} active schedule(s)...`);
+    return 'Asia/Taipei';
+  }
 
-        for (const schedule of schedules) {
-            this.startJob(schedule);
-        }
+  /**
+   * 初始化排程器：從資料庫載入所有啟用的排程並啟動
+   */
+  async init(): Promise<void> {
+    const schedules = this.memory.getActiveSchedules();
+    console.log(`[Scheduler] Loading ${schedules.length} active schedule(s)...`);
 
-        // 初始化系統排程
-        await this.initSystemSchedules();
-
-        // 啟動時檢查使用者最後活動時間
-        await this.checkStartupActivity();
+    for (const schedule of schedules) {
+      this.startJob(schedule);
     }
 
-    /**
-     * 啟動時檢查使用者活動狀態，決定是否觸發問候或追蹤
-     */
-    private async checkStartupActivity(): Promise<void> {
-        const userId = process.env.ALLOWED_USER_ID;
-        if (!userId) {
-            console.log('[Scheduler] No ALLOWED_USER_ID set, skipping startup activity check.');
-            return;
-        }
+    // 初始化系統排程
+    await this.initSystemSchedules();
 
-        const lastMessageTime = this.memory.getLastMessageTime(userId);
-        const now = Date.now();
+    // 啟動時檢查使用者最後活動時間
+    await this.checkStartupActivity();
+  }
 
-        if (lastMessageTime === null) {
-            // 資料庫沒有任何訊息紀錄，發送問候訊息
-            console.log('[Scheduler] No message history found, sending greeting...');
-            await this.connector.sendMessage(userId, '👋 嗨！我是 TeleNexus，您的 AI 助理。有什麼需要幫忙的嗎？');
-            this.resetSilenceTimer(userId);
-        } else {
-            const silenceMs = now - lastMessageTime;
-            const silenceMinutes = Math.floor(silenceMs / 1000 / 60);
-            console.log(`[Scheduler] Last message was ${silenceMinutes} minutes ago.`);
-
-            if (silenceMs >= this.SILENCE_TIMEOUT_MS) {
-                // 超過沉默時間，立即觸發追蹤
-                console.log('[Scheduler] Silence exceeded threshold, triggering follow-up...');
-                await this.triggerReflection(userId, 'silence');
-            } else {
-                // 尚未超過，設定剩餘時間的計時器
-                const remainingMs = this.SILENCE_TIMEOUT_MS - silenceMs;
-                console.log(`[Scheduler] Setting follow-up timer for ${Math.floor(remainingMs / 1000 / 60)} minutes...`);
-                const timer = setTimeout(async () => {
-                    console.log(`[Scheduler] Startup timer triggered for user ${userId}`);
-                    await this.triggerReflection(userId, 'silence');
-                }, remainingMs);
-                this.silenceTimers.set(userId, timer);
-            }
-        }
+  /**
+   * 啟動時檢查使用者活動狀態，決定是否觸發問候或追蹤
+   */
+  private async checkStartupActivity(): Promise<void> {
+    const userId = process.env.ALLOWED_USER_ID;
+    if (!userId) {
+      console.log('[Scheduler] No ALLOWED_USER_ID set, skipping startup activity check.');
+      return;
     }
 
-    /**
-     * 初始化系統預設排程 (如每日摘要)
-     */
-    private async initSystemSchedules(): Promise<void> {
-        // 每日 09:00 發送「每日對話摘要」
-        const timezone = this.getTimezone();
-        const dailySummaryJob = new Cron('0 9 * * *', { timezone }, async () => {
-            console.log('[Scheduler] Triggering daily summary...');
-            await this.executeDailySummary();
-        });
-        this.systemJobs.set('daily_summary', dailySummaryJob);
-        console.log(`[Scheduler] Registered system job: daily_summary (09:00 daily) in timezone ${timezone}`);
+    const lastMessageTime = this.memory.getLastMessageTime(userId);
+    const now = Date.now();
+
+    if (lastMessageTime === null) {
+      // 資料庫沒有任何訊息紀錄，發送問候訊息
+      console.log('[Scheduler] No message history found, sending greeting...');
+      await this.connector.sendMessage(
+        userId,
+        '👋 嗨！我是 TeleNexus，您的 AI 助理。有什麼需要幫忙的嗎？'
+      );
+      this.resetSilenceTimer(userId);
+    } else {
+      const silenceMs = now - lastMessageTime;
+      const silenceMinutes = Math.floor(silenceMs / 1000 / 60);
+      console.log(`[Scheduler] Last message was ${silenceMinutes} minutes ago.`);
+
+      if (silenceMs >= this.SILENCE_TIMEOUT_MS) {
+        // 超過沉默時間，立即觸發追蹤
+        console.log('[Scheduler] Silence exceeded threshold, triggering follow-up...');
+        await this.triggerReflection(userId, 'silence');
+      } else {
+        // 尚未超過，設定剩餘時間的計時器
+        const remainingMs = this.SILENCE_TIMEOUT_MS - silenceMs;
+        console.log(
+          `[Scheduler] Setting follow-up timer for ${Math.floor(remainingMs / 1000 / 60)} minutes...`
+        );
+        const timer = setTimeout(async () => {
+          console.log(`[Scheduler] Startup timer triggered for user ${userId}`);
+          await this.triggerReflection(userId, 'silence');
+        }, remainingMs);
+        this.silenceTimers.set(userId, timer);
+      }
+    }
+  }
+
+  /**
+   * 初始化系統預設排程 (如每日摘要)
+   */
+  private async initSystemSchedules(): Promise<void> {
+    // 每日 09:00 發送「每日對話摘要」
+    const timezone = this.getTimezone();
+    const dailySummaryJob = new Cron('0 9 * * *', { timezone }, async () => {
+      console.log('[Scheduler] Triggering daily summary...');
+      await this.executeDailySummary();
+    });
+    this.systemJobs.set('daily_summary', dailySummaryJob);
+    console.log(
+      `[Scheduler] Registered system job: daily_summary (09:00 daily) in timezone ${timezone}`
+    );
+  }
+
+  /**
+   * 啟動一個 cron 任務
+   * @param schedule 排程資料
+   */
+  private startJob(schedule: Schedule): void {
+    // 如果已存在相同 ID 的 Job，先停止它（避免重複掛載）
+    if (this.jobs.has(schedule.id)) {
+      console.log(`[Scheduler] Stopping duplicate job #${schedule.id}`);
+      this.jobs.get(schedule.id)?.stop();
+      this.jobs.delete(schedule.id);
     }
 
-    /**
-     * 啟動一個 cron 任務
-     * @param schedule 排程資料
-     */
-    private startJob(schedule: Schedule): void {
-        // 如果已存在相同 ID 的 Job，先停止它（避免重複掛載）
-        if (this.jobs.has(schedule.id)) {
-            console.log(`[Scheduler] Stopping duplicate job #${schedule.id}`);
-            this.jobs.get(schedule.id)?.stop();
-            this.jobs.delete(schedule.id);
-        }
+    try {
+      const timezone = this.getTimezone();
+      const job = new Cron(schedule.cron, { timezone }, async () => {
+        console.log(`[Scheduler] Triggered: "${schedule.name}" (ID: ${schedule.id})`);
+        await this.executeTask(schedule);
+      });
 
-        try {
-            const timezone = this.getTimezone();
-            const job = new Cron(schedule.cron, { timezone }, async () => {
-                console.log(`[Scheduler] Triggered: "${schedule.name}" (ID: ${schedule.id})`);
-                await this.executeTask(schedule);
-            });
-
-            this.jobs.set(schedule.id, job);
-            console.log(`[Scheduler] Started job #${schedule.id}: "${schedule.name}" with cron "${schedule.cron}" in timezone ${timezone}`);
-        } catch (error) {
-            console.error(`[Scheduler] Failed to start job #${schedule.id}:`, error);
-        }
+      this.jobs.set(schedule.id, job);
+      console.log(
+        `[Scheduler] Started job #${schedule.id}: "${schedule.name}" with cron "${schedule.cron}" in timezone ${timezone}`
+      );
+    } catch (error) {
+      console.error(`[Scheduler] Failed to start job #${schedule.id}:`, error);
     }
+  }
 
-    /**
-     * 從 MCP Memory 檢索長期記憶
-     * 呼叫 retrieve-memory.sh 並解析結果
-     */
-    private async retrieveLongTermMemory(prompt: string): Promise<string> {
-        try {
-            const projectDir = process.env.GEMINI_PROJECT_DIR || process.cwd();
-            const hookPath = `${projectDir}/workspace/.gemini/hooks/retrieve-memory.sh`;
-            const input = JSON.stringify({ prompt });
+  /**
+   * 從 MCP Memory 檢索長期記憶
+   * 呼叫 retrieve-memory.sh 並解析結果
+   */
+  private async retrieveLongTermMemory(prompt: string): Promise<string> {
+    try {
+      const projectDir = process.env.GEMINI_PROJECT_DIR || process.cwd();
+      const hookPath = `${projectDir}/workspace/.gemini/hooks/retrieve-memory.sh`;
+      const input = JSON.stringify({ prompt });
 
-            console.log(`[Scheduler] Retrieving long-term memory for prompt...`);
+      console.log(`[Scheduler] Retrieving long-term memory for prompt...`);
 
-            // 執行 hook script
-            const { stdout } = await runProcess('bash', [hookPath], {
-                env: {
-                    ...process.env,
-                    GEMINI_PROJECT_DIR: process.env.GEMINI_PROJECT_DIR || process.cwd()
-                },
-                stdin: input
-            });
+      // 執行 hook script
+      const { stdout } = await runProcess('bash', [hookPath], {
+        env: {
+          ...process.env,
+          GEMINI_PROJECT_DIR: process.env.GEMINI_PROJECT_DIR || process.cwd()
+        },
+        stdin: input
+      });
 
-            // 解析 JSON 回應
-            const response = JSON.parse(stdout.trim());
+      // 解析 JSON 回應
+      const response = JSON.parse(stdout.trim());
 
-            if (response.systemMessage) {
-                console.log(`[Scheduler] Retrieved memory context: ${response.systemMessage.substring(0, 100)}...`);
-                return response.systemMessage;
-            }
+      if (response.systemMessage) {
+        console.log(
+          `[Scheduler] Retrieved memory context: ${response.systemMessage.substring(0, 100)}...`
+        );
+        return response.systemMessage;
+      }
 
-            return '';
-        } catch (error) {
-            console.error('[Scheduler] Failed to retrieve long-term memory:', error);
-            return '';
-        }
+      return '';
+    } catch (error) {
+      console.error('[Scheduler] Failed to retrieve long-term memory:', error);
+      return '';
     }
+  }
 
-    /**
-     * 執行排程任務
-     */
-    private async executeTask(schedule: Schedule): Promise<void> {
-        try {
-            // 1. 準備 Context (載入使用者歷史記憶)
-            const historyContext = this.memory.getHistoryContext(schedule.user_id);
+  /**
+   * 執行排程任務
+   */
+  private async executeTask(schedule: Schedule): Promise<void> {
+    try {
+      // 1. 準備 Context (載入使用者歷史記憶)
+      const historyContext = this.memory.getHistoryContext(schedule.user_id);
 
-            // 2. 檢索長期記憶 (MCP Memory)
-            const longTermMemory = await this.retrieveLongTermMemory(schedule.prompt);
+      // 2. 檢索長期記憶 (MCP Memory)
+      const longTermMemory = await this.retrieveLongTermMemory(schedule.prompt);
 
-            // 3. 組合 Prompt
-            const fullPrompt = `
+      // 3. 組合 Prompt
+      const fullPrompt = `
 System: 你是 TeleNexus，一個具備強大工具執行能力的本地 AI 助理。
 這是一個排程任務觸發的自動執行。
 請用繁體中文回應。
@@ -267,168 +282,175 @@ User Request: ${schedule.prompt}
 AI Response:
 `.trim();
 
-            // 4. 呼叫 Gemini CLI
-            const response = await this.gemini.chat(fullPrompt);
-            console.log(`[Scheduler] Task #${schedule.id} completed. Response length: ${response.length}`);
+      // 4. 呼叫 Gemini CLI
+      const response = await this.gemini.chat(fullPrompt);
+      console.log(
+        `[Scheduler] Task #${schedule.id} completed. Response length: ${response.length}`
+      );
 
-            // 5. 儲存 AI 回應到記憶
-            if (response && !response.startsWith('Error')) {
-                this.memory.addMessage(schedule.user_id, 'model', response);
-            }
+      // 5. 儲存 AI 回應到記憶
+      if (response && !response.startsWith('Error')) {
+        this.memory.addMessage(schedule.user_id, 'model', response);
+      }
 
-            // 6. 將結果傳送給使用者
-            const messageHeader = `🕐 [排程: ${schedule.name}]\n\n`;
-            await this.connector.sendMessage(schedule.user_id, messageHeader + response);
+      // 6. 將結果傳送給使用者
+      const messageHeader = `🕐 [排程: ${schedule.name}]\n\n`;
+      await this.connector.sendMessage(schedule.user_id, messageHeader + response);
+    } catch (error) {
+      console.error(`[Scheduler] Error executing task #${schedule.id}:`, error);
+      await this.connector.sendMessage(
+        schedule.user_id,
+        `❌ 排程任務 "${schedule.name}" 執行失敗：${error}`
+      );
+    }
+  }
 
-        } catch (error) {
-            console.error(`[Scheduler] Error executing task #${schedule.id}:`, error);
-            await this.connector.sendMessage(
-                schedule.user_id,
-                `❌ 排程任務 "${schedule.name}" 執行失敗：${error}`
-            );
-        }
+  /**
+   * 新增排程並立即啟動
+   */
+  addSchedule(userId: string, name: string, cron: string, prompt: string): number {
+    const id = this.memory.addSchedule(userId, name, cron, prompt);
+    const schedule: Schedule = {
+      id,
+      user_id: userId,
+      name,
+      cron,
+      prompt,
+      created_at: Date.now(),
+      is_active: true
+    };
+    this.startJob(schedule);
+    return id;
+  }
+
+  /**
+   * 刪除排程並停止對應的 Job
+   */
+  removeSchedule(id: number): void {
+    // 停止 Job
+    if (this.jobs.has(id)) {
+      this.jobs.get(id)?.stop();
+      this.jobs.delete(id);
+    }
+    // 從資料庫刪除
+    this.memory.removeSchedule(id);
+    console.log(`[Scheduler] Removed schedule #${id}`);
+  }
+
+  /**
+   * 取得所有排程（供使用者查詢）
+   */
+  listSchedules(userId: string): Schedule[] {
+    return this.memory.getUserSchedules(userId);
+  }
+
+  /**
+   * 停止所有排程（於程式關閉時調用）
+   */
+  shutdown(): void {
+    console.log('[Scheduler] Shutting down all jobs...');
+    for (const [id, job] of this.jobs.entries()) {
+      job.stop();
+      console.log(`[Scheduler] Stopped job #${id}`);
+    }
+    this.jobs.clear();
+
+    // 停止系統排程
+    for (const [name, job] of this.systemJobs.entries()) {
+      job.stop();
+      console.log(`[Scheduler] Stopped system job: ${name}`);
+    }
+    this.systemJobs.clear();
+
+    // 清除沉默計時器
+    for (const timer of this.silenceTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.silenceTimers.clear();
+  }
+
+  /**
+   * 重新載入排程（當外部工具修改資料庫時調用）
+   * 透過 SIGUSR1 信號觸發
+   */
+  async reload(): Promise<void> {
+    console.log('[Scheduler] Reloading schedules from database...');
+
+    // 停止所有使用者排程（保留系統排程）
+    for (const [id, job] of this.jobs.entries()) {
+      job.stop();
+      console.log(`[Scheduler] Stopped job #${id} for reload`);
+    }
+    this.jobs.clear();
+
+    // 重新載入啟用的排程
+    const schedules = this.memory.getActiveSchedules();
+    console.log(`[Scheduler] Reloading ${schedules.length} active schedule(s)...`);
+
+    for (const schedule of schedules) {
+      this.startJob(schedule);
     }
 
-    /**
-     * 新增排程並立即啟動
-     */
-    addSchedule(userId: string, name: string, cron: string, prompt: string): number {
-        const id = this.memory.addSchedule(userId, name, cron, prompt);
-        const schedule: Schedule = {
-            id,
-            user_id: userId,
-            name,
-            cron,
-            prompt,
-            created_at: Date.now(),
-            is_active: true
-        };
-        this.startJob(schedule);
-        return id;
+    console.log('[Scheduler] Reload completed.');
+  }
+
+  /**
+   * 重置使用者的沉默計時器 (每次收到訊息時呼叫)
+   */
+  resetSilenceTimer(userId: string): void {
+    // 清除現有計時器
+    if (this.silenceTimers.has(userId)) {
+      clearTimeout(this.silenceTimers.get(userId)!);
     }
 
-    /**
-     * 刪除排程並停止對應的 Job
-     */
-    removeSchedule(id: number): void {
-        // 停止 Job
-        if (this.jobs.has(id)) {
-            this.jobs.get(id)?.stop();
-            this.jobs.delete(id);
-        }
-        // 從資料庫刪除
-        this.memory.removeSchedule(id);
-        console.log(`[Scheduler] Removed schedule #${id}`);
-    }
+    console.log(
+      `[Scheduler] Timer reset for user ${userId}. Next trigger in ${this.SILENCE_TIMEOUT_MS / 1000 / 60} minutes.`
+    );
 
-    /**
-     * 取得所有排程（供使用者查詢）
-     */
-    listSchedules(userId: string): Schedule[] {
-        return this.memory.getUserSchedules(userId);
-    }
+    // 設定新的計時器
+    const timer = setTimeout(async () => {
+      console.log(`[Scheduler] Silence detected for user ${userId}, triggering reflection...`);
+      await this.triggerReflection(userId, 'silence');
+    }, this.SILENCE_TIMEOUT_MS);
 
-    /**
-     * 停止所有排程（於程式關閉時調用）
-     */
-    shutdown(): void {
-        console.log('[Scheduler] Shutting down all jobs...');
-        for (const [id, job] of this.jobs.entries()) {
-            job.stop();
-            console.log(`[Scheduler] Stopped job #${id}`);
-        }
-        this.jobs.clear();
+    this.silenceTimers.set(userId, timer);
+  }
 
-        // 停止系統排程
-        for (const [name, job] of this.systemJobs.entries()) {
-            job.stop();
-            console.log(`[Scheduler] Stopped system job: ${name}`);
-        }
-        this.systemJobs.clear();
+  /**
+   * 觸發追蹤提醒任務
+   * @param userId 使用者 ID
+   * @param type 觸發類型
+   * @param messageIdToEdit 如果提供，結果將會編輯此訊息而不是發送新訊息
+   */
+  async triggerReflection(
+    userId: string,
+    type: 'silence' | 'manual' = 'silence',
+    messageIdToEdit?: string
+  ): Promise<void> {
+    console.log(`[Scheduler] Triggering reflection (type: ${type}) for user ${userId}`);
 
-        // 清除沉默計時器
-        for (const timer of this.silenceTimers.values()) {
-            clearTimeout(timer);
-        }
-        this.silenceTimers.clear();
-    }
+    try {
+      // 取得過去 24 小時的對話歷史
+      const extendedHistory = this.memory.getExtendedHistory(userId, 24);
+      if (extendedHistory.length === 0) {
+        console.log('[Scheduler] No recent conversations, skipping reflection.');
+        return;
+      }
 
-    /**
-     * 重新載入排程（當外部工具修改資料庫時調用）
-     * 透過 SIGUSR1 信號觸發
-     */
-    async reload(): Promise<void> {
-        console.log('[Scheduler] Reloading schedules from database...');
+      // 格式化歷史
+      const historyText = extendedHistory
+        .map((msg) => {
+          const role = msg.role === 'user' ? 'User' : 'AI';
+          const time = new Date(msg.timestamp).toLocaleString('zh-TW');
+          return `[${time}] ${role}: ${msg.content.substring(0, 500)}${msg.content.length > 500 ? '...' : ''}`;
+        })
+        .join('\n\n');
 
-        // 停止所有使用者排程（保留系統排程）
-        for (const [id, job] of this.jobs.entries()) {
-            job.stop();
-            console.log(`[Scheduler] Stopped job #${id} for reload`);
-        }
-        this.jobs.clear();
+      // 檢索長期記憶
+      const longTermMemory = await this.retrieveLongTermMemory('對話回顧 追蹤 待辦');
 
-        // 重新載入啟用的排程
-        const schedules = this.memory.getActiveSchedules();
-        console.log(`[Scheduler] Reloading ${schedules.length} active schedule(s)...`);
-
-        for (const schedule of schedules) {
-            this.startJob(schedule);
-        }
-
-        console.log('[Scheduler] Reload completed.');
-    }
-
-    /**
-     * 重置使用者的沉默計時器 (每次收到訊息時呼叫)
-     */
-    resetSilenceTimer(userId: string): void {
-        // 清除現有計時器
-        if (this.silenceTimers.has(userId)) {
-            clearTimeout(this.silenceTimers.get(userId)!);
-        }
-
-        console.log(`[Scheduler] Timer reset for user ${userId}. Next trigger in ${this.SILENCE_TIMEOUT_MS / 1000 / 60} minutes.`);
-
-        // 設定新的計時器
-        const timer = setTimeout(async () => {
-            console.log(`[Scheduler] Silence detected for user ${userId}, triggering reflection...`);
-            await this.triggerReflection(userId, 'silence');
-        }, this.SILENCE_TIMEOUT_MS);
-
-        this.silenceTimers.set(userId, timer);
-    }
-
-
-
-    /**
-     * 觸發追蹤提醒任務
-     * @param userId 使用者 ID
-     * @param type 觸發類型
-     * @param messageIdToEdit 如果提供，結果將會編輯此訊息而不是發送新訊息
-     */
-    async triggerReflection(userId: string, type: 'silence' | 'manual' = 'silence', messageIdToEdit?: string): Promise<void> {
-        console.log(`[Scheduler] Triggering reflection (type: ${type}) for user ${userId}`);
-
-        try {
-            // 取得過去 24 小時的對話歷史
-            const extendedHistory = this.memory.getExtendedHistory(userId, 24);
-            if (extendedHistory.length === 0) {
-                console.log('[Scheduler] No recent conversations, skipping reflection.');
-                return;
-            }
-
-            // 格式化歷史
-            const historyText = extendedHistory.map(msg => {
-                const role = msg.role === 'user' ? 'User' : 'AI';
-                const time = new Date(msg.timestamp).toLocaleString('zh-TW');
-                return `[${time}] ${role}: ${msg.content.substring(0, 500)}${msg.content.length > 500 ? '...' : ''}`;
-            }).join('\n\n');
-
-            // 檢索長期記憶
-            const longTermMemory = await this.retrieveLongTermMemory('對話回顧 追蹤 待辦');
-
-            // 組合追蹤提醒 Prompt
-            const reflectionPrompt = `
+      // 組合追蹤提醒 Prompt
+      const reflectionPrompt = `
 System: 你是 TeleNexus，正在執行「追蹤提醒」任務。
 請用繁體中文回應。
 
@@ -446,60 +468,57 @@ ${historyText}
 你的回應會自動儲存到記憶系統中，供未來參考。
 `.trim();
 
-            const response = await this.gemini.chat(reflectionPrompt);
+      const response = await this.gemini.chat(reflectionPrompt);
 
-            // 只有在有內容時才發送
-            if (response && !response.includes('無待處理事項')) {
-                const header = type === 'silence'
-                    ? '🔔 [追蹤提醒]\n\n'
-                    : '🔍 [手動追蹤]\n\n';
+      // 只有在有內容時才發送
+      if (response && !response.includes('無待處理事項')) {
+        const header = type === 'silence' ? '🔔 [追蹤提醒]\n\n' : '🔍 [手動追蹤]\n\n';
 
-                if (messageIdToEdit) {
-                    await this.connector.editMessage(userId, messageIdToEdit, header + response);
-                } else {
-                    await this.connector.sendMessage(userId, header + response);
-                }
-            } else {
-                console.log('[Scheduler] Follow-up completed, no action needed.');
-                const noTodoMsg = '✨ 無待辦。';
-                // 沉默模式也發送精簡通知
-                if (type === 'silence') {
-                    await this.connector.sendMessage(userId, noTodoMsg);
-                } else if (type === 'manual' && messageIdToEdit) {
-                    await this.connector.editMessage(userId, messageIdToEdit, noTodoMsg);
-                }
-            }
-
-        } catch (error) {
-            console.error('[Scheduler] Error during reflection:', error);
+        if (messageIdToEdit) {
+          await this.connector.editMessage(userId, messageIdToEdit, header + response);
+        } else {
+          await this.connector.sendMessage(userId, header + response);
         }
-
-        // 如果是沉默觸發，執行完成後再次設定計時器（每 30 分鐘循環）
+      } else {
+        console.log('[Scheduler] Follow-up completed, no action needed.');
+        const noTodoMsg = '✨ 無待辦。';
+        // 沉默模式也發送精簡通知
         if (type === 'silence') {
-            console.log(`[Scheduler] Re-scheduling follow-up for user ${userId} in 30 minutes...`);
-            const timer = setTimeout(async () => {
-                console.log(`[Scheduler] Recurring follow-up triggered for user ${userId}`);
-                await this.triggerReflection(userId, 'silence');
-            }, this.SILENCE_TIMEOUT_MS);
-            this.silenceTimers.set(userId, timer);
+          await this.connector.sendMessage(userId, noTodoMsg);
+        } else if (type === 'manual' && messageIdToEdit) {
+          await this.connector.editMessage(userId, messageIdToEdit, noTodoMsg);
         }
+      }
+    } catch (error) {
+      console.error('[Scheduler] Error during reflection:', error);
     }
 
-    /**
-     * 執行每日摘要
-     */
-    private async executeDailySummary(): Promise<void> {
-        // 取得所有有對話記錄的使用者 (這裡簡化為使用 ALLOWED_USER_ID)
-        const userId = process.env.ALLOWED_USER_ID;
-        if (!userId) {
-            console.log('[Scheduler] No ALLOWED_USER_ID set, skipping daily summary.');
-            return;
-        }
+    // 如果是沉默觸發，執行完成後再次設定計時器（每 30 分鐘循環）
+    if (type === 'silence') {
+      console.log(`[Scheduler] Re-scheduling follow-up for user ${userId} in 30 minutes...`);
+      const timer = setTimeout(async () => {
+        console.log(`[Scheduler] Recurring follow-up triggered for user ${userId}`);
+        await this.triggerReflection(userId, 'silence');
+      }, this.SILENCE_TIMEOUT_MS);
+      this.silenceTimers.set(userId, timer);
+    }
+  }
 
-        console.log(`[Scheduler] Generating daily summary for user ${userId}`);
+  /**
+   * 執行每日摘要
+   */
+  private async executeDailySummary(): Promise<void> {
+    // 取得所有有對話記錄的使用者 (這裡簡化為使用 ALLOWED_USER_ID)
+    const userId = process.env.ALLOWED_USER_ID;
+    if (!userId) {
+      console.log('[Scheduler] No ALLOWED_USER_ID set, skipping daily summary.');
+      return;
+    }
 
-        try {
-            const summaryPrompt = `
+    console.log(`[Scheduler] Generating daily summary for user ${userId}`);
+
+    try {
+      const summaryPrompt = `
 System: 你是 TeleNexus，正在執行「每日對話摘要」任務。
 請用繁體中文回應。
 
@@ -522,11 +541,10 @@ System: 你是 TeleNexus，正在執行「每日對話摘要」任務。
 如果沒有待處理事項，請回覆「✨ 目前沒有待處理事項！」
 `.trim();
 
-            const response = await this.gemini.chat(summaryPrompt);
-            await this.connector.sendMessage(userId, '📅 [每日摘要]\n\n' + response);
-
-        } catch (error) {
-            console.error('[Scheduler] Error generating daily summary:', error);
-        }
+      const response = await this.gemini.chat(summaryPrompt);
+      await this.connector.sendMessage(userId, '📅 [每日摘要]\n\n' + response);
+    } catch (error) {
+      console.error('[Scheduler] Error generating daily summary:', error);
     }
+  }
 }
