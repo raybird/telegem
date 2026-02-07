@@ -80,6 +80,7 @@ export class Scheduler {
   private jobs: Map<number, Cron> = new Map();
   private systemJobs: Map<string, Cron> = new Map();
   private silenceTimers: Map<string, NodeJS.Timeout> = new Map();
+  private lastReflectionFingerprint: Map<string, string> = new Map();
   private readonly SILENCE_TIMEOUT_MS = 30 * 60 * 1000; // 正式環境：30 分鐘
   private memory: MemoryManager;
   private gemini: AIAgent; // 改用 AIAgent 介面
@@ -89,6 +90,10 @@ export class Scheduler {
     this.memory = memory;
     this.gemini = gemini;
     this.connector = connector;
+  }
+
+  private fingerprintReflection(text: string): string {
+    return text.replace(/\s+/g, ' ').trim();
   }
 
   private getTimezone(): string {
@@ -469,9 +474,20 @@ ${historyText}
 `.trim();
 
       const response = await this.gemini.chat(reflectionPrompt);
+      const hasNoAction = !response || response.includes('無待處理事項');
+      const currentFingerprint = this.fingerprintReflection(response || '');
+      const previousFingerprint = this.lastReflectionFingerprint.get(userId);
+      const isRepeatedReflection =
+        !hasNoAction && Boolean(previousFingerprint) && previousFingerprint === currentFingerprint;
 
-      // 只有在有內容時才發送
-      if (response && !response.includes('無待處理事項')) {
+      if (isRepeatedReflection) {
+        const checkedMsg = '✅ [追蹤檢查] 已完成檢查，目前沒有新的事項變化。';
+        if (type === 'manual' && messageIdToEdit) {
+          await this.connector.editMessage(userId, messageIdToEdit, checkedMsg);
+        } else {
+          await this.connector.sendMessage(userId, checkedMsg);
+        }
+      } else if (!hasNoAction) {
         const header = type === 'silence' ? '🔔 [追蹤提醒]\n\n' : '🔍 [手動追蹤]\n\n';
 
         if (messageIdToEdit) {
@@ -479,6 +495,8 @@ ${historyText}
         } else {
           await this.connector.sendMessage(userId, header + response);
         }
+
+        this.lastReflectionFingerprint.set(userId, currentFingerprint);
       } else {
         console.log('[Scheduler] Follow-up completed, no action needed.');
         const noTodoMsg = '✨ 無待辦。';
