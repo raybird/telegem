@@ -15,6 +15,15 @@ workspace/.gemini/.credentials
 
 # Workspace temp files
 workspace/temp/
+workspace/context/
+workspace/AGENTS.md
+workspace/GEMINI.md
+
+# Local AI tool state
+.agent/
+.codex/
+.gemini/
+.opencode/
 
 data/
 
