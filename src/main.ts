@@ -379,6 +379,8 @@ async function bootstrap() {
       return;
     }
 
+    const isPassthroughCommand = commandRouter.isPassthroughCommand(msg.content.trim());
+
     const isWhitelisted = chatRunnerOnlyUsers.size === 0 || chatRunnerOnlyUsers.has(msg.sender.id);
     const bucket = hashToBucket(`${msg.sender.id}:${msg.id}`);
     const useRunnerThisMessage = useRunnerForChat && isWhitelisted && bucket < chatRunnerPercent;
@@ -464,10 +466,16 @@ ${historyContext}
 AI Response:
 `.trim();
 
-      console.log(`📤 [System] Sending prompt to AI (length: ${fullPrompt.length} chars)`);
+      const promptForAgent = isPassthroughCommand ? msg.content.trim() : fullPrompt;
+
+      if (isPassthroughCommand) {
+        console.log(`📤 [System] Passthrough command -> AI: ${promptForAgent}`);
+      } else {
+        console.log(`📤 [System] Sending prompt to AI (length: ${fullPrompt.length} chars)`);
+      }
 
       // 4. 呼叫 AI Agent (DynamicAgent 會根據 ai-config.yaml 選擇 provider)
-      const response = await activeAgent.chat(fullPrompt);
+      const response = await activeAgent.chat(promptForAgent);
 
       console.log(`📥 [AI] Reply length: ${response.length}`);
 

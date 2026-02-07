@@ -60,7 +60,7 @@ export class CommandRouter {
     }
 
     // 白名單指令：保留給底層 CLI/Agent 處理，不在 CommandRouter 擋下
-    if (isCommand && this.isPassthroughWhitelisted(content)) {
+    if (isCommand && this.isPassthroughCommand(content)) {
       return false;
     }
 
@@ -76,7 +76,7 @@ export class CommandRouter {
     return false;
   }
 
-  private isPassthroughWhitelisted(content: string): boolean {
+  isPassthroughCommand(content: string): boolean {
     const token = content.split(/\s+/)[0] || '';
     const baseCommand = token.split('@')[0] || '';
     const whitelist = this.loadPassthroughCommandWhitelist();
