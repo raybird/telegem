@@ -1,6 +1,8 @@
 import type { Connector, UnifiedMessage } from '../types/index.js';
 import type { MemoryManager } from './memory.js';
 import type { Scheduler } from './scheduler.js';
+import fs from 'fs';
+import yaml from 'js-yaml';
 
 type CommandContext = {
   msg: UnifiedMessage;
@@ -19,6 +21,11 @@ type CommandDefinition = {
 
 export class CommandRouter {
   private commands: CommandDefinition[] = [];
+  private defaultPassthroughCommandWhitelist: Set<string> = new Set([
+    '/compress',
+    '/compact',
+    '/clear'
+  ]);
 
   constructor() {
     this.registerDefaultCommands();
@@ -27,7 +34,6 @@ export class CommandRouter {
   registerCommand(command: CommandDefinition): void {
     this.commands.push(command);
   }
-
 
   async handleMessage(
     msg: UnifiedMessage,
@@ -53,6 +59,11 @@ export class CommandRouter {
       }
     }
 
+    // 白名單指令：保留給底層 CLI/Agent 處理，不在 CommandRouter 擋下
+    if (isCommand && this.isPassthroughWhitelisted(content)) {
+      return false;
+    }
+
     // 如果是指令但沒有匹配到任何已註冊的指令，回傳錯誤訊息
     if (isCommand) {
       await deps.connector.sendMessage(
@@ -65,13 +76,49 @@ export class CommandRouter {
     return false;
   }
 
+  private isPassthroughWhitelisted(content: string): boolean {
+    const token = content.split(/\s+/)[0] || '';
+    const baseCommand = token.split('@')[0] || '';
+    const whitelist = this.loadPassthroughCommandWhitelist();
+    return whitelist.has(baseCommand);
+  }
+
+  private loadPassthroughCommandWhitelist(): Set<string> {
+    try {
+      if (!fs.existsSync('ai-config.yaml')) {
+        return this.defaultPassthroughCommandWhitelist;
+      }
+
+      const fileContent = fs.readFileSync('ai-config.yaml', 'utf8');
+      const config = yaml.load(fileContent) as
+        | {
+            passthrough_commands?: unknown;
+          }
+        | undefined;
+      const commands = config?.passthrough_commands;
+
+      if (!Array.isArray(commands) || commands.length === 0) {
+        return this.defaultPassthroughCommandWhitelist;
+      }
+
+      const normalized = commands
+        .filter((item): item is string => typeof item === 'string')
+        .map((item) => item.trim())
+        .filter((item) => item.startsWith('/'));
+
+      return normalized.length > 0 ? new Set(normalized) : this.defaultPassthroughCommandWhitelist;
+    } catch {
+      return this.defaultPassthroughCommandWhitelist;
+    }
+  }
+
   private registerDefaultCommands(): void {
     this.registerCommand({
       name: 'start',
       match: (content) => content === '/start',
       execute: async ({ userId, connector }) => {
         const helpMessage = `
-🤖 **歡迎使用 Moltbot Lite!**
+🤖 **歡迎使用 TeleNexus!**
 
 我是您的 AI 助理，隨時準備協助您。
 
@@ -101,7 +148,6 @@ export class CommandRouter {
         await connector.sendMessage(userId, helpMessage);
       }
     });
-
 
     this.registerCommand({
       name: 'reset',

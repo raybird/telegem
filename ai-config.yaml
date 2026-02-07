@@ -10,3 +10,9 @@ provider: gemini
 # Timezone Configuration
 # Supported timezones: Asia/Taipei, America/New_York, UTC, etc.
 timezone: Asia/Taipei
+
+# Slash commands passthrough whitelist (handled by CLI/Agent)
+passthrough_commands:
+  - /compress
+  - /compact
+  - /clear

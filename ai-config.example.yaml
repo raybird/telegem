@@ -12,3 +12,13 @@ provider: gemini
 # Examples for opencode:
 #   model: google/gemini-2.0-flash
 #   model: anthropic/claude-3-5-sonnet
+
+# Optional: Timezone for scheduler
+# timezone: Asia/Taipei
+
+# Optional: Slash commands to passthrough directly to CLI/Agent
+# If not set, defaults to: /compress, /compact, /clear
+# passthrough_commands:
+#   - /compress
+#   - /compact
+#   - /clear

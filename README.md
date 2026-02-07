@@ -15,6 +15,7 @@ TeleNexus 讓您用 Telegram 控制本機 AI CLI（Gemini / Opencode），並提
 - 單人使用優先設計（`ALLOWED_USER_ID` 白名單）
 - 支援 `gemini-cli` 與 `opencode`，可由 `ai-config.yaml` 動態切換
 - 排程系統（新增/刪除/重載/健康檢查）
+- 指令白名單直通（`passthrough_commands` 可在 `ai-config.yaml` 配置）
 - `workspace/context/` 觀測快照（避免直接依賴原始碼路徑）
 - Phase 3 雙服務架構（`telenexus` + `agent-runner`）
 - runner canary 切流（排程與聊天可分開控管）
@@ -126,6 +127,19 @@ CONTEXT_REFRESH_MS=60000
 ```
 
 備註：若未設定 `CHAT_USE_RUNNER_ONLY_USERS`，系統會預設使用 `ALLOWED_USER_ID`。
+
+### `ai-config.yaml` 補充（指令白名單）
+
+可在 `ai-config.yaml` 設定要直通給底層 CLI/Agent 的 slash 指令：
+
+```yaml
+passthrough_commands:
+  - /compress
+  - /compact
+  - /clear
+```
+
+若未設定，系統預設使用上述三個指令。
 
 ---
 
