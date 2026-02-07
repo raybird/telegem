@@ -2,423 +2,192 @@
   <img src="docs/logo.png" alt="TeleNexus Logo" width="200" />
 </p>
 
-# 🤖 TeleNexus
+# TeleNexus
 
-> **您的私人本地 AI 助理閘道器**
->
-> 這是基於 TeleNexus 核心精神實作的本地 AI 助理。它將您的 Telegram 帳號直接連接到本地電腦的 `gemini-cli` 或 `opencode` 大腦，具備完整的工具執行權限與持久化記憶。
+> 您的私人本地 AI 助理閘道器（Telegram -> Local CLI Agent）
 
----
-
-## ✨ 核心特色
-
-- **🧠 強大腦力**: 支援 `gemini-cli` 與 `opencode run` 雙提供者。
-- **🔄 動態切換**: 透過 `ai-config.yaml` 實現熱切換 (Hot Swap)，不必重啟服務。
-- **🔗 對話延續**: 支援 CLI 原生 Session (Gemini `--resume`, Opencode `-c`)，可延續上下文並減少 Token 消耗。
-- **🛠️ YOLO 模式**: 開啟 Agent 行動能力，可直接進行 **網路搜尋**、**讀取本地檔案** 與 **執行系統指令**。
-- **💾 智慧記憶系統**:
-  - **混合式上下文**: 最近 15 則對話（最新 5 則保留原文），長度/程式碼區塊/行數超標會自動摘要
-  - **全文檢索 (FTS5)**: 可用關鍵字快速搜尋所有歷史對話
-  - **主動式記憶**: AI 可主動呼叫工具回想早期對話內容
-  - **長期記憶整合**: Gemini 與 Opencode 皆可透過 MCP Memory 檢索長期記憶
-  - **輸出清洗**: 自動過濾 `<thinking>` 區塊，提供乾淨的回應
-- **🧩 Skills 模組化**: 內建 skills（memory/scheduler/skill-creator），可擴充專屬工作流程與工具
-- **🔒 安全至上**: 嚴格的 Telegram User ID 白名單機制，確保只有您能控制您的電腦。
-- **⚡ 流暢體驗**: 支援非同步訊息處理，提供「🤔 Thinking...」狀態回傳並在完成後自動更新。
-- **🚀 極簡架構**: 採用 TypeScript + ESM + SQLite，輕量、快速、易於擴充。
+TeleNexus 讓您用 Telegram 控制本機 AI CLI（Gemini / Opencode），並提供排程、記憶、觀測、灰度切流與 Docker 隔離能力。
 
 ---
 
-## 🛠️ 技術棧
+## 你現在拿到的是什麼
 
-- **Runtime**: Node.js 22+ (TypeScript)
-- **Framework**: Telegraf (Telegram Bot API)
-- **AI Backend**: 支援 `gemini-cli` 與 `opencode run` (可動態切換)
-- **Database**: Better-SQLite3
-- **Execution**: tsx / tsc
+- 單人使用優先設計（`ALLOWED_USER_ID` 白名單）
+- 支援 `gemini-cli` 與 `opencode`，可由 `ai-config.yaml` 動態切換
+- 排程系統（新增/刪除/重載/健康檢查）
+- `workspace/context/` 觀測快照（避免直接依賴原始碼路徑）
+- Phase 3 雙服務架構（`telenexus` + `agent-runner`）
+- runner canary 切流（排程與聊天可分開控管）
+- runner 安全/穩定機制（shared secret、circuit breaker、審計）
 
 ---
 
-## 📦 安裝與設定
+## 架構概覽
 
-### 1. 前置需求
+- `telenexus`（控制平面）
+  - Telegram 收訊與回覆
+  - command router
+  - scheduler
+  - 記憶系統
+  - 可選：將任務轉送到 `agent-runner`
+- `agent-runner`（執行平面，Phase 3 profile）
+  - 提供 `GET /health`、`GET /stats`、`POST /run`
+  - 執行 Gemini / Opencode
+  - 輸出 `runner-audit.log` 與 `runner-status.md`
+- `workspace/context/`
+  - 系統狀態快照（runtime/provider/scheduler/error/runner）
 
-- 確保系統已安裝 [Gemini CLI](https://github.com/google/gemini-cli) 並已完成登入。
-- 若使用 Opencode，請先安裝並完成本機登入（容器內會掛載認證）。
-- 擁有一個 Telegram Bot Token (透過 [@BotFather](https://t.me/BotFather) 申請)。
+---
 
-### 2. 下載與安裝
+## 快速開始（Docker）
 
-```bash
-# 進入專案目錄
-cd telenexus
+### 1) 準備環境變數
 
-# 安裝依賴
-npm install
-```
+請擇一複製後修改：
 
-### 3. 環境變數配置
+- 開發/灰度：`.env.example`
+- 保守上線：`.env.production.example`
 
-建立 `.env` 檔案並填入資訊：
+最低必要：
 
 ```env
-TELEGRAM_TOKEN=你的_BOT_TOKEN
-ALLOWED_USER_ID=你的_TELEGRAM_ID
-```
-
-_(提示：您可以透過 [@userinfobot](https://t.me/userinfobot) 取得您的 Telegram ID)_
-
-### 4. AI 提供者設定 (v2.1+)
-
-v2.1 起支援多提供者，請編輯 `ai-config.yaml`（若不存在請根據 `ai-config.example.yaml` 建立）：
-
-```yaml
-# ai-config.yaml
-provider: gemini # 選項：gemini, opencode
-model: gemini-2.0-flash-exp # 可選，指定模型名稱
-timezone: Asia/Taipei # 可選，排程時區（Croner）
-```
-
-> [!TIP]
-> 此設定檔支援**動態重載**，您可以在服務運行時隨時修改 Provider，下次對話將自動生效。
-
----
-
-## 🚀 啟動指令
-
-### 開發模式 (自動重啟)
-
-```bash
-npm run dev
-```
-
-### 生產模式 (編譯並執行)
-
-```bash
-npm run build
-npm start
-```
-
----
-
-## 🧑‍💻 開發者指引
-
-常用指令：
-
-```bash
-# 開發模式（自動重啟）
-npm run dev
-
-# 型別檢查
-npm run build
-
-# 程式碼品質檢查
-npm run lint
-
-# 格式化
-npm run format
-```
-
-CLI 工具：
-
-```bash
-# 記憶搜尋/管理
-node dist/tools/memory-cli.js --help
-
-# 排程管理
-node dist/tools/scheduler-cli.js --help
-```
-
-延伸文件：
-
-- 架構說明：[ARCHITECTURE.md](ARCHITECTURE.md)
-- 貢獻指南：[CONTRIBUTING.md](CONTRIBUTING.md)
-
----
-
-## 🐳 Docker 使用方式
-
-### 1. 設定環境變數
-
-建立 `.env`（或使用現有 `.env`），確保包含：
-
-```env
-TELEGRAM_TOKEN=你的_BOT_TOKEN
-ALLOWED_USER_ID=你的_TELEGRAM_ID
+TELEGRAM_TOKEN=your_bot_token
+ALLOWED_USER_ID=your_telegram_user_id
 DB_DIR=./data
 ```
 
-可參考樣板：
+### 2) 啟動
 
-- `.env.example`（開發 / canary）
-- `.env.production.example`（保守生產設定：先只切排程）
-
-> [!NOTE]
-> Docker Compose 會將多數程式與設定以唯讀方式掛載，並透過 multi-stage build 減少執行時工具，提升安全性。
-
-### 2. 啟動容器
+一般模式：
 
 ```bash
 docker compose up -d --build
 ```
 
-> [!TIP]
-> 若要預先啟用 Phase 3 的分離式執行平面（`agent-runner` 草稿服務），可使用：
-> `docker compose --profile phase3 up -d --build`
->
-> 若要啟用「排程任務優先走 runner（失敗自動 fallback 本地）」的漸進切流，請在 `.env` 加入：
-> `RUNNER_ENDPOINT=http://agent-runner:8787`
-> `SCHEDULE_USE_RUNNER=true`
-> `CHAT_USE_RUNNER_PERCENT=10`（可選，先把 10% 互動訊息切到 runner）
-> `CHAT_USE_RUNNER_ONLY_USERS=915354960`（可選；未設定時會自動使用 `ALLOWED_USER_ID`）
->
-> 建議同時設定共享密鑰保護 runner API：
-> `RUNNER_SHARED_SECRET=請填一段長字串`
-> `RUNNER_FAILURE_THRESHOLD=3`（可選，連續失敗達門檻時暫停打 runner）
-> `RUNNER_COOLDOWN_MS=60000`（可選，熔斷冷卻時間）
->
-> Runner 會將執行審計寫入 `workspace/context/runner-audit.log`（可用 `RUNNER_AUDIT_PATH` 覆蓋）。
-> 即時狀態快照會寫入 `workspace/context/runner-status.md`。
-
-### 3. Gemini CLI 設定
-
-專案使用獨立的 gemini-cli 設定：
-
-- **專案設定**：`./workspace/.gemini/settings.json`（含 MCP servers 設定）
-- **認證資訊**：由 Docker volume 管理（`gemini_auth`）
-  > [!NOTE]
-  > Docker 會將 `GEMINI.md` 與 `AGENTS.md` 掛載到 `/app/workspace/`，作為 AI 的行為指引。
-
-**首次使用 - 登入**：
+啟用 Phase 3（含 agent-runner）：
 
 ```bash
-docker compose exec telenexus gemini
+docker compose --profile phase3 up -d --build
 ```
 
-登入資訊會保存到 volume，重建容器不會遺失。
-
-**調整 MCP 設定**：
-編輯 `./workspace/.gemini/settings.json` 後重啟容器：
+### 3) 檢查服務
 
 ```bash
-docker compose restart
-```
-
-### 3b. Opencode CLI 設定
-
-專案會掛載本機 opencode 認證與資料（請先在本機完成登入）：
-
-- 本機：`${HOME}/.local/share/opencode`
-- 容器：`/root/.local/share/opencode`
-
-若需要重新登入，可在容器內執行：
-
-```bash
-docker compose exec telenexus opencode auth login
-```
-
-### 4. 常用指令
-
-```bash
-# 查看日誌
+docker compose ps
 docker compose logs -f telenexus
-
-# 停止容器
-docker compose down
-
-# 重啟容器
-docker compose restart
-
-# 進入容器 shell
-docker compose exec telenexus bash
-
-# 驗證 Docker 記憶/掛載配置
-./verify-docker.sh
 ```
 
-> [!IMPORTANT]
-> 在 Docker Compose 環境操作排程（`scheduler-cli`）時，請使用 `docker compose exec telenexus ...`，不要使用 `docker compose run --rm telenexus ...`。
-> `run` 會建立一次性新容器，可能導致「排程已寫入 DB，但主程序未收到 reload 通知」。
+---
 
-**排程 CLI（Docker）範例**：
+## 推薦設定（單人使用）
+
+以下是建議基線（可直接用在 `.env`）：
+
+```env
+RUNNER_ENDPOINT=http://agent-runner:8787
+SCHEDULE_USE_RUNNER=true
+
+# 聊天流量（可先 10，再逐步提高）
+CHAT_USE_RUNNER_PERCENT=100
+CHAT_USE_RUNNER_ONLY_USERS=your_telegram_user_id
+
+# runner 安全
+RUNNER_SHARED_SECRET=change_this_to_a_long_random_secret
+
+# runner 穩定性
+RUNNER_FAILURE_THRESHOLD=3
+RUNNER_COOLDOWN_MS=60000
+
+# context 快照刷新
+CONTEXT_REFRESH_MS=60000
+```
+
+備註：若未設定 `CHAT_USE_RUNNER_ONLY_USERS`，系統會預設使用 `ALLOWED_USER_ID`。
+
+---
+
+## 排程操作（重點）
+
+請在 Docker 用 `exec`，不要用 `run`：
 
 ```bash
-# 查詢排程
+# 查詢
 docker compose exec telenexus node /app/dist/tools/scheduler-cli.js list
 
-# 新增排程
+# 新增
 docker compose exec telenexus node /app/dist/tools/scheduler-cli.js add "每小時報告" "0 * * * *" "請提供簡單市場分析"
 
-# 手動通知主程序 reload
+# 重載
 docker compose exec telenexus node /app/dist/tools/scheduler-cli.js reload
 
-# 查看排程健康標記
+# 健康檢查
 docker compose exec telenexus node /app/dist/tools/scheduler-cli.js health
 ```
 
-### 5. 資料庫位置
+---
 
-- 本機開發：`./data/moltbot.db`（透過 `DB_DIR` 設定）
-- 容器內：`/app/data/moltbot.db`（透過 volume 掛載 `./data`）
-- 資料會保存在主機的 `./data` 目錄，重建容器不會遺失
-  > [!TIP]
-  > 容器內會生成 `workspace/context/` 系統快照，提供 AI 在不直接讀取原始碼時仍可掌握運行狀態。
-  > 如需調整快照週期更新，可設定 `CONTEXT_REFRESH_MS`（預設 60000ms，最小 10000ms）。
+## Runner API（內網）
 
-### 6. 長期記憶與知識管理
+- `GET /health`：基本健康狀態
+- `GET /stats`：執行統計（若設定 `RUNNER_SHARED_SECRET`，需帶 `x-runner-token`）
+- `POST /run`：執行任務（同樣需 token）
 
-**MCP Memory Server**：
-
-- 專案已整合 `mcp-memory-libsql`，提供向量搜尋與知識圖譜功能
-- AI 會自動判斷重要資訊並儲存到 `/app/data/memory.db`
-- 支援實體（entities）、關係（relations）與語義搜尋
-
-**自動記憶機制**：
-
-- System prompt 已引導 AI 主動使用 MCP memory
-- `BeforeAgent` hook 會在每次對話前自動檢索相關記憶並注入 Prompt
-- 透過 `workspace/.gemini/hooks/retrieve-memory.sh` 實現語義搜尋與記憶增強
-
-**手動管理**：
+快速檢查：
 
 ```bash
-# 查看已儲存的記憶（需在對話中詢問 AI）
-"請列出我的記憶實體"
-
-# 搜尋相關知識
-"搜尋關於專案架構的記憶"
+docker compose exec telenexus node -e "fetch('http://agent-runner:8787/health').then(r=>r.json()).then(console.log)"
 ```
 
-### 7. 擴充 Skills 與其他 MCP Servers（選用）
+---
 
-**MCP Servers 設定**：
+## Context 與審計檔
 
-- 編輯 `./workspace/.gemini/settings.json` 中的 `mcpServers` 區塊
-- 容器已預裝 `uv`/`uvx`，支援 Python MCP servers
+`workspace/context/` 內常用檔案：
 
-**安裝 Skills**：
+- `runtime-status.md`
+- `provider-status.md`
+- `scheduler-status.md`
+- `error-summary.md`
+- `runner-status.md`
+- `runner-audit.log`
+
+---
+
+## 本機開發命令
 
 ```bash
-# 進容器安裝
-docker compose exec telenexus npx skill-linker --from https://github.com/...
+# 主服務開發（watch）
+npm run dev
 
-# 重啟生效
-docker compose restart
-```
+# runner 開發（watch）
+npm run dev:runner
 
-**內建 Skills**：
+# 編譯
+npm run build
 
-- `skills/memory`: 記憶工具與最佳實務
-- `skills/scheduler`: 排程任務與追蹤機制
-- `skills/skill-creator`: Skill 建立流程、模板與腳本
-  **建立新 Skill（快速流程）**：
-
-1. 進入 `skills/skill-creator/`
-2. 參考 `SKILL.md` 與 `scripts/` 產生新 skill 結構
-3. 將新 skill 目錄加入 `skills/` 並重新啟動容器
-
----
-
-## 💡 使用說明
-
-直接在 Telegram 視窗中與您的 Bot 對話即可。
-
-### 常用情境：
-
-- **一般對話**: 「你好，請自我介紹。」
-- **網路搜尋**: 「幫我搜尋今天最熱門的 AI 技術新聞。」
-- **檔案查詢**: 「讀取當前目錄下的 package.json，看看有哪些依賴？」
-- **系統感知**: 「現在幾點？我的電腦路徑在哪裡？」
-
-### 內建指令：
-
-**記憶管理**
-
-- `/reset`: 清除目前在 SQLite 中的所有對話記憶，重新開始新的對話。
-
-**排程管理**
-
-- `/list_schedules`: 列出所有排程任務
-- `/add_schedule <名稱>|<cron>|<prompt>`: 新增定時任務
-  - 範例：`/add_schedule 早安問候|0 9 * * *|早安！今天天氣如何？`
-- `/remove_schedule <id>`: 刪除指定的排程任務
-- `/reflect`: 手動觸發追蹤分析（分析過去 24 小時的對話）
-  > [!NOTE]
-  > 目前系統以單一 `ALLOWED_USER_ID` 為主（啟動問候、每日摘要、排程預設皆依此使用者），多使用者需自行擴充。
-
-### 記憶系統運作方式
-
-TeleNexus 採用**智慧混合式記憶架構**：
-
-1. **短期記憶 (最近 15 則)**：直接載入到 AI 的上下文中（最新 5 則完整原文）
-   - 長度 > 200 字元：自動生成並顯示摘要
-   - 包含程式碼區塊或工具輸出：自動生成摘要
-   - 行數 >= 6：自動生成摘要
-2. **長期記憶 (全文檢索)**：當 AI 需要回想更早的對話時，它會自動執行：
-
-   ```bash
-   node dist/tools/memory-cli.js search "關鍵字"
-   ```
-
-   這會從資料庫搜尋相關的歷史對話並提供給 AI 參考。
-
-3. **輸出清洗**：所有 `<thinking>` 內部思考過程會被自動過濾，確保您只看到最終回應。
-
-4. **智慧追蹤系統**：
-   - **每日摘要**：系統會在每日 09:00 主動發送前一天的對話摘要與待辦事項彙整。
-   - **主動追蹤**：當對話沉默超過 30 分鐘，AI 會自動分析是否有未解決的問題或潛在優化空間並發送提醒。
-   - **手動觸發**：可隨時使用 `/reflect` 指令進行手動分析。
-
----
-
-## 📂 專案結構
-
-```text
-src/
-├── core/
-│   ├── agent.ts       # AIAgent 介面與動態代理人 (DynamicAIAgent)
-│   ├── gemini.ts      # Gemini CLI 實作
-│   ├── opencode.ts    # Opencode CLI 實作
-│   ├── memory.ts      # SQLite 記憶管理 (FTS5 全文檢索)
-│   └── scheduler.ts   # Cron 排程管理
-├── connectors/
-│   └── telegram.ts    # Telegram 介面實作
-├── tools/
-│   └── memory-cli.ts  # 記憶搜尋工具 (供 AI 主動呼叫)
-├── skills/            # Skills 模組化資產 (memory/scheduler/skill-creator)
-├── types/             # 共用型別定義
-└── main.ts            # 程式入口點
+# 檢查
+npm run lint
 ```
 
 ---
 
-## 📜 變更日誌
+## 進一步文件
 
-### v2.2.0
-
-- **新增**: Skills 模組化（含 skill-creator）與相關 Docker 掛載。
-- **新增**: 記憶體管理 CLI 工具與對應文件。
-- **新增**: GEMINI.md / AGENTS.md 掛載作為行為指引。
-- **優化**: Opencode 支援長期記憶檢索與登入/掛載流程。
-- **優化**: Docker 安全性（multi-stage build、唯讀掛載）與驗證腳本。
-- **新增**: 實作 CLI Session 延續機制，大幅提升連續對話的穩定性與速度。
-- **改進**: Opencode 執行改用 `spawn` 以支援標準輸入與逾時處理。
-
-### v2.1.0
-
-- **新增**: 整合 `opencode run` 作為替代 AI 提供者。
-- **新增**: 動態設定檔 `ai-config.yaml`，支援熱切換 Provider。
-- **新增**: 支援在設定檔中指定特定模型。
-- **優化**: 採用 stdin (echo pipe) 提升 CLI 執行速度。
-- **優化**: 改善日誌顯示，區分 System、DynamicAgent 與 AI 回應內容。
-- **改進**: 統一 `AIAgent` 介面，強化排程與追蹤系統的抽象化。
-
-### v2.0.0
-
-- 專案初始化，支援 Gemini CLI、SQLite 混合記憶與排程系統。
+- 架構：`ARCHITECTURE.md`
+- 貢獻：`CONTRIBUTING.md`
+- 路線圖：`docs/docker-refactor-roadmap.md`
+- 邊界與安全：`docs/runtime-boundary-and-security.md`
+- 排程 runbook：`docs/scheduler-operation-runbook.md`
+- Phase 3：`docs/phase3-compose-profile.md`
+- 上線 checklist：`docs/deployment-cutover-checklist.md`
+- 遷移紀錄：`docs/migration-log.md`
 
 ---
 
-## ⚖️ 免責聲明
+## 免責聲明
 
-本專案開啟了 `--yolo` 模式，這意味著 AI 助理有權限在不需要額外確認的情況下執行指令與讀取檔案。請務必確保 `.env` 中的 `ALLOWED_USER_ID` 正確且不洩漏您的 `TELEGRAM_TOKEN`。
+本專案支援高權限 Agent 操作流程。請務必妥善保護：
+
+- `TELEGRAM_TOKEN`
+- `RUNNER_SHARED_SECRET`
+- `ALLOWED_USER_ID` 白名單設定
