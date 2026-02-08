@@ -425,18 +425,21 @@ async function bootstrap() {
       // 1. 存入使用者訊息 (依條件自動摘要)
       let userSummary: string | undefined;
 
-      if (shouldSummarize(msg.content)) {
+      if (!isPassthroughCommand && shouldSummarize(msg.content)) {
         console.log(`📝 [Memory] User input meets summary criteria, generating summary...`);
         userSummary = await activeAgent.summarize(msg.content);
       }
 
       memory.addMessage(userId, 'user', msg.content, userSummary);
 
-      // 2. 準備 Context
-      const historyContext = memory.getHistoryContext(userId);
+      let promptForAgent = msg.content.trim();
 
-      // 3. 組合 Prompt
-      const fullPrompt = `
+      if (!isPassthroughCommand) {
+        // 2. 準備 Context
+        const historyContext = memory.getHistoryContext(userId);
+
+        // 3. 組合 Prompt
+        const fullPrompt = `
 System: 你是 TeleNexus，一個具備強大工具執行能力的本地 AI 助理。
 當使用者要求你搜尋網路、查看檔案或執行指令時，請善用你手邊的工具（如 google_search, read_file 等）。
 現在已經開啟了 YOLO 模式，你的所有工具調用都會被自動允許。
@@ -465,13 +468,13 @@ ${historyContext}
 
 AI Response:
 `.trim();
-
-      const promptForAgent = isPassthroughCommand ? msg.content.trim() : fullPrompt;
+        promptForAgent = fullPrompt;
+      }
 
       if (isPassthroughCommand) {
-        console.log(`📤 [System] Passthrough command -> AI: ${promptForAgent}`);
+        console.log(`📤 [System] Passthrough command -> CLI: ${promptForAgent}`);
       } else {
-        console.log(`📤 [System] Sending prompt to AI (length: ${fullPrompt.length} chars)`);
+        console.log(`📤 [System] Sending prompt to AI (length: ${promptForAgent.length} chars)`);
       }
 
       // 4. 呼叫 AI Agent (DynamicAgent 會根據 ai-config.yaml 選擇 provider)
@@ -483,7 +486,7 @@ AI Response:
       if (response && !response.startsWith('Error')) {
         let responseSummary: string | undefined;
 
-        if (shouldSummarize(response)) {
+        if (!isPassthroughCommand && shouldSummarize(response)) {
           console.log(`📝 [Memory] AI response meets summary criteria, generating summary...`);
           responseSummary = await activeAgent.summarize(response);
         }

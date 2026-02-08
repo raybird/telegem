@@ -141,6 +141,7 @@ passthrough_commands:
 
 若未設定，系統預設使用上述三個指令。
 命中白名單時，主程式會將原始指令（例如 `/compress`）直接送給底層 AI CLI，不包裝 TeleNexus 的 system prompt。
+此外，passthrough 指令流程不會對該次請求額外做 TeleNexus 的摘要/上下文包裝，避免干擾 CLI 原生行為。
 
 ---
 
