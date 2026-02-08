@@ -131,28 +131,57 @@ ${text}
    */
   async chat(prompt: string, options?: AIAgentOptions): Promise<string> {
     try {
-      // 開啟 --yolo 模式，允許自動執行所有工具 (搜尋、讀取檔案、執行指令等)
-      // 使用 -p 進入非互動模式
-      // 使用 --resume 接續上次 session，減少重複注入記憶
-      const args = ['--yolo', '--resume', '-p', prompt];
+      // 判斷是否為 passthrough 指令（如 /compress, /compact）
+      const isPassthrough = options?.isPassthroughCommand === true;
 
-      // 若有指定 model，加入參數
-      if (options?.model) {
-        args.push('--model', options.model);
-        console.log(`[Gemini] Executing (YOLO Mode) with model: ${options.model}`);
+      let stdout: string;
+      let stderr: string;
+
+      if (isPassthrough) {
+        // Passthrough 指令：透過 stdin 傳遞，不使用 -p 參數
+        // 這樣 Gemini CLI 會將 /compress 視為互動式指令，而非對話內容
+        console.log(`[Gemini] isPassthroughCommand: true`);
+        console.log(`[Gemini] Original prompt: ${prompt}`);
+        console.log(`[Gemini] Executing passthrough via stdin (no -p): gemini --yolo -r`);
+
+        const result = await runProcess('gemini', ['--yolo', '-r', '-p', prompt], {
+          timeoutMs: 600000,
+          cwd: 'workspace',
+          env: {
+            ...process.env,
+            GEMINI_PROJECT_DIR: process.env.GEMINI_PROJECT_DIR || process.cwd()
+          },
+          stdin: `${prompt}\n`  // 透過 stdin 傳入指令
+        });
+        stdout = result.stdout;
+        stderr = result.stderr;
       } else {
-        console.log(`[Gemini] Executing (YOLO Mode): gemini --yolo -p ...`);
-      }
+        // 一般對話：使用陣列參數傳遞
+        // 開啟 --yolo 模式，允許自動執行所有工具 (搜尋、讀取檔案、執行指令等)
+        // 使用 -p 進入非互動模式
+        // 使用 --resume 接續上次 session，減少重複注入記憶
+        const args = ['--yolo', '-r', '-p', prompt];
 
-      // 設定 10 分鐘超時，並在 workspace/ 目錄執行，避免意外修改源碼
-      const { stdout, stderr } = await runProcess('gemini', args, {
-        timeoutMs: 600000,
-        cwd: 'workspace',
-        env: {
-          ...process.env,
-          GEMINI_PROJECT_DIR: process.env.GEMINI_PROJECT_DIR || process.cwd()
+        // 若有指定 model，加入參數
+        if (options?.model) {
+          args.push('--model', options.model);
+          console.log(`[Gemini] Executing (YOLO Mode) with model: ${options.model}`);
+        } else {
+          console.log(`[Gemini] Executing (YOLO Mode): gemini --yolo -p ...`);
         }
-      });
+
+        // 設定 10 分鐘超時，並在 workspace/ 目錄執行，避免意外修改源碼
+        const result = await runProcess('gemini', args, {
+          timeoutMs: 600000,
+          cwd: 'workspace',
+          env: {
+            ...process.env,
+            GEMINI_PROJECT_DIR: process.env.GEMINI_PROJECT_DIR || process.cwd()
+          }
+        });
+        stdout = result.stdout;
+        stderr = result.stderr;
+      }
 
       if (stderr && stderr.trim().length > 0) {
         // 工具執行的過程通常會輸出很多 stderr 資訊，這裡我們記錄下來但不中斷流程

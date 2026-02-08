@@ -5,6 +5,7 @@ import { OpencodeAgent } from './opencode.js';
 
 export interface AIAgentOptions {
   model?: string;
+  isPassthroughCommand?: boolean;
 }
 
 type RunnerTask = 'chat' | 'summarize';
@@ -144,10 +145,8 @@ export class DynamicAIAgent implements AIAgent {
     input: string,
     options?: AIAgentOptions
   ): Promise<string> {
-    const mergedOptions: AIAgentOptions = {};
-    if (options?.model) {
-      mergedOptions.model = options.model;
-    }
+    // 直接傳遞所有 options（包含 isPassthroughCommand）
+    const mergedOptions: AIAgentOptions = { ...options };
 
     if (provider === 'opencode') {
       if (task === 'chat') {
@@ -172,9 +171,18 @@ export class DynamicAIAgent implements AIAgent {
     const config = this.loadProviderConfig();
     const provider = config.provider === 'opencode' ? 'opencode' : 'gemini';
     const model = options?.model || config.model;
-    const mergedOptions: AIAgentOptions = {};
+
+    // 完整傳遞所有 options（包含 isPassthroughCommand）
+    const mergedOptions: AIAgentOptions = { ...options };
     if (model) {
       mergedOptions.model = model;
+    }
+
+    // Passthrough 指令（如 /compress）必須在本地執行，因為需要接續本地的 Gemini session
+    const isPassthrough = options?.isPassthroughCommand === true;
+    if (isPassthrough) {
+      console.log(`[DynamicAgent] Passthrough command detected, forcing local execution.`);
+      return this.executeLocal(task, provider, input, mergedOptions);
     }
 
     console.log(

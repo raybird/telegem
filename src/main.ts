@@ -298,13 +298,13 @@ async function bootstrap() {
   const useRunnerForChat = chatRunnerPercent > 0 && Boolean(runnerEndpoint);
   const runnerOptions = runnerEndpoint
     ? {
-        runnerEndpoint,
-        ...(runnerToken ? { runnerToken } : {}),
-        runnerFailureThreshold,
-        runnerCooldownMs,
-        preferRunner: true,
-        fallbackToLocal: true
-      }
+      runnerEndpoint,
+      ...(runnerToken ? { runnerToken } : {}),
+      runnerFailureThreshold,
+      runnerCooldownMs,
+      preferRunner: true,
+      fallbackToLocal: true
+    }
     : undefined;
   const schedulerAgent = useRunnerForSchedule
     ? new DynamicAIAgent('ai-config.yaml', runnerOptions)
@@ -478,7 +478,9 @@ AI Response:
       }
 
       // 4. 呼叫 AI Agent (DynamicAgent 會根據 ai-config.yaml 選擇 provider)
-      const response = await activeAgent.chat(promptForAgent);
+      const response = await activeAgent.chat(promptForAgent, {
+        isPassthroughCommand: isPassthroughCommand
+      });
 
       console.log(`📥 [AI] Reply length: ${response.length}`);
 
