@@ -180,6 +180,7 @@ export class DynamicAIAgent implements AIAgent {
     }
 
     const isPassthrough = options?.isPassthroughCommand === true;
+    const normalizedInput = this.normalizePassthroughInput(input, provider, isPassthrough);
     if (isPassthrough) {
       console.log('[DynamicAgent] Passthrough command detected.');
     }
@@ -200,7 +201,7 @@ export class DynamicAIAgent implements AIAgent {
 
       const runnerPayload: RunnerRequest = {
         task,
-        input,
+        input: normalizedInput,
         provider,
         ...(isPassthrough ? { isPassthroughCommand: true } : {})
       };
@@ -234,7 +235,41 @@ export class DynamicAIAgent implements AIAgent {
       console.log('[DynamicAgent] Falling back to local execution...');
     }
 
-    return this.executeLocal(task, provider, input, mergedOptions);
+    return this.executeLocal(task, provider, normalizedInput, mergedOptions);
+  }
+
+  private normalizePassthroughInput(
+    input: string,
+    provider: string,
+    isPassthrough: boolean
+  ): string {
+    if (!isPassthrough) {
+      return input;
+    }
+
+    const trimmed = input.trim();
+    if (!trimmed.startsWith('/')) {
+      return input;
+    }
+
+    const parts = trimmed.split(/\s+/);
+    const cmd = parts[0]?.split('@')[0] || '';
+
+    if (provider === 'opencode' && cmd === '/compress') {
+      const rewritten = ['/compact', ...parts.slice(1)].join(' ');
+      console.log(
+        '[DynamicAgent] Rewriting passthrough command /compress -> /compact for opencode.'
+      );
+      return rewritten;
+    }
+
+    if (provider === 'gemini' && cmd === '/compact') {
+      const rewritten = ['/compress', ...parts.slice(1)].join(' ');
+      console.log('[DynamicAgent] Rewriting passthrough command /compact -> /compress for gemini.');
+      return rewritten;
+    }
+
+    return input;
   }
 
   /**

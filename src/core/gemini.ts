@@ -8,7 +8,11 @@ type RunOptions = {
   stdin?: string;
 };
 
-function runProcess(command: string, args: string[], options: RunOptions = {}): Promise<{ stdout: string; stderr: string }> {
+function runProcess(
+  command: string,
+  args: string[],
+  options: RunOptions = {}
+): Promise<{ stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       cwd: options.cwd,
@@ -20,11 +24,11 @@ function runProcess(command: string, args: string[], options: RunOptions = {}): 
     let stderr = '';
     const timer = options.timeoutMs
       ? setTimeout(() => {
-        child.kill('SIGTERM');
-        const err: any = new Error('Process timed out');
-        err.code = 'ETIMEDOUT';
-        reject(err);
-      }, options.timeoutMs)
+          child.kill('SIGTERM');
+          const err: any = new Error('Process timed out');
+          err.code = 'ETIMEDOUT';
+          reject(err);
+        }, options.timeoutMs)
       : null;
 
     child.stdout?.on('data', (chunk) => {
@@ -77,7 +81,10 @@ export class GeminiAgent implements AIAgent {
 
     // 2. 移除所有 ANSI 控制字元與顏色碼
     // eslint-disable-next-line no-control-regex
-    cleaned = cleaned.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
+    cleaned = cleaned.replace(
+      /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
+      ''
+    );
 
     return cleaned.trim();
   }
@@ -138,11 +145,10 @@ ${text}
       let stderr: string;
 
       if (isPassthrough) {
-        // Passthrough 指令：透過 stdin 傳遞，不使用 -p 參數
-        // 這樣 Gemini CLI 會將 /compress 視為互動式指令，而非對話內容
+        // Passthrough 指令：僅透過 -p 傳遞，避免與 stdin 重複送入相同指令
         console.log(`[Gemini] isPassthroughCommand: true`);
         console.log(`[Gemini] Original prompt: ${prompt}`);
-        console.log(`[Gemini] Executing passthrough via stdin (no -p): gemini --yolo -r`);
+        console.log(`[Gemini] Executing passthrough via -p only: gemini --yolo -r -p ...`);
 
         const result = await runProcess('gemini', ['--yolo', '-r', '-p', prompt], {
           timeoutMs: 600000,
@@ -150,8 +156,7 @@ ${text}
           env: {
             ...process.env,
             GEMINI_PROJECT_DIR: process.env.GEMINI_PROJECT_DIR || process.cwd()
-          },
-          stdin: `${prompt}\n`  // 透過 stdin 傳入指令
+          }
         });
         stdout = result.stdout;
         stderr = result.stderr;
@@ -191,8 +196,7 @@ ${text}
       // 使用統一的清洗器
       const cleaned = this.cleanOutput(stdout);
 
-      return cleaned || "Gemini 執行完成，但沒有返回任何文字內容。";
-
+      return cleaned || 'Gemini 執行完成，但沒有返回任何文字內容。';
     } catch (error: any) {
       console.error('[Gemini] Execution failed:', error);
       if (error.code === 'ETIMEDOUT' || error.signal === 'SIGTERM') {
