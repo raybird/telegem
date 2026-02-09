@@ -19,9 +19,6 @@ export interface Schedule {
 
 export class MemoryManager {
   private db: Database.Database;
-  private readonly MAX_HISTORY = 15;       // 擴充到 15 則對話
-  private readonly FULL_TEXT_COUNT = 5;    // 保留最新 5 則原文
-  private readonly OLD_TEXT_MAX_LEN = 300; // [Old] 訊息的硬截斷上限
 
   constructor() {
     // 初始化資料庫，允許由環境變數指定路徑
@@ -63,17 +60,23 @@ export class MemoryManager {
     stmt.run();
 
     // 建立索引加速查詢
-    this.db.prepare(`CREATE INDEX IF NOT EXISTS idx_user_timestamp ON messages(user_id, timestamp)`).run();
+    this.db
+      .prepare(`CREATE INDEX IF NOT EXISTS idx_user_timestamp ON messages(user_id, timestamp)`)
+      .run();
 
     // 建立 FTS5 虛擬表格 (全文檢索)
-    this.db.prepare(`
+    this.db
+      .prepare(
+        `
       CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(
         user_id,
         role,
         content,
         timestamp
       )
-    `).run();
+    `
+      )
+      .run();
 
     // 建立 schedules 表格
     const scheduleStmt = this.db.prepare(`
@@ -110,67 +113,6 @@ export class MemoryManager {
   }
 
   /**
-   * 取得混合式歷史紀錄 Prompt
-   * - 最舊的 10 則：使用「結構化摘要」或截斷原文
-   * - 最新的 5 則：一律用完整原文
-   */
-  getHistoryContext(userId: string): string {
-    const stmt = this.db.prepare(`
-      SELECT role, content, summary
-      FROM messages
-      WHERE user_id = ?
-      ORDER BY timestamp DESC
-      LIMIT ?
-    `);
-
-    const rows = stmt.all(userId, this.MAX_HISTORY) as {
-      role: string;
-      content: string;
-      summary: string | null;
-    }[];
-
-    if (rows.length === 0) {
-      return '';
-    }
-
-    // 反轉為 (最舊 -> 最新)
-    rows.reverse();
-
-    // 分割為舊對話和新對話
-    const cutIndex = Math.max(0, rows.length - this.FULL_TEXT_COUNT);
-    const older = rows.slice(0, cutIndex);
-    const recent = rows.slice(cutIndex);
-
-    // 較舊的：優先用 summary，沒有時用截斷原文 + [Old] 標記
-    const olderContext = older.map(msg => {
-      const roleName = msg.role === 'user' ? 'User' : 'AI';
-
-      if (msg.summary) {
-        return `${roleName}[Summary]: ${msg.summary}`;
-      }
-
-      // 硬截斷避免 token 浪費
-      const truncated = msg.content.length > this.OLD_TEXT_MAX_LEN
-        ? msg.content.substring(0, this.OLD_TEXT_MAX_LEN) + '...'
-        : msg.content;
-      return `${roleName}[Old]: ${truncated}`;
-    }).join('\n');
-
-    // 最新的：一律用原文
-    const recentContext = recent.map(msg => {
-      const roleName = msg.role === 'user' ? 'User' : 'AI';
-      return `${roleName}: ${msg.content}`;
-    }).join('\n');
-
-    // 使用純 ASCII 分隔符，避免 LLM 誤解
-    if (olderContext && recentContext) {
-      return `${olderContext}\n\n--- [Recent Messages] ---\n${recentContext}`;
-    }
-
-    return recentContext || olderContext;
-  }
-
-  /**
    * 使用 FTS5 全文檢索搜尋對話
    */
   search(userId: string, query: string, limit: number = 10): ChatMessage[] {
@@ -189,7 +131,7 @@ export class MemoryManager {
       timestamp: number;
     }>;
 
-    return rows.map(row => ({
+    return rows.map((row) => ({
       role: row.role as 'user' | 'model',
       content: row.content,
       timestamp: row.timestamp
@@ -239,7 +181,7 @@ export class MemoryManager {
       is_active: number;
     }>;
 
-    return rows.map(row => ({
+    return rows.map((row) => ({
       ...row,
       is_active: row.is_active === 1
     }));
@@ -265,7 +207,7 @@ export class MemoryManager {
       is_active: number;
     }>;
 
-    return rows.map(row => ({
+    return rows.map((row) => ({
       ...row,
       is_active: row.is_active === 1
     }));
@@ -308,7 +250,7 @@ export class MemoryManager {
    * @param hours 往前查詢的小時數
    */
   getExtendedHistory(userId: string, hours: number = 24): ChatMessage[] {
-    const cutoffTime = Date.now() - (hours * 60 * 60 * 1000);
+    const cutoffTime = Date.now() - hours * 60 * 60 * 1000;
     const stmt = this.db.prepare(`
       SELECT role, content, timestamp
       FROM messages
@@ -322,7 +264,7 @@ export class MemoryManager {
       timestamp: number;
     }>;
 
-    return rows.map(row => ({
+    return rows.map((row) => ({
       role: row.role as 'user' | 'model',
       content: row.content,
       timestamp: row.timestamp
@@ -360,7 +302,7 @@ export class MemoryManager {
 
     if (rows.length === 0) return 0;
 
-    const ids = rows.map(r => r.id);
+    const ids = rows.map((r) => r.id);
     const placeholders = ids.map(() => '?').join(',');
 
     // 2. 刪除 messages

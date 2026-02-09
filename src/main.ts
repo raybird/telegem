@@ -298,13 +298,13 @@ async function bootstrap() {
   const useRunnerForChat = chatRunnerPercent > 0 && Boolean(runnerEndpoint);
   const runnerOptions = runnerEndpoint
     ? {
-      runnerEndpoint,
-      ...(runnerToken ? { runnerToken } : {}),
-      runnerFailureThreshold,
-      runnerCooldownMs,
-      preferRunner: true,
-      fallbackToLocal: true
-    }
+        runnerEndpoint,
+        ...(runnerToken ? { runnerToken } : {}),
+        runnerFailureThreshold,
+        runnerCooldownMs,
+        preferRunner: true,
+        fallbackToLocal: true
+      }
     : undefined;
   const schedulerAgent = useRunnerForSchedule
     ? new DynamicAIAgent('ai-config.yaml', runnerOptions)
@@ -435,20 +435,12 @@ async function bootstrap() {
       let promptForAgent = msg.content.trim();
 
       if (!isPassthroughCommand) {
-        // 2. 準備 Context
-        const historyContext = memory.getHistoryContext(userId);
-
-        // 3. 組合 Prompt
+        // 2. 組合 Prompt
         const fullPrompt = `
 System: 你是 TeleNexus，一個具備強大工具執行能力的本地 AI 助理。
 當使用者要求你搜尋網路、查看檔案或執行指令時，請善用你手邊的工具（如 google_search, read_file 等）。
 現在已經開啟了 YOLO 模式，你的所有工具調用都會被自動允許。
 請用繁體中文回應。
-
-【記憶管理】
-你只能看到最近 15 則對話的摘要或原文（最新 5 則為完整原文）。如果你需要回想更早之前的資訊，請執行以下指令：
-node dist/tools/memory-cli.js search "關鍵字"
-這會從資料庫搜尋相關的歷史對話並顯示給你。
 
 【知識管理 - 重要】
 你有 MCP Memory 工具可以儲存長期知識與關係：
@@ -462,9 +454,6 @@ node dist/tools/memory-cli.js search "關鍵字"
 - 優先讀取 workspace/context/ 內的系統快照檔案理解運行狀態
 - 若需產生暫存資料，請放在 workspace/temp/
 - 不要主動修改應用程式原始碼或部署設定，除非使用者明確要求
-
-Conversation History:
-${historyContext}
 
 AI Response:
 `.trim();

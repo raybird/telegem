@@ -266,39 +266,34 @@ export class Scheduler {
    */
   private async executeTask(schedule: Schedule): Promise<void> {
     try {
-      // 1. 準備 Context (載入使用者歷史記憶)
-      const historyContext = this.memory.getHistoryContext(schedule.user_id);
-
-      // 2. 檢索長期記憶 (MCP Memory)
+      // 1. 檢索長期記憶 (MCP Memory)
       const longTermMemory = await this.retrieveLongTermMemory(schedule.prompt);
 
-      // 3. 組合 Prompt
+      // 2. 組合 Prompt
       const fullPrompt = `
 System: 你是 TeleNexus，一個具備強大工具執行能力的本地 AI 助理。
 這是一個排程任務觸發的自動執行。
 請用繁體中文回應。
 
-${longTermMemory ? longTermMemory + '\n\n' : ''}Conversation History:
-${historyContext}
-
+${longTermMemory ? longTermMemory + '\n\n' : ''}
 Scheduled Task: ${schedule.name}
 User Request: ${schedule.prompt}
 
 AI Response:
 `.trim();
 
-      // 4. 呼叫 Gemini CLI
+      // 3. 呼叫 Gemini CLI
       const response = await this.gemini.chat(fullPrompt);
       console.log(
         `[Scheduler] Task #${schedule.id} completed. Response length: ${response.length}`
       );
 
-      // 5. 儲存 AI 回應到記憶
+      // 4. 儲存 AI 回應到記憶
       if (response && !response.startsWith('Error')) {
         this.memory.addMessage(schedule.user_id, 'model', response);
       }
 
-      // 6. 將結果傳送給使用者
+      // 5. 將結果傳送給使用者
       const messageHeader = `🕐 [排程: ${schedule.name}]\n\n`;
       await this.connector.sendMessage(schedule.user_id, messageHeader + response);
     } catch (error) {

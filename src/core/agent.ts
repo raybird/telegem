@@ -15,6 +15,7 @@ interface RunnerRequest {
   input: string;
   provider: string;
   model?: string;
+  isPassthroughCommand?: boolean;
 }
 
 interface RunnerResponse {
@@ -178,11 +179,9 @@ export class DynamicAIAgent implements AIAgent {
       mergedOptions.model = model;
     }
 
-    // Passthrough 指令（如 /compress）必須在本地執行，因為需要接續本地的 Gemini session
     const isPassthrough = options?.isPassthroughCommand === true;
     if (isPassthrough) {
-      console.log(`[DynamicAgent] Passthrough command detected, forcing local execution.`);
-      return this.executeLocal(task, provider, input, mergedOptions);
+      console.log('[DynamicAgent] Passthrough command detected.');
     }
 
     console.log(
@@ -202,7 +201,8 @@ export class DynamicAIAgent implements AIAgent {
       const runnerPayload: RunnerRequest = {
         task,
         input,
-        provider
+        provider,
+        ...(isPassthrough ? { isPassthroughCommand: true } : {})
       };
       if (model) {
         runnerPayload.model = model;

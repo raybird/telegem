@@ -17,6 +17,7 @@ type RunnerRequest = {
   input?: string;
   provider?: Provider;
   model?: string;
+  isPassthroughCommand?: boolean;
 };
 
 type AIConfig = {
@@ -246,7 +247,14 @@ async function executeTask(
   const config = loadProviderConfig();
   const provider = request.provider || config.provider;
   const model = request.model || config.model;
-  const options = model ? { model } : undefined;
+  const options = model
+    ? {
+        model,
+        ...(request.isPassthroughCommand ? { isPassthroughCommand: true } : {})
+      }
+    : request.isPassthroughCommand
+      ? { isPassthroughCommand: true }
+      : undefined;
 
   if (!request.input || !request.task) {
     throw new Error('Invalid request: task and input are required.');
@@ -339,7 +347,8 @@ const server = http.createServer(async (req, res) => {
         ok: true,
         task: parsed.task,
         provider: result.provider,
-        model: parsed.model || '(default)'
+        model: parsed.model || '(default)',
+        passthrough: parsed.isPassthroughCommand === true
       });
       const successResult: {
         requestId: string;
