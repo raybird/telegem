@@ -451,6 +451,7 @@ async function bootstrap() {
   const memory = new MemoryManager();
   const scheduler = new Scheduler(memory, schedulerAgent, telegram);
   const commandRouter = new CommandRouter();
+  const pendingNewSessionUsers = new Set<string>();
   let contextRefreshTimer: NodeJS.Timeout | null = null;
 
   const stopContextRefresh = () => {
@@ -500,13 +501,21 @@ async function bootstrap() {
     const commandHandled = await commandRouter.handleMessage(msg, {
       connector: telegram,
       memory,
-      scheduler
+      scheduler,
+      requestNewSession: (targetUserId: string) => {
+        pendingNewSessionUsers.add(targetUserId);
+      }
     });
     if (commandHandled) {
       return;
     }
 
     const isPassthroughCommand = commandRouter.isPassthroughCommand(msg.content.trim());
+    const forceNewSession = pendingNewSessionUsers.has(userId);
+    if (forceNewSession) {
+      pendingNewSessionUsers.delete(userId);
+      console.log('[System] Applying one-time new session mode for this message.');
+    }
 
     const isWhitelisted = chatRunnerOnlyUsers.size === 0 || chatRunnerOnlyUsers.has(msg.sender.id);
     const bucket = hashToBucket(`${msg.sender.id}:${msg.id}`);
@@ -575,7 +584,8 @@ async function bootstrap() {
 
       // 4. 呼叫 AI Agent (DynamicAgent 會根據 ai-config.yaml 選擇 provider)
       const response = await activeAgent.chat(promptForAgent, {
-        isPassthroughCommand: isPassthroughCommand
+        isPassthroughCommand: isPassthroughCommand,
+        forceNewSession
       });
 
       console.log(`📥 [AI] Reply length: ${response.length}`);

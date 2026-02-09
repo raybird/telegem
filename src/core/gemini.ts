@@ -140,6 +140,7 @@ ${text}
     try {
       // 判斷是否為 passthrough 指令（如 /compress, /compact）
       const isPassthrough = options?.isPassthroughCommand === true;
+      const forceNewSession = options?.forceNewSession === true;
 
       let stdout: string;
       let stderr: string;
@@ -148,14 +149,24 @@ ${text}
         // Passthrough 指令：僅透過 -p 傳遞，避免與 stdin 重複送入相同指令
         console.log(`[Gemini] isPassthroughCommand: true`);
         console.log(`[Gemini] Original prompt: ${prompt}`);
-        console.log(`[Gemini] Executing passthrough via -p only: gemini --yolo -r -p ...`);
+        const args = ['--yolo'];
+        if (!forceNewSession) {
+          args.push('-r');
+        }
+        args.push('-p', prompt);
 
-        const result = await runProcess('gemini', ['--yolo', '-r', '-p', prompt], {
+        console.log(
+          `[Gemini] Executing passthrough via -p only: gemini ${args.join(' ')} (hook bypass)`
+        );
+
+        const result = await runProcess('gemini', args, {
           timeoutMs: 600000,
+          // 保持在 workspace，確保 session 一致；僅略過記憶 hook
           cwd: 'workspace',
           env: {
             ...process.env,
-            GEMINI_PROJECT_DIR: process.env.GEMINI_PROJECT_DIR || process.cwd()
+            GEMINI_PROJECT_DIR: process.env.GEMINI_PROJECT_DIR || process.cwd(),
+            GEMINI_BYPASS_MEMORY_HOOK: '1'
           }
         });
         stdout = result.stdout;
@@ -165,14 +176,18 @@ ${text}
         // 開啟 --yolo 模式，允許自動執行所有工具 (搜尋、讀取檔案、執行指令等)
         // 使用 -p 進入非互動模式
         // 使用 --resume 接續上次 session，減少重複注入記憶
-        const args = ['--yolo', '-r', '-p', prompt];
+        const args = ['--yolo'];
+        if (!forceNewSession) {
+          args.push('-r');
+        }
+        args.push('-p', prompt);
 
         // 若有指定 model，加入參數
         if (options?.model) {
           args.push('--model', options.model);
           console.log(`[Gemini] Executing (YOLO Mode) with model: ${options.model}`);
         } else {
-          console.log(`[Gemini] Executing (YOLO Mode): gemini --yolo -p ...`);
+          console.log(`[Gemini] Executing (YOLO Mode): gemini ${args.join(' ')} ...`);
         }
 
         // 設定 10 分鐘超時，並在 workspace/ 目錄執行，避免意外修改源碼

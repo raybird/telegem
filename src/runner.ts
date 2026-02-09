@@ -18,6 +18,7 @@ type RunnerRequest = {
   provider?: Provider;
   model?: string;
   isPassthroughCommand?: boolean;
+  forceNewSession?: boolean;
 };
 
 type AIConfig = {
@@ -250,11 +251,14 @@ async function executeTask(
   const options = model
     ? {
         model,
-        ...(request.isPassthroughCommand ? { isPassthroughCommand: true } : {})
+        ...(request.isPassthroughCommand ? { isPassthroughCommand: true } : {}),
+        ...(request.forceNewSession ? { forceNewSession: true } : {})
       }
     : request.isPassthroughCommand
       ? { isPassthroughCommand: true }
-      : undefined;
+      : request.forceNewSession
+        ? { forceNewSession: true }
+        : undefined;
 
   if (!request.input || !request.task) {
     throw new Error('Invalid request: task and input are required.');

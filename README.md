@@ -165,6 +165,13 @@ docker compose exec telenexus node /app/dist/tools/scheduler-cli.js health
 
 ---
 
+## 會話控制指令
+
+- `/new`：下一則訊息使用新的 CLI session（Gemini 不帶 `-r`、Opencode 不帶 `-c`）
+- `/compress`、`/compact`：依 `passthrough_commands` 直通 CLI
+
+---
+
 ## Runner API（內網）
 
 - `GET /health`：基本健康狀態

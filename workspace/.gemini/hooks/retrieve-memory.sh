@@ -2,6 +2,12 @@
 # retrieve-memory.sh - BeforeAgent Hook: 從 MCP Memory 檢索相關記憶並注入 Prompt
 # 避免遞迴：直接查詢 SQLite，不呼叫 gemini CLI
 
+# Passthrough 模式可要求略過記憶注入（保留同一個 session/cwd）
+if [ "$GEMINI_BYPASS_MEMORY_HOOK" = "1" ]; then
+  echo '{"decision": "allow"}'
+  exit 0
+fi
+
 # 讀取 stdin（包含使用者的 Prompt）
 input=$(cat)
 

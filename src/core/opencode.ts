@@ -141,13 +141,17 @@ ${text}
   async chat(prompt: string, options?: AIAgentOptions): Promise<string> {
     try {
       const isPassthrough = options?.isPassthroughCommand === true;
+      const forceNewSession = options?.forceNewSession === true;
       if (isPassthrough) {
         console.log('[Opencode] Passthrough command detected, sending raw command to CLI.');
       }
 
       // 使用 echo 透過 stdin 傳遞訊息,比直接作為參數更快
       // 使用 -c 接續上次 session,減少重複注入記憶
-      const args = ['run', '-c'];
+      const args = ['run'];
+      if (!forceNewSession) {
+        args.push('-c');
+      }
 
       // 若有指定 model,加入參數
       if (options?.model) {

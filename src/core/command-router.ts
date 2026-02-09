@@ -11,6 +11,7 @@ type CommandContext = {
   connector: Connector;
   memory: MemoryManager;
   scheduler: Scheduler;
+  requestNewSession: (userId: string) => void;
 };
 
 type CommandDefinition = {
@@ -37,7 +38,12 @@ export class CommandRouter {
 
   async handleMessage(
     msg: UnifiedMessage,
-    deps: { connector: Connector; memory: MemoryManager; scheduler: Scheduler }
+    deps: {
+      connector: Connector;
+      memory: MemoryManager;
+      scheduler: Scheduler;
+      requestNewSession: (userId: string) => void;
+    }
   ): Promise<boolean> {
     // 清理訊息內容，移除可能導致 shell 錯誤的特殊字元
     const content = msg.content.trim().replace(/[`'"]/g, '');
@@ -53,7 +59,8 @@ export class CommandRouter {
           content,
           connector: deps.connector,
           memory: deps.memory,
-          scheduler: deps.scheduler
+          scheduler: deps.scheduler,
+          requestNewSession: deps.requestNewSession
         });
         return true;
       }
@@ -124,6 +131,7 @@ export class CommandRouter {
 
 🛠 **基本指令**
 - \`/reset\`: 清除 AI 短期記憶 (Context Window)
+- \`/new\`: 下一則訊息使用新會話（不接續 CLI 舊 session）
 - \`/start\`: 顯示此說明訊息
 
 📅 **排程管理功能**
@@ -155,6 +163,18 @@ export class CommandRouter {
       execute: async ({ userId, connector, memory }) => {
         memory.clear(userId);
         await connector.sendMessage(userId, '🧹 記憶已清除。');
+      }
+    });
+
+    this.registerCommand({
+      name: 'new',
+      match: (content) => content === '/new',
+      execute: async ({ userId, connector, requestNewSession }) => {
+        requestNewSession(userId);
+        await connector.sendMessage(
+          userId,
+          '🆕 已建立新會話。下一則訊息將使用新的 CLI session（不接續上一段對話）。'
+        );
       }
     });
 

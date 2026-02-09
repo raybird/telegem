@@ -6,6 +6,7 @@ import { OpencodeAgent } from './opencode.js';
 export interface AIAgentOptions {
   model?: string;
   isPassthroughCommand?: boolean;
+  forceNewSession?: boolean;
 }
 
 type RunnerTask = 'chat' | 'summarize';
@@ -16,6 +17,7 @@ interface RunnerRequest {
   provider: string;
   model?: string;
   isPassthroughCommand?: boolean;
+  forceNewSession?: boolean;
 }
 
 interface RunnerResponse {
@@ -180,6 +182,7 @@ export class DynamicAIAgent implements AIAgent {
     }
 
     const isPassthrough = options?.isPassthroughCommand === true;
+    const forceNewSession = options?.forceNewSession === true;
     const normalizedInput = this.normalizePassthroughInput(input, provider, isPassthrough);
     if (isPassthrough) {
       console.log('[DynamicAgent] Passthrough command detected.');
@@ -203,7 +206,8 @@ export class DynamicAIAgent implements AIAgent {
         task,
         input: normalizedInput,
         provider,
-        ...(isPassthrough ? { isPassthroughCommand: true } : {})
+        ...(isPassthrough ? { isPassthroughCommand: true } : {}),
+        ...(forceNewSession ? { forceNewSession: true } : {})
       };
       if (model) {
         runnerPayload.model = model;
