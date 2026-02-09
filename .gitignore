@@ -20,6 +20,8 @@ workspace/temp/
 workspace/context/
 workspace/AGENTS.md
 workspace/GEMINI.md
+workspace/*.skill
+workspace/scripts/
 
 # Local AI tool state
 /.agent/
