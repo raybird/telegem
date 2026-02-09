@@ -167,8 +167,10 @@ docker compose exec telenexus node /app/dist/tools/scheduler-cli.js health
 
 ## 會話控制指令
 
-- `/new`：下一則訊息使用新的 CLI session（Gemini 不帶 `-r`、Opencode 不帶 `-c`）
+- `/new`：下一則一般對話訊息使用新的 CLI session（Gemini 不帶 `-r`、Opencode 不帶 `-c`）
 - `/compress`、`/compact`：依 `passthrough_commands` 直通 CLI
+
+補充：passthrough 流程（例如 `/compress`）在 Gemini 路徑會略過記憶檢索 hook，避免控制指令被長期記憶內容干擾。
 
 ---
 
