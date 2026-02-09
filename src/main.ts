@@ -139,7 +139,7 @@ function loadChatPromptConfig(): ChatPromptConfig {
   };
 }
 
-function buildChatPrompt(config: ChatPromptConfig): string {
+function buildChatPrompt(config: ChatPromptConfig, userMessage: string): string {
   const sections: string[] = [];
 
   sections.push('System: ' + config.roleSystem);
@@ -159,6 +159,8 @@ function buildChatPrompt(config: ChatPromptConfig): string {
     const lines = config.workspacePolicyLines.map((line) => `- ${line}`).join('\n');
     sections.push(`【工作目錄限制 - 重要】\n${lines}`);
   }
+
+  sections.push(`User Message:\n${userMessage}`);
 
   if (config.includeAiResponseSuffix) {
     sections.push('AI Response:');
@@ -573,7 +575,7 @@ async function bootstrap() {
       if (!isPassthroughCommand) {
         // 2. 組合 Prompt
         const promptConfig = loadChatPromptConfig();
-        promptForAgent = buildChatPrompt(promptConfig);
+        promptForAgent = buildChatPrompt(promptConfig, msg.content);
       }
 
       if (isPassthroughCommand) {

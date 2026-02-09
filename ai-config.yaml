@@ -32,7 +32,7 @@ chat_prompt:
     - 當發現實體間關係時，使用 create_relations
     - 需要回想時，使用 search_entities
   workspace_policy_lines:
-    - 你的當前工作目錄是 workspace/
+  #  - 你的當前工作目錄是 workspace/
     - 優先讀取 workspace/context/
     - 暫存請放 workspace/temp/
     - 未經要求不要修改原始碼或部署設定

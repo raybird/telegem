@@ -20,6 +20,12 @@ if [ -z "$user_prompt" ]; then
   exit 0
 fi
 
+# Slash command（例如 /compress）不做記憶注入，避免干擾控制指令語意
+if [[ "$user_prompt" == /* ]]; then
+  echo '{"decision": "allow"}' 2>&1
+  exit 0
+fi
+
 # 資料庫路徑
 DB_PATH="$GEMINI_PROJECT_DIR/data/memory.db"
 
@@ -31,56 +37,83 @@ if [ ! -f "$DB_PATH" ]; then
 fi
 
 # 使用 Node.js 查詢資料庫（使用專案中已安裝的 better-sqlite3）
-# 改進的搜尋策略：提取實體名稱和關鍵詞
-# 安全修復：使用環境變數傳遞 USER_PROMPT，避免 Injection
+# 安全：使用環境變數傳遞參數，避免 shell/JS 字串插值風險
 export USER_PROMPT="$user_prompt"
+export MEMORY_DB_PATH="$DB_PATH"
 
-query_result=$(node -e "
+query_result=$(node <<'NODE'
 const Database = require('better-sqlite3');
-const db = new Database('$DB_PATH', { readonly: true });
+const dbPath = process.env.MEMORY_DB_PATH;
+if (!dbPath) {
+  process.exit(0);
+}
+const db = new Database(dbPath, { readonly: true });
 
-// 安全：從環境變數讀取 Prompt，而非字串插值
 const prompt = process.env.USER_PROMPT || '';
 
-// 改進的關鍵字提取：
-// 1. 先提取所有已知的實體名稱
 const entities = db.prepare('SELECT name FROM entities').all().map(e => e.name);
 const matchedEntities = entities.filter(e => prompt.includes(e));
 
-// 2. 提取中文關鍵詞（2-4字的詞組）
-const chineseWords = prompt.match(/[\u4e00-\u9fa5]{2,4}/g) || [];
+const chineseWords = prompt.match(/[\u4e00-\u9fa5]{2,6}/g) || [];
+const stopwords = new Set([
+  '今天', '現在', '剛剛', '等等', '這個', '那個', '如何', '分析', '報告', '資訊',
+  '問題', '處理', '請問', '幫我', '可以', '是否', '一下', '內容', '訊息', '狀況'
+]);
+const filteredWords = chineseWords.filter(w => !stopwords.has(w));
 
-// 3. 合併關鍵字
-const keywords = [...new Set([...matchedEntities, ...chineseWords])].slice(0, 10);
+const keywords = [...new Set([...matchedEntities, ...filteredWords])].slice(0, 12);
 
-if (keywords.length === 0) {
+if (matchedEntities.length === 0 && keywords.length < 2) {
   console.log('');
   process.exit(0);
 }
 
-// 構建 LIKE 查詢
-const likeConditions = keywords.map(() => 'o.content LIKE ?').join(' OR ');
-const likeParams = keywords.map(k => \`%\${k}%\`);
+const likeConditions = keywords.map(() => '(o.content LIKE ? OR e.name LIKE ?)').join(' OR ');
+const likeParams = keywords.flatMap((k) => {
+  const pattern = `%${k}%`;
+  return [pattern, pattern];
+});
 
-const sql = \`
-  SELECT DISTINCT 
+const sql = `
+  SELECT DISTINCT
     e.name as entity_name,
     e.entity_type,
     o.content,
     o.created_at
   FROM observations o
   INNER JOIN entities e ON o.entity_name = e.name
-  WHERE \${likeConditions}
+  WHERE ${likeConditions}
   ORDER BY o.created_at DESC
-  LIMIT 5
-\`;
+  LIMIT 20
+`;
 
 try {
-  const results = db.prepare(sql).all(...likeParams);
-  if (results.length > 0) {
-    const formatted = results.map((r, i) => 
-      \`\${i+1}. [\${r.entity_type}] \${r.entity_name}: \${r.content}\`
-    ).join('\n');
+  const rawResults = db.prepare(sql).all(...likeParams);
+  const scored = rawResults
+    .map((r) => {
+      const text = `${r.entity_name} ${r.content}`;
+      let score = 0;
+      for (const k of keywords) {
+        if (text.includes(k)) score += 1;
+      }
+      if (matchedEntities.includes(r.entity_name)) {
+        score += 2;
+      }
+      return { ...r, score };
+    })
+    .filter((r) => r.score >= 2)
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      const ta = Number(new Date(a.created_at));
+      const tb = Number(new Date(b.created_at));
+      return tb - ta;
+    })
+    .slice(0, 5);
+
+  if (scored.length > 0) {
+    const formatted = scored
+      .map((r, i) => `${i + 1}. [${r.entity_type}] ${r.entity_name}: ${r.content}`)
+      .join('\n');
     console.log(formatted);
   }
 } catch (err) {
@@ -88,11 +121,10 @@ try {
 }
 
 db.close();
-" 2>&2)
+NODE
+)
 
-# 如果有找到記憶，注入到 systemMessage
 if [ -n "$query_result" ]; then
-  # 使用 jq 構建 JSON（避免字串跳脫問題）
   jq -n \
     --arg memories "$query_result" \
     '{
