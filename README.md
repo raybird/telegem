@@ -81,6 +81,58 @@ docker compose ps
 docker compose logs -f telenexus
 ```
 
+### 4) 本地 Web Console（可選，預設啟用）
+
+預設位址：`http://127.0.0.1:3030`
+
+在 Docker Compose 下，`telenexus` 已預設發布 `WEB_PORT`（預設 `3030`）到主機。
+
+可調整環境變數：
+
+```env
+WEB_ENABLED=true
+WEB_BIND=127.0.0.1
+WEB_PORT=3030
+
+# 若設定，/api/* 需帶 Authorization: Bearer <token>
+WEB_AUTH_TOKEN=
+
+# true 時：來自內網/private IP 的請求可略過 token 驗證
+WEB_TRUST_PRIVATE_NETWORK=false
+
+# Dashboard 告警門檻（error count >= N 顯示紅色告警）
+WEB_ALERT_ERROR_THRESHOLD=1
+
+# Runner 成功率低於此值 (%) 顯示橘色告警
+WEB_ALERT_RUNNER_SUCCESS_WARN_THRESHOLD=80
+
+# 未設定時預設回退 ALLOWED_USER_ID（與 Telegram 共用記憶與排程）
+WEB_USER_ID=
+```
+
+內建 API：
+
+- `GET /api/health`
+- `POST /api/chat`
+- `POST /api/chat/stream`（SSE 串流事件：`start` / `status` / `chunk` / `done`）
+- `GET /api/memory/stats`
+- `GET /api/memory/history?offset=0&limit=20`（歷史分頁）
+- `GET /api/memory/recent`
+- `GET /api/memory/search`
+- `GET /api/memory/export?format=json|csv`（匯出記憶）
+- `GET /api/schedules`
+- `POST /api/schedules`（新增排程）
+- `PUT /api/schedules/:id`（編輯排程）
+- `DELETE /api/schedules/:id`（刪除排程）
+- `POST /api/schedules/toggle`（切換啟用狀態，會觸發 reload）
+- `POST /api/schedules/reload`
+- `POST /api/reflect`（手動觸發追蹤分析）
+- `GET /api/status`（同時回傳 `snapshots` 原始 markdown 與 `structured` 解析結果）
+
+排程 cron 目前採 5 欄位格式（`minute hour day month weekday`），不接受秒級 6 欄位。
+
+若啟用 `WEB_AUTH_TOKEN`，前端匯出功能會自動在匯出 URL 附帶 token 參數進行授權。
+
 ---
 
 ## Skills（不污染 repo）

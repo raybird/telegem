@@ -608,3 +608,95 @@
 ### 回滾計畫
 
 - 刪除以上兩份文件即可，不影響執行行為。
+
+---
+
+## 2026-02-11 - Web Local Chat + Dashboard 規劃啟動
+
+### 階段
+
+- 新增雙入口方案（Telegram + 本地 Web）的執行計畫文件。
+
+### 已完成
+
+- 新增 `docs/web-local-chat-dashboard-plan.md`，定義：
+  - 目標範圍與現況盤點
+  - To-Be 架構
+  - Phase 1~4 實作計畫
+  - MVP API 草案與安全策略
+  - 風險、回滾與 Decision Record
+- 確認決策：Web 與 Telegram 採共用使用者識別（`WEB_USER_ID` 預設回退 `ALLOWED_USER_ID`）。
+
+### 影響檔案
+
+- `docs/web-local-chat-dashboard-plan.md`
+- `docs/migration-log.md`
+
+### 驗證結果
+
+- 文件層變更，無程式行為改動。
+- 計畫內容已對齊現況程式結構（`main.ts`、`memory.ts`、`scheduler.ts`、`runner.ts`）。
+
+### 回滾計畫
+
+- 刪除 `docs/web-local-chat-dashboard-plan.md` 與本節紀錄即可。
+
+---
+
+## 2026-02-11 - Web Console 功能收斂與測試補強
+
+### 階段
+
+- 完成 Web Console 主要功能閉環（SSE、歷史分頁/匯出、排程管理、告警門檻環境化）。
+- 補上核心資料層與排程驗證測試。
+
+### 已完成
+
+- Web 功能強化：
+  - 新增 `POST /api/chat/stream`（SSE）
+  - 新增 `GET /api/memory/history`、`GET /api/memory/export`
+  - 新增排程 `PUT /api/schedules/:id` 編輯能力
+  - 新增 Dashboard 全域告警條（error / runner）
+- 安全與部署：
+  - Compose 支援 `WEB_*` 設定與 port 發布
+  - 支援 `WEB_TRUST_PRIVATE_NETWORK`
+  - 告警門檻改為環境變數：
+    - `WEB_ALERT_ERROR_THRESHOLD`
+    - `WEB_ALERT_RUNNER_SUCCESS_WARN_THRESHOLD`
+- 測試補強：
+  - 新增 `tests/memory-manager.test.ts`（驗證記憶分頁）
+  - 新增 `tests/scheduler-validation.test.ts`（驗證 cron 檢核與排程更新）
+  - 新增 `npm test`（`tsx --test tests/**/*.test.ts`）
+
+### 影響檔案
+
+- `src/web/server.ts`
+- `src/main.ts`
+- `src/core/memory.ts`
+- `src/core/scheduler.ts`
+- `docker-compose.yml`
+- `.env`
+- `.env.example`
+- `.env.production.example`
+- `README.md`
+- `package.json`
+- `tests/memory-manager.test.ts`
+- `tests/scheduler-validation.test.ts`
+- `docs/web-local-chat-dashboard-plan.md`
+- `docs/migration-log.md`
+
+### 驗證結果
+
+- `npm run build`：通過
+- `npm run lint`：通過
+- `docker compose up -d --build`：服務可啟動並提供 `:3030`
+
+### 後續待辦
+
+- 補充 runbook（Web 例外排查與告警調校指引）
+- 補充 API 整合測試（含 `/api/chat/stream` 事件流程）
+
+### 回滾計畫
+
+- 先以 `WEB_ENABLED=false` 關閉 Web 功能。
+- 若需完整回退，移除本節新增 API 與測試檔並回復 `.env` / Compose 的 `WEB_*` 設定。

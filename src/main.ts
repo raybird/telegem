@@ -6,7 +6,9 @@ import { TelegramConnector } from './connectors/telegram.js';
 import { CommandRouter } from './core/command-router.js';
 import { DynamicAIAgent } from './core/agent.js';
 import { MemoryManager } from './core/memory.js';
+import { createMessagePipeline } from './core/message-pipeline.js';
 import { Scheduler } from './core/scheduler.js';
+import { startWebServer } from './web/server.js';
 import type { UnifiedMessage } from './types/index.js';
 
 // 載入環境變數
@@ -380,6 +382,49 @@ function getRunnerCooldownMs(): number {
   return parsed;
 }
 
+function getWebEnabled(): boolean {
+  const raw = process.env.WEB_ENABLED?.trim().toLowerCase();
+  if (!raw) return true;
+  return raw === '1' || raw === 'true' || raw === 'yes';
+}
+
+function getWebBindHost(): string {
+  const raw = process.env.WEB_BIND?.trim();
+  return raw || '127.0.0.1';
+}
+
+function getWebPort(): number {
+  const raw = process.env.WEB_PORT?.trim();
+  if (!raw) return 3030;
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed < 1 || parsed > 65535) {
+    return 3030;
+  }
+  return parsed;
+}
+
+function getWebTrustPrivateNetwork(): boolean {
+  const raw = process.env.WEB_TRUST_PRIVATE_NETWORK?.trim().toLowerCase();
+  if (!raw) return false;
+  return raw === '1' || raw === 'true' || raw === 'yes';
+}
+
+function getWebAlertErrorThreshold(): number {
+  const raw = process.env.WEB_ALERT_ERROR_THRESHOLD?.trim();
+  if (!raw) return 1;
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed < 0) return 1;
+  return parsed;
+}
+
+function getWebAlertRunnerSuccessWarnThreshold(): number {
+  const raw = process.env.WEB_ALERT_RUNNER_SUCCESS_WARN_THRESHOLD?.trim();
+  if (!raw) return 80;
+  const parsed = Number.parseFloat(raw);
+  if (!Number.isFinite(parsed)) return 80;
+  return Math.min(100, Math.max(0, parsed));
+}
+
 function getChatRunnerOnlyUsers(defaultUserId?: string): Set<string> {
   const raw = process.env.CHAT_USE_RUNNER_ONLY_USERS?.trim();
   if (!raw) {
@@ -391,15 +436,6 @@ function getChatRunnerOnlyUsers(defaultUserId?: string): Set<string> {
       .map((item) => item.trim())
       .filter((item) => item.length > 0)
   );
-}
-
-function hashToBucket(input: string): number {
-  let hash = 2166136261;
-  for (let i = 0; i < input.length; i += 1) {
-    hash ^= input.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
-  }
-  return (hash >>> 0) % 100;
 }
 
 async function bootstrap() {
@@ -453,8 +489,36 @@ async function bootstrap() {
   const memory = new MemoryManager();
   const scheduler = new Scheduler(memory, schedulerAgent, telegram);
   const commandRouter = new CommandRouter();
-  const pendingNewSessionUsers = new Set<string>();
   let contextRefreshTimer: NodeJS.Timeout | null = null;
+  const webEnabled = getWebEnabled();
+  const webHost = getWebBindHost();
+  const webPort = getWebPort();
+  const webAuthToken = process.env.WEB_AUTH_TOKEN?.trim();
+  const webUserId = process.env.WEB_USER_ID?.trim() || ALLOWED_USER_ID;
+  const webTrustPrivateNetwork = getWebTrustPrivateNetwork();
+  const webAlertErrorThreshold = getWebAlertErrorThreshold();
+  const webAlertRunnerSuccessWarnThreshold = getWebAlertRunnerSuccessWarnThreshold();
+
+  const handleIncomingMessage = createMessagePipeline({
+    connector: telegram,
+    commandRouter,
+    memory,
+    scheduler,
+    userAgent,
+    chatRunnerAgent,
+    useRunnerForChat,
+    chatRunnerPercent,
+    chatRunnerOnlyUsers,
+    shouldSummarize,
+    buildPrompt: (userMessage: string) => {
+      const promptConfig = loadChatPromptConfig();
+      return buildChatPrompt(promptConfig, userMessage);
+    },
+    recordRuntimeIssue,
+    writeContextSnapshots: () => {
+      writeContextSnapshots(memory);
+    }
+  });
 
   const stopContextRefresh = () => {
     if (contextRefreshTimer) {
@@ -463,19 +527,47 @@ async function bootstrap() {
     }
   };
 
+  const webServer = startWebServer({
+    enabled: webEnabled,
+    host: webHost,
+    port: webPort,
+    ...(webAuthToken ? { authToken: webAuthToken } : {}),
+    trustPrivateNetwork: webTrustPrivateNetwork,
+    alertErrorThreshold: webAlertErrorThreshold,
+    alertRunnerSuccessWarnThreshold: webAlertRunnerSuccessWarnThreshold,
+    defaultUserId: webUserId,
+    commandRouter,
+    memory,
+    scheduler,
+    userAgent,
+    chatRunnerAgent,
+    useRunnerForChat,
+    chatRunnerPercent,
+    chatRunnerOnlyUsers,
+    shouldSummarize,
+    buildPrompt: (userMessage: string) => {
+      const promptConfig = loadChatPromptConfig();
+      return buildChatPrompt(promptConfig, userMessage);
+    },
+    recordRuntimeIssue,
+    writeContextSnapshots: () => {
+      writeContextSnapshots(memory);
+    }
+  });
+
   // 註冊優雅關閉處理器
   process.on('SIGINT', () => {
     console.log('\n[System] Shutting down gracefully...');
     stopContextRefresh();
     scheduler.shutdown();
-    process.exit(0);
+    void webServer.close().finally(() => process.exit(0));
   });
 
   process.on('SIGTERM', () => {
     console.log('\n[System] Shutting down gracefully...');
     stopContextRefresh();
     scheduler.shutdown();
-    process.exit(0);
+    void webServer.close().finally(() => process.exit(0));
   });
 
   process.on('SIGUSR1', async () => {
@@ -493,145 +585,7 @@ async function bootstrap() {
 
   // 設定訊息處理邏輯
   telegram.onMessage(async (msg: UnifiedMessage) => {
-    console.log(`📩 [${msg.sender.platform}] ${msg.sender.name}: ${msg.content}`);
-    const userId = msg.sender.id;
-
-    // 重置沉默計時器 (30 分鐘無訊息後觸發追蹤提醒)
-    scheduler.resetSilenceTimer(userId);
-    writeContextSnapshots(memory);
-
-    const commandHandled = await commandRouter.handleMessage(msg, {
-      connector: telegram,
-      memory,
-      scheduler,
-      requestNewSession: (targetUserId: string) => {
-        pendingNewSessionUsers.add(targetUserId);
-      }
-    });
-    if (commandHandled) {
-      return;
-    }
-
-    const isPassthroughCommand = commandRouter.isPassthroughCommand(msg.content.trim());
-    const forceNewSession = pendingNewSessionUsers.has(userId);
-    if (forceNewSession) {
-      pendingNewSessionUsers.delete(userId);
-      console.log('[System] Applying one-time new session mode for this message.');
-    }
-
-    const isWhitelisted = chatRunnerOnlyUsers.size === 0 || chatRunnerOnlyUsers.has(msg.sender.id);
-    const bucket = hashToBucket(`${msg.sender.id}:${msg.id}`);
-    const useRunnerThisMessage = useRunnerForChat && isWhitelisted && bucket < chatRunnerPercent;
-    const activeAgent = useRunnerThisMessage ? chatRunnerAgent : userAgent;
-    console.log(
-      `[System] Message execution mode: ${useRunnerThisMessage ? 'runner' : 'local'} (bucket=${bucket}, canary=${chatRunnerPercent}%, whitelist=${isWhitelisted})`
-    );
-
-    // UX: 先發送 "Thinking..." 佔位訊息，並啟動輪播
-    let placeholderMsgId = '';
-    let thinkingInterval: NodeJS.Timeout | null = null;
-
-    const thinkingMessages = [
-      '🤔 思考中...',
-      '🧠 正在理解問題...',
-      '🔍 搜尋相關資訊...',
-      '⚡ 處理中...',
-      '💭 組織回答...',
-      '🎯 分析脈絡...'
-    ];
-    let messageIndex = 0;
-
-    try {
-      placeholderMsgId = await telegram.sendPlaceholder(userId, thinkingMessages[0]!);
-
-      // 每 3 秒切換一次訊息
-      if (placeholderMsgId) {
-        thinkingInterval = setInterval(async () => {
-          messageIndex = (messageIndex + 1) % thinkingMessages.length;
-          try {
-            await telegram.editMessage(userId, placeholderMsgId, thinkingMessages[messageIndex]!);
-          } catch (e) {
-            console.warn('Failed to update thinking message', e);
-          }
-        }, 3000);
-      }
-    } catch (e) {
-      console.warn('Failed to send placeholder', e);
-    }
-
-    try {
-      // 1. 存入使用者訊息 (依條件自動摘要)
-      let userSummary: string | undefined;
-
-      if (!isPassthroughCommand && shouldSummarize(msg.content)) {
-        console.log(`📝 [Memory] User input meets summary criteria, generating summary...`);
-        userSummary = await activeAgent.summarize(msg.content);
-      }
-
-      memory.addMessage(userId, 'user', msg.content, userSummary);
-
-      let promptForAgent = msg.content.trim();
-
-      if (!isPassthroughCommand) {
-        // 2. 組合 Prompt
-        const promptConfig = loadChatPromptConfig();
-        promptForAgent = buildChatPrompt(promptConfig, msg.content);
-      }
-
-      if (isPassthroughCommand) {
-        console.log(`📤 [System] Passthrough command -> CLI: ${promptForAgent}`);
-      } else {
-        console.log(`📤 [System] Sending prompt to AI (length: ${promptForAgent.length} chars)`);
-      }
-
-      // 4. 呼叫 AI Agent (DynamicAgent 會根據 ai-config.yaml 選擇 provider)
-      const response = await activeAgent.chat(promptForAgent, {
-        isPassthroughCommand: isPassthroughCommand,
-        forceNewSession
-      });
-
-      console.log(`📥 [AI] Reply length: ${response.length}`);
-
-      // 5. 存入 AI 回應 (依條件自動摘要)
-      if (response && !response.startsWith('Error')) {
-        let responseSummary: string | undefined;
-
-        if (!isPassthroughCommand && shouldSummarize(response)) {
-          console.log(`📝 [Memory] AI response meets summary criteria, generating summary...`);
-          responseSummary = await activeAgent.summarize(response);
-        }
-
-        memory.addMessage(userId, 'model', response, responseSummary);
-      }
-
-      // 6. 停止輪播並更新訊息 (取代 Thinking...)
-      if (thinkingInterval) {
-        clearInterval(thinkingInterval);
-      }
-
-      if (placeholderMsgId) {
-        await telegram.editMessage(userId, placeholderMsgId, response);
-      } else {
-        // 如果佔位訊息發送失敗，就直接發新的
-        await telegram.sendMessage(userId, response);
-      }
-    } catch (error) {
-      console.error('❌ Error processing message:', error);
-      recordRuntimeIssue('message-processing', error);
-      writeContextSnapshots(memory);
-      const errorMsg = 'Sorry, I encountered an error while exercising my powers.';
-
-      // 停止輪播
-      if (thinkingInterval) {
-        clearInterval(thinkingInterval);
-      }
-
-      if (placeholderMsgId) {
-        await telegram.editMessage(userId, placeholderMsgId, errorMsg);
-      } else {
-        await telegram.sendMessage(userId, errorMsg);
-      }
-    }
+    await handleIncomingMessage(msg);
   });
 
   // 啟動連接器 (確保 bot instance 存在)

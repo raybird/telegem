@@ -7,6 +7,13 @@ export interface ChatMessage {
   timestamp: number;
 }
 
+export interface PagedChatMessages {
+  items: ChatMessage[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+
 export interface Schedule {
   id: number;
   user_id: string;
@@ -139,6 +146,74 @@ export class MemoryManager {
   }
 
   /**
+   * 取得最近 N 則對話
+   */
+  getRecentMessages(userId: string, limit: number = 20): ChatMessage[] {
+    const safeLimit = Math.max(1, Math.min(200, limit));
+    const stmt = this.db.prepare(`
+      SELECT role, content, timestamp
+      FROM messages
+      WHERE user_id = ?
+      ORDER BY timestamp DESC
+      LIMIT ?
+    `);
+
+    const rows = stmt.all(userId, safeLimit) as Array<{
+      role: string;
+      content: string;
+      timestamp: number;
+    }>;
+
+    return rows.map((row) => ({
+      role: row.role as 'user' | 'model',
+      content: row.content,
+      timestamp: row.timestamp
+    }));
+  }
+
+  /**
+   * 取得分頁對話歷史（最新在前）
+   */
+  getMessagesPage(userId: string, offset: number = 0, limit: number = 20): PagedChatMessages {
+    const safeOffset = Math.max(0, offset);
+    const safeLimit = Math.max(1, Math.min(200, limit));
+
+    const countStmt = this.db.prepare(`
+      SELECT COUNT(*) as count
+      FROM messages
+      WHERE user_id = ?
+    `);
+    const countRow = countStmt.get(userId) as { count: number } | undefined;
+    const total = countRow?.count || 0;
+
+    const pageStmt = this.db.prepare(`
+      SELECT role, content, timestamp
+      FROM messages
+      WHERE user_id = ?
+      ORDER BY timestamp DESC
+      LIMIT ? OFFSET ?
+    `);
+    const rows = pageStmt.all(userId, safeLimit, safeOffset) as Array<{
+      role: string;
+      content: string;
+      timestamp: number;
+    }>;
+
+    const items = rows.map((row) => ({
+      role: row.role as 'user' | 'model',
+      content: row.content,
+      timestamp: row.timestamp
+    }));
+
+    return {
+      items,
+      total,
+      offset: safeOffset,
+      limit: safeLimit
+    };
+  }
+
+  /**
    * 清除特定使用者的記憶
    */
   clear(userId: string): void {
@@ -219,6 +294,46 @@ export class MemoryManager {
   removeSchedule(id: number): void {
     const stmt = this.db.prepare('DELETE FROM schedules WHERE id = ?');
     stmt.run(id);
+  }
+
+  /**
+   * 取得單一排程
+   */
+  getScheduleById(id: number): Schedule | null {
+    const stmt = this.db.prepare(`
+      SELECT id, user_id, name, cron, prompt, created_at, is_active
+      FROM schedules
+      WHERE id = ?
+      LIMIT 1
+    `);
+    const row = stmt.get(id) as
+      | {
+          id: number;
+          user_id: string;
+          name: string;
+          cron: string;
+          prompt: string;
+          created_at: number;
+          is_active: number;
+        }
+      | undefined;
+    if (!row) return null;
+    return {
+      ...row,
+      is_active: row.is_active === 1
+    };
+  }
+
+  /**
+   * 更新排程內容
+   */
+  updateSchedule(id: number, name: string, cron: string, prompt: string): void {
+    const stmt = this.db.prepare(`
+      UPDATE schedules
+      SET name = ?, cron = ?, prompt = ?
+      WHERE id = ?
+    `);
+    stmt.run(name, cron, prompt, id);
   }
 
   /**

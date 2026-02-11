@@ -223,6 +223,52 @@ export class Scheduler {
     }
   }
 
+  private validateCronExpression(cron: string): void {
+    const normalized = cron.trim();
+    const parts = normalized.split(/\s+/);
+    if (parts.length !== 5) {
+      throw new Error('Cron expression must contain 5 fields (minute hour day month weekday).');
+    }
+
+    try {
+      const probe = new Cron(normalized, { timezone: this.getTimezone() }, async () => {
+        return;
+      });
+      probe.stop();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Invalid cron expression: ${message}`);
+    }
+  }
+
+  private sanitizeScheduleInput(
+    name: string,
+    cron: string,
+    prompt: string
+  ): {
+    name: string;
+    cron: string;
+    prompt: string;
+  } {
+    const normalizedName = name.trim();
+    const normalizedCron = cron.trim();
+    const normalizedPrompt = prompt.trim();
+
+    if (!normalizedName) {
+      throw new Error('Schedule name is required.');
+    }
+    if (!normalizedPrompt) {
+      throw new Error('Schedule prompt is required.');
+    }
+
+    this.validateCronExpression(normalizedCron);
+    return {
+      name: normalizedName,
+      cron: normalizedCron,
+      prompt: normalizedPrompt
+    };
+  }
+
   /**
    * 從 MCP Memory 檢索長期記憶
    * 呼叫 retrieve-memory.sh 並解析結果
@@ -309,18 +355,51 @@ AI Response:
    * 新增排程並立即啟動
    */
   addSchedule(userId: string, name: string, cron: string, prompt: string): number {
-    const id = this.memory.addSchedule(userId, name, cron, prompt);
+    const sanitized = this.sanitizeScheduleInput(name, cron, prompt);
+    const id = this.memory.addSchedule(userId, sanitized.name, sanitized.cron, sanitized.prompt);
     const schedule: Schedule = {
       id,
       user_id: userId,
-      name,
-      cron,
-      prompt,
+      name: sanitized.name,
+      cron: sanitized.cron,
+      prompt: sanitized.prompt,
       created_at: Date.now(),
       is_active: true
     };
     this.startJob(schedule);
     return id;
+  }
+
+  /**
+   * 更新排程並套用到執行中的 job
+   */
+  updateSchedule(userId: string, id: number, name: string, cron: string, prompt: string): Schedule {
+    const existing = this.memory.getScheduleById(id);
+    if (!existing) {
+      throw new Error(`Schedule #${id} not found.`);
+    }
+    if (existing.user_id !== userId) {
+      throw new Error(`Schedule #${id} does not belong to user ${userId}.`);
+    }
+
+    const sanitized = this.sanitizeScheduleInput(name, cron, prompt);
+    this.memory.updateSchedule(id, sanitized.name, sanitized.cron, sanitized.prompt);
+
+    const updated = this.memory.getScheduleById(id);
+    if (!updated) {
+      throw new Error(`Schedule #${id} was updated but cannot be loaded.`);
+    }
+
+    if (this.jobs.has(id)) {
+      this.jobs.get(id)?.stop();
+      this.jobs.delete(id);
+    }
+    if (updated.is_active) {
+      this.startJob(updated);
+    }
+
+    console.log(`[Scheduler] Updated schedule #${id}`);
+    return updated;
   }
 
   /**
