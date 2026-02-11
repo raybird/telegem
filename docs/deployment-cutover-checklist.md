@@ -1,4 +1,4 @@
-# Phase 3 上線切換 Checklist
+# 雙服務架構部署 Checklist
 
 ## 0) 前置
 
@@ -12,7 +12,7 @@
 - [ ] 啟動指令：
 
 ```bash
-docker compose --profile phase3 up -d --build
+docker compose up -d --build
 ```
 
 - [ ] 服務狀態正常：
@@ -80,7 +80,6 @@ CHAT_USE_RUNNER_PERCENT=0
 套用：
 
 ```bash
-docker compose --profile phase3 up -d
+docker compose up -d
 ```
 
-必要時完全回到 Phase 2：不帶 profile 啟動。

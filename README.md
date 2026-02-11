@@ -17,9 +17,8 @@ TeleNexus 讓您用 Telegram 控制本機 AI CLI（Gemini / Opencode），並提
 - 排程系統（新增/刪除/重載/健康檢查）
 - 指令白名單直通（`passthrough_commands` 可在 `ai-config.yaml` 配置）
 - `workspace/context/` 觀測快照（避免直接依賴原始碼路徑）
-- Phase 3 雙服務架構（`telenexus` + `agent-runner`）
-- runner canary 切流（排程與聊天可分開控管）
-- runner 安全/穩定機制（shared secret、circuit breaker、審計）
+- 雙服務架構標準部署 (`telenexus` + `agent-runner`)
+- Runner 安全/穩定機制 (shared secret、circuit breaker、審計)
 
 ---
 
@@ -31,7 +30,7 @@ TeleNexus 讓您用 Telegram 控制本機 AI CLI（Gemini / Opencode），並提
   - scheduler
   - 記憶系統
   - 可選：將任務轉送到 `agent-runner`
-- `agent-runner`（執行平面，Phase 3 profile）
+- `agent-runner` (執行平面)
   - 提供 `GET /health`、`GET /stats`、`POST /run`
   - 執行 Gemini / Opencode
   - 輸出 `runner-audit.log` 與 `runner-status.md`
@@ -60,19 +59,13 @@ ALLOWED_USER_ID=your_telegram_user_id
 DB_DIR=./data
 ```
 
-### 2) 啟動
-
-一般模式：
+### 2) 啟動 (雙服務架構)
 
 ```bash
 docker compose up -d --build
 ```
 
-啟用 Phase 3（含 agent-runner）：
-
-```bash
-docker compose --profile phase3 up -d --build
-```
+這會同時啟動 `telenexus` 和 `agent-runner` 兩個服務。
 
 ### 3) 檢查服務
 
@@ -86,6 +79,19 @@ docker compose logs -f telenexus
 預設位址：`http://127.0.0.1:3030`
 
 在 Docker Compose 下，`telenexus` 已預設發布 `WEB_PORT`（預設 `3030`）到主機。
+
+#### Plain Vanilla Web 設計理念
+
+Web Console 採用 **Plain Vanilla** 開發方式 ([plainvanillaweb.com](https://plainvanillaweb.com)):
+
+- ✅ **零建置工具** - 只用 HTML、CSS、JavaScript,無需 webpack/vite
+- ✅ **零框架依賴** - 不依賴 React/Vue/Angular,直接使用 Web 標準
+- ✅ **零維護成本** - 無需定期更新依賴套件,長期穩定
+- ✅ **極簡複雜度** - 程式碼清晰易讀,易於理解和修改
+
+這種設計選擇犧牲了一些短期便利性,換取長期的簡單性和零維護成本。得益於現代瀏覽器的優秀 Web 標準支援,這種開發方式完全可行。
+
+#### 環境變數配置
 
 可調整環境變數：
 
@@ -110,7 +116,7 @@ WEB_ALERT_RUNNER_SUCCESS_WARN_THRESHOLD=80
 WEB_USER_ID=
 ```
 
-內建 API：
+#### 內建 API
 
 - `GET /api/health`
 - `POST /api/chat`
@@ -133,15 +139,26 @@ WEB_USER_ID=
 
 若啟用 `WEB_AUTH_TOKEN`，前端匯出功能會自動在匯出 URL 附帶 token 參數進行授權。
 
-前端路由與結構（Plain Vanilla）：
+#### 前端架構 (Plain Vanilla)
 
-- Hash routes：`#/chat`、`#/memory`、`#/schedules`、`#/status`
-- 前端目錄：`src/web/public/app/`
-  - `main.js`：啟動與路由
-  - `services/`：資料存取層（chat/memory/schedules/status）
-  - `views/`：頁面渲染與互動
-  - `utils/`：共用工具（DOM、format、list、view lifecycle）
-- 切頁策略：view keep-alive（保留頁面 DOM 與狀態，降低切頁閃爍）
+**技術棧:**
+- 純 HTML/CSS/JavaScript - 無建置步驟
+- ES6 Modules - 原生模組系統
+- Hash-based SPA - 客戶端路由 (`#/chat`, `#/memory`, `#/schedules`, `#/status`)
+
+**目錄結構:**
+```
+src/web/public/app/
+├── main.js          # 啟動與路由
+├── services/        # 資料存取層 (chat/memory/schedules/status)
+├── views/           # 頁面渲染與互動
+└── utils/           # 共用工具 (DOM/format/list/view lifecycle)
+```
+
+**架構特色:**
+- **View Keep-Alive** - 保留頁面 DOM 與狀態,降低切頁閃爍
+- **Service Layer** - 統一資料存取,views 不直接呼叫 API
+- **Lifecycle Management** - 統一事件綁定與清理,避免記憶體洩漏
 
 ---
 
@@ -288,7 +305,6 @@ npm run lint
 - 路線圖：`docs/docker-refactor-roadmap.md`
 - 邊界與安全：`docs/runtime-boundary-and-security.md`
 - 排程 runbook：`docs/scheduler-operation-runbook.md`
-- Phase 3：`docs/phase3-compose-profile.md`
 - 上線 checklist：`docs/deployment-cutover-checklist.md`
 - 遷移紀錄：`docs/migration-log.md`
 

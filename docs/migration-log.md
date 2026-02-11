@@ -787,3 +787,47 @@
 
 - 將 `main.js` 切回非 keep-alive 模式（每次 route mount/unmount）。
 - 將 views 改回直接使用 api 層（不經 services）可快速回退。
+
+---
+
+## 2026-02-11 - Phase 3 提升為標準部署
+
+### 階段
+
+- Phase 3 測試完成,移除 profile 機制,雙服務架構成為標準部署方式。
+
+### 已完成
+
+- Docker Compose 配置:
+  - 移除 `agent-runner` 的 `profiles: [phase3]` 配置
+  - 調整環境變數預設值:`SCHEDULE_USE_RUNNER=true`, `CHAT_USE_RUNNER_PERCENT=100`
+- 環境變數範例:
+  - 更新 `.env.example` 和 `.env.production.example` 的 RUNNER 預設值和註解
+  - 強調雙服務架構為標準配置,不再是實驗性功能
+- 文件更新:
+  - `README.md` 移除 `--profile phase3` 啟動指令,改為標準 `docker compose up`
+  - 將 `docs/phase3-compose-profile.md` 重新命名為 `docs/phase3-migration-history.md` 並標記為歷史文件
+  - 更新 `docs/deployment-cutover-checklist.md` 移除 profile 相關指令
+
+### 影響檔案
+
+- `docker-compose.yml`
+- `.env.example`
+- `.env.production.example`
+- `README.md`
+- `docs/phase3-migration-history.md` (renamed from `phase3-compose-profile.md`)
+- `docs/deployment-cutover-checklist.md`
+- `docs/migration-log.md`
+
+### 驗證計畫
+
+- `docker compose config`:確認兩個服務都會被包含
+- `docker compose up -d`:確認 `telenexus` 和 `agent-runner` 都正常啟動
+- 功能測試:確認 Telegram bot 透過 runner 執行正常
+- 審計檔案:確認 `runner-audit.log` 和 `runner-status.md` 正常記錄
+
+### 回滾計畫
+
+- 若需回退,可在 `docker-compose.yml` 中為 `agent-runner` 重新添加 `profiles: [phase3]`
+- 調整環境變數預設值回到 `SCHEDULE_USE_RUNNER=false`, `CHAT_USE_RUNNER_PERCENT=0`
+

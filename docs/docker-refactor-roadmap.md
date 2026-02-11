@@ -73,24 +73,28 @@
 
 - 保留舊 prompt 與 symlink 配置，必要時可快速退回。
 
-### Phase 3：服務拆分（orchestrator / agent-runner）
+### Phase 3：服務拆分（orchestrator / agent-runner）✅ 已完成並成為標準部署
 
-**目的**：把控制平面與執行平面分離，降低耦合與 blast radius。
+**目的**：把控制平面與執行平面分離,降低耦合與 blast radius。
+
+**狀態**：✅ 已於 2026-02-11 完成測試並提升為標準部署方式
 
 工作項目：
 
-- compose 增加 `agent-runner` service。
-- orchestrator 透過明確介面（子程序/內部 RPC）呼叫 runner。
-- 強化健康檢查、重啟策略、逾時與重試政策。
+- ✅ compose 增加 `agent-runner` service
+- ✅ orchestrator 透過明確介面 (HTTP API) 呼叫 runner
+- ✅ 強化健康檢查、重啟策略、逾時與重試政策
+- ✅ 移除 profile 機制,雙服務成為預設部署
 
 驗收條件：
 
-- Telegram、排程、Agent 呼叫任一子系統異常時，不影響其餘核心流程。
-- Docker 與本機雙模式皆可啟動並通過 smoke test。
+- ✅ Telegram、排程、Agent 呼叫任一子系統異常時,不影響其餘核心流程
+- ✅ Docker 與本機雙模式皆可啟動並通過 smoke test
+- ✅ 不需要 `--profile phase3`,標準 `docker compose up` 即可啟動雙服務
 
 回滾：
 
-- 保留單服務 compose profile，可一鍵切回。
+- 若需回退,可在 `docker-compose.yml` 中為 `agent-runner` 重新添加 `profiles: [phase3]`
 
 ## 5) 風險矩陣
 
