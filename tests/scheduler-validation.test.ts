@@ -91,3 +91,44 @@ test('Scheduler validates cron input and supports schedule update', () => {
     scheduler.shutdown();
   });
 });
+
+test('Scheduler keeps only one silence timer when reflection re-schedules', async () => {
+  await withTempDb(async () => {
+    const originalSetTimeout = global.setTimeout;
+    const originalClearTimeout = global.clearTimeout;
+
+    let id = 0;
+    const activeTimers = new Set<number>();
+    const clearedTimers: number[] = [];
+
+    (global as any).setTimeout = (_fn: (...args: any[]) => void, _delay?: number) => {
+      id += 1;
+      activeTimers.add(id);
+      return id as unknown as NodeJS.Timeout;
+    };
+
+    (global as any).clearTimeout = (timer: NodeJS.Timeout) => {
+      const timerId = Number(timer);
+      clearedTimers.push(timerId);
+      activeTimers.delete(timerId);
+    };
+
+    try {
+      const memory = new MemoryManager();
+      const scheduler = new Scheduler(memory, createAgentStub(), createConnectorStub());
+
+      memory.addMessage('user-a', 'user', 'follow-up me');
+      scheduler.resetSilenceTimer('user-a');
+
+      await scheduler.triggerReflection('user-a', 'silence');
+
+      assert.equal(activeTimers.size, 1);
+      assert.ok(clearedTimers.length >= 1);
+
+      scheduler.shutdown();
+    } finally {
+      (global as any).setTimeout = originalSetTimeout;
+      (global as any).clearTimeout = originalClearTimeout;
+    }
+  });
+});

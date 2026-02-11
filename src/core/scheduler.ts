@@ -80,6 +80,7 @@ export class Scheduler {
   private jobs: Map<number, Cron> = new Map();
   private systemJobs: Map<string, Cron> = new Map();
   private silenceTimers: Map<string, NodeJS.Timeout> = new Map();
+  private silenceTimerSeq: Map<string, number> = new Map();
   private lastReflectionFingerprint: Map<string, string> = new Map();
   private readonly SILENCE_TIMEOUT_MS = 30 * 60 * 1000; // 正式環境：30 分鐘
   private memory: MemoryManager;
@@ -90,6 +91,46 @@ export class Scheduler {
     this.memory = memory;
     this.gemini = gemini;
     this.connector = connector;
+  }
+
+  private clearSilenceTimer(userId: string): void {
+    const timer = this.silenceTimers.get(userId);
+    if (timer) {
+      clearTimeout(timer);
+      this.silenceTimers.delete(userId);
+      console.log(`[Scheduler] Cleared silence timer for user ${userId}`);
+    }
+  }
+
+  private scheduleSilenceTimer(
+    userId: string,
+    delayMs: number = this.SILENCE_TIMEOUT_MS,
+    source: string = 'default'
+  ): void {
+    this.clearSilenceTimer(userId);
+
+    const nextSeq = (this.silenceTimerSeq.get(userId) || 0) + 1;
+    this.silenceTimerSeq.set(userId, nextSeq);
+
+    const timer = setTimeout(async () => {
+      const activeSeq = this.silenceTimerSeq.get(userId);
+      if (activeSeq !== nextSeq) {
+        console.log(
+          `[Scheduler] Skipping stale silence timer for user ${userId} (seq=${nextSeq}, active=${activeSeq})`
+        );
+        return;
+      }
+
+      console.log(
+        `[Scheduler] Silence timer fired for user ${userId} (seq=${nextSeq}, source=${source})`
+      );
+      await this.triggerReflection(userId, 'silence', undefined, nextSeq);
+    }, delayMs);
+
+    this.silenceTimers.set(userId, timer);
+    console.log(
+      `[Scheduler] Scheduled silence timer for user ${userId} (seq=${nextSeq}, source=${source}, delayMs=${delayMs}, activeTimers=${this.silenceTimers.size})`
+    );
   }
 
   private fingerprintReflection(text: string): string {
@@ -170,11 +211,7 @@ export class Scheduler {
         console.log(
           `[Scheduler] Setting follow-up timer for ${Math.floor(remainingMs / 1000 / 60)} minutes...`
         );
-        const timer = setTimeout(async () => {
-          console.log(`[Scheduler] Startup timer triggered for user ${userId}`);
-          await this.triggerReflection(userId, 'silence');
-        }, remainingMs);
-        this.silenceTimers.set(userId, timer);
+        this.scheduleSilenceTimer(userId, remainingMs, 'startup-remaining');
       }
     }
   }
@@ -446,6 +483,7 @@ AI Response:
       clearTimeout(timer);
     }
     this.silenceTimers.clear();
+    this.silenceTimerSeq.clear();
   }
 
   /**
@@ -477,22 +515,10 @@ AI Response:
    * 重置使用者的沉默計時器 (每次收到訊息時呼叫)
    */
   resetSilenceTimer(userId: string): void {
-    // 清除現有計時器
-    if (this.silenceTimers.has(userId)) {
-      clearTimeout(this.silenceTimers.get(userId)!);
-    }
-
     console.log(
       `[Scheduler] Timer reset for user ${userId}. Next trigger in ${this.SILENCE_TIMEOUT_MS / 1000 / 60} minutes.`
     );
-
-    // 設定新的計時器
-    const timer = setTimeout(async () => {
-      console.log(`[Scheduler] Silence detected for user ${userId}, triggering reflection...`);
-      await this.triggerReflection(userId, 'silence');
-    }, this.SILENCE_TIMEOUT_MS);
-
-    this.silenceTimers.set(userId, timer);
+    this.scheduleSilenceTimer(userId, this.SILENCE_TIMEOUT_MS, 'message-reset');
   }
 
   /**
@@ -504,9 +530,12 @@ AI Response:
   async triggerReflection(
     userId: string,
     type: 'silence' | 'manual' = 'silence',
-    messageIdToEdit?: string
+    messageIdToEdit?: string,
+    sourceTimerSeq?: number
   ): Promise<void> {
-    console.log(`[Scheduler] Triggering reflection (type: ${type}) for user ${userId}`);
+    console.log(
+      `[Scheduler] Triggering reflection (type=${type}, user=${userId}, sourceTimerSeq=${sourceTimerSeq ?? 'n/a'})`
+    );
 
     try {
       // 取得過去 24 小時的對話歷史
@@ -587,12 +616,18 @@ ${historyText}
 
     // 如果是沉默觸發，執行完成後再次設定計時器（每 30 分鐘循環）
     if (type === 'silence') {
+      if (typeof sourceTimerSeq === 'number') {
+        const activeSeq = this.silenceTimerSeq.get(userId);
+        if (activeSeq !== sourceTimerSeq) {
+          console.log(
+            `[Scheduler] Skip re-schedule due to stale reflection source (user=${userId}, source=${sourceTimerSeq}, active=${activeSeq})`
+          );
+          return;
+        }
+      }
+
       console.log(`[Scheduler] Re-scheduling follow-up for user ${userId} in 30 minutes...`);
-      const timer = setTimeout(async () => {
-        console.log(`[Scheduler] Recurring follow-up triggered for user ${userId}`);
-        await this.triggerReflection(userId, 'silence');
-      }, this.SILENCE_TIMEOUT_MS);
-      this.silenceTimers.set(userId, timer);
+      this.scheduleSilenceTimer(userId, this.SILENCE_TIMEOUT_MS, 'reflection-recur');
     }
   }
 
