@@ -133,6 +133,16 @@ WEB_USER_ID=
 
 若啟用 `WEB_AUTH_TOKEN`，前端匯出功能會自動在匯出 URL 附帶 token 參數進行授權。
 
+前端路由與結構（Plain Vanilla）：
+
+- Hash routes：`#/chat`、`#/memory`、`#/schedules`、`#/status`
+- 前端目錄：`src/web/public/app/`
+  - `main.js`：啟動與路由
+  - `services/`：資料存取層（chat/memory/schedules/status）
+  - `views/`：頁面渲染與互動
+  - `utils/`：共用工具（DOM、format、list、view lifecycle）
+- 切頁策略：view keep-alive（保留頁面 DOM 與狀態，降低切頁閃爍）
+
 ---
 
 ## Skills（不污染 repo）

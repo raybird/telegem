@@ -160,3 +160,16 @@
 
 - 已新增 `tests/memory-manager.test.ts`（記憶分頁）
 - 已新增 `tests/scheduler-validation.test.ts`（cron 驗證與排程更新）
+
+前端重構現況（2026-02-11）：
+
+- 已採 plain vanilla 多 view 結構（`#/chat`, `#/memory`, `#/schedules`, `#/status`）
+- 已將前端資源拆分至 `src/web/public/app/*`（router/state/api/views）
+- `server.ts` 已改為優先提供靜態檔與注入 `__APP_CONFIG__`，保留舊 inline HTML 作 fallback
+
+前端優化現況（2026-02-11）：
+
+- 已補上 services 層（`src/web/public/app/services/*`），將 API 呼叫從 view 中抽離
+- 已補上 view lifecycle helper（`utils/view.js`），統一事件註冊/清理，降低洩漏風險
+- 已改為 keep-alive route 切換（保留各頁 DOM 狀態），減少切頁閃爍與輸入丟失
+- 已完成整體視覺升級（Data-Dense dashboard 方向，含狀態膠囊/焦點狀態/動效降噪）

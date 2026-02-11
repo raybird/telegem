@@ -2,6 +2,7 @@ import fs from 'fs';
 import http from 'http';
 import path from 'path';
 import { randomUUID } from 'crypto';
+import { fileURLToPath } from 'url';
 import { createMessagePipeline } from '../core/message-pipeline.js';
 import type { AIAgent } from '../core/agent.js';
 import type { CommandRouter } from '../core/command-router.js';
@@ -235,6 +236,54 @@ function readContextFile(fileName: string): string {
     return fs.readFileSync(filePath, 'utf8');
   } catch {
     return '';
+  }
+}
+
+function resolveWebPublicDir(): string {
+  const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+  const distCandidate = path.resolve(moduleDir, 'public');
+  if (fs.existsSync(distCandidate)) {
+    return distCandidate;
+  }
+
+  const srcCandidate = path.resolve(process.cwd(), 'src', 'web', 'public');
+  if (fs.existsSync(srcCandidate)) {
+    return srcCandidate;
+  }
+
+  return distCandidate;
+}
+
+function getStaticContentType(filePath: string): string {
+  if (filePath.endsWith('.html')) return 'text/html; charset=utf-8';
+  if (filePath.endsWith('.js')) return 'application/javascript; charset=utf-8';
+  if (filePath.endsWith('.css')) return 'text/css; charset=utf-8';
+  if (filePath.endsWith('.json')) return 'application/json; charset=utf-8';
+  if (filePath.endsWith('.svg')) return 'image/svg+xml';
+  if (filePath.endsWith('.png')) return 'image/png';
+  return 'application/octet-stream';
+}
+
+function buildAppConfigScript(options: WebServerOptions): string {
+  return JSON.stringify({
+    alertErrorThreshold: options.alertErrorThreshold,
+    alertRunnerSuccessWarnThreshold: options.alertRunnerSuccessWarnThreshold
+  });
+}
+
+function serveStaticFile(res: http.ServerResponse, filePath: string): boolean {
+  try {
+    const stat = fs.statSync(filePath);
+    if (!stat.isFile()) return false;
+    const data = fs.readFileSync(filePath);
+    res.writeHead(200, {
+      'Content-Type': getStaticContentType(filePath),
+      'Content-Length': data.byteLength
+    });
+    res.end(data);
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -1301,6 +1350,7 @@ export function startWebServer(options: WebServerOptions): WebServerHandle {
   }
 
   const defaultConnector = new CaptureConnector();
+  const publicDir = resolveWebPublicDir();
   const handleWebMessage = createMessagePipeline({
     connector: defaultConnector,
     resolveConnector: (msg: UnifiedMessage) => {
@@ -1329,13 +1379,39 @@ export function startWebServer(options: WebServerOptions): WebServerHandle {
 
     const url = new URL(req.url, `http://${req.headers.host || `${options.host}:${options.port}`}`);
 
-    if (req.method === 'GET' && url.pathname === '/') {
-      const html = getWebAppHtml(options);
-      res.writeHead(200, {
-        'Content-Type': 'text/html; charset=utf-8',
-        'Content-Length': Buffer.byteLength(html)
-      });
-      res.end(html);
+    if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/index.html')) {
+      const indexPath = path.resolve(publicDir, 'index.html');
+      try {
+        const template = fs.readFileSync(indexPath, 'utf8');
+        const html = template.replace('__APP_CONFIG_JSON__', buildAppConfigScript(options));
+        res.writeHead(200, {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Content-Length': Buffer.byteLength(html)
+        });
+        res.end(html);
+        return;
+      } catch {
+        const fallback = getWebAppHtml(options);
+        res.writeHead(200, {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Content-Length': Buffer.byteLength(fallback)
+        });
+        res.end(fallback);
+        return;
+      }
+    }
+
+    if (req.method === 'GET' && url.pathname.startsWith('/app/')) {
+      const decodedPath = decodeURIComponent(url.pathname);
+      const requestedPath = path.resolve(publicDir, `.${decodedPath}`);
+      if (!requestedPath.startsWith(publicDir)) {
+        sendJson(res, 403, { ok: false, error: 'Forbidden' });
+        return;
+      }
+      if (serveStaticFile(res, requestedPath)) {
+        return;
+      }
+      sendJson(res, 404, { ok: false, error: 'Not found' });
       return;
     }
 

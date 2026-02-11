@@ -700,3 +700,90 @@
 
 - 先以 `WEB_ENABLED=false` 關閉 Web 功能。
 - 若需完整回退，移除本節新增 API 與測試檔並回復 `.env` / Compose 的 `WEB_*` 設定。
+
+---
+
+## 2026-02-11 - Web 前端重構為 Plain Vanilla 多 View
+
+### 階段
+
+- 將單一大頁面重構為 hash-based SPA（`#/chat`、`#/memory`、`#/schedules`、`#/status`）。
+
+### 已完成
+
+- 新增 `src/web/public/index.html` 與模組化前端：
+  - `src/web/public/app/main.js`
+  - `src/web/public/app/router.js`
+  - `src/web/public/app/state.js`
+  - `src/web/public/app/api.js`
+  - `src/web/public/app/views/chat.js`
+  - `src/web/public/app/views/memory.js`
+  - `src/web/public/app/views/schedules.js`
+  - `src/web/public/app/views/status.js`
+- `server.ts` 改為優先提供靜態資源，`index.html` 注入 `window.__APP_CONFIG__`。
+- 新增 `scripts/copy-web-assets.mjs`，build 時自動將前端資源複製到 `dist/web/public`。
+
+### 影響檔案
+
+- `src/web/server.ts`
+- `src/web/public/index.html`
+- `src/web/public/app/*`
+- `scripts/copy-web-assets.mjs`
+- `package.json`
+
+### 驗證結果
+
+- `npm run build`：通過
+- `npm run lint`：通過
+- `npm test`：通過
+- `docker compose up -d --build`：可正常提供新版前端頁面與路由
+
+### 回滾計畫
+
+- 若需回退，可在 `server.ts` 恢復使用舊版 inline HTML 路徑，並移除 `copy-web-assets` 步驟。
+
+---
+
+## 2026-02-11 - Web 前端第三層重構與整體 UI 美化
+
+### 階段
+
+- 完成前端分層到 services/view/utils，並收斂路由切換體驗與視覺一致性。
+
+### 已完成
+
+- 架構優化：
+  - 新增 `src/web/public/app/services/*`（chat/memory/schedules/status）
+  - views 改為透過 `ctx.services` 存取資料，不直接呼叫 API
+  - 新增 `utils/view.js`，統一 view 事件綁定與 cleanup
+- 切頁體驗優化：
+  - route 改為 keep-alive（保留 view DOM）
+  - 切頁時保留 Chat/Schedule 畫面狀態，降低重繪閃爍
+  - 補上 `beforeunload` 釋放流程（timer/listener/view destroy）避免記憶體洩漏
+- UI 美化：
+  - 套用 Data-Dense dashboard 視覺方向
+  - 強化 topbar/menu/card/list/metric 的層次、focus/hover、狀態膠囊
+  - 補上 scrollbar-gutter 與最小內容高度，降低寬度跳動
+
+### 影響檔案
+
+- `src/web/public/index.html`
+- `src/web/public/app/main.js`
+- `src/web/public/app/views/*`
+- `src/web/public/app/services/*`
+- `src/web/public/app/utils/*`
+- `README.md`
+- `docs/web-local-chat-dashboard-plan.md`
+- `docs/migration-log.md`
+
+### 驗證結果
+
+- `npm run build`：通過
+- `npm run lint`：通過
+- `npm test`：通過
+- `docker compose up -d --build`：通過
+
+### 回滾計畫
+
+- 將 `main.js` 切回非 keep-alive 模式（每次 route mount/unmount）。
+- 將 views 改回直接使用 api 層（不經 services）可快速回退。

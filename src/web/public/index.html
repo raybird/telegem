@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TeleNexus Web Console</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap');
+
+      :root {
+        --bg: #f4f7fb;
+        --bg-accent: #e9f2ff;
+        --card: #ffffff;
+        --text: #0f172a;
+        --muted: #475569;
+        --line: #d5dde8;
+        --primary: #0f766e;
+        --primary-strong: #115e59;
+        --cta: #22c55e;
+        --danger-bg: #fee2e2;
+        --danger-text: #991b1b;
+        --warn-bg: #ffedd5;
+        --warn-text: #9a3412;
+        --shadow: 0 14px 32px rgba(15, 23, 42, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: var(--text);
+        font-family:
+          'Fira Sans',
+          'Noto Sans TC',
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background:
+          radial-gradient(1800px 500px at top right, var(--bg-accent), transparent), var(--bg);
+        overflow-y: scroll;
+      }
+
+      html {
+        scrollbar-gutter: stable;
+      }
+
+      .wrap {
+        max-width: 1220px;
+        margin: 20px auto;
+        padding: 0 14px;
+      }
+
+      .topbar {
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+        align-items: center;
+        background: linear-gradient(135deg, #ffffff, #f8fbff);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 12px 14px;
+        box-shadow: var(--shadow);
+      }
+
+      .brand {
+        font-weight: 700;
+        font-family: 'Fira Code', monospace;
+        letter-spacing: -0.3px;
+      }
+
+      .muted {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .menu {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+      }
+
+      .menu a {
+        text-decoration: none;
+        color: var(--primary);
+        border: 1px solid #bfdbfe;
+        background: linear-gradient(180deg, #ffffff, #eef6ff);
+        border-radius: 999px;
+        padding: 7px 12px;
+        font-size: 13px;
+        font-weight: 600;
+        transition:
+          transform 140ms ease,
+          background-color 140ms ease,
+          border-color 140ms ease;
+      }
+
+      .menu a:hover {
+        transform: translateY(-1px);
+        border-color: #93c5fd;
+      }
+
+      .menu a.active {
+        background: linear-gradient(180deg, #dcfce7, #bbf7d0);
+        border-color: #86efac;
+        color: #14532d;
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 14px;
+        box-shadow: var(--shadow);
+      }
+
+      .content {
+        margin-top: 12px;
+        min-height: calc(100vh - 210px);
+        transition:
+          opacity 120ms ease,
+          transform 120ms ease;
+      }
+
+      .content.route-switching {
+        opacity: 0.72;
+        transform: translateY(2px);
+      }
+
+      .alert {
+        margin-top: 12px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 10px 12px;
+        display: none;
+        font-size: 13px;
+      }
+
+      .alert.show {
+        display: block;
+      }
+
+      .alert.danger {
+        background: var(--danger-bg);
+        color: var(--danger-text);
+        border-color: #fecaca;
+      }
+
+      .alert.warn {
+        background: var(--warn-bg);
+        color: var(--warn-text);
+        border-color: #fed7aa;
+      }
+
+      .title {
+        margin: 0 0 12px;
+        font-size: 20px;
+        font-family: 'Fira Code', monospace;
+      }
+
+      .row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .col {
+        display: grid;
+        gap: 8px;
+      }
+
+      input,
+      textarea,
+      button,
+      select {
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        padding: 8px 10px;
+        font: inherit;
+      }
+
+      input,
+      textarea,
+      select {
+        background: #ffffff;
+      }
+
+      input:focus,
+      textarea:focus,
+      select:focus,
+      button:focus {
+        outline: 2px solid #93c5fd;
+        outline-offset: 1px;
+      }
+
+      button {
+        cursor: pointer;
+        background: linear-gradient(180deg, #f8fafc, #e2e8f0);
+        color: #0f172a;
+        font-weight: 600;
+        border-color: #cbd5e1;
+        transition:
+          transform 140ms ease,
+          opacity 140ms ease;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .list {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        max-height: 360px;
+        overflow: auto;
+        background: #ffffff;
+        scrollbar-gutter: stable;
+      }
+
+      .item {
+        padding: 8px 10px;
+        border-bottom: 1px dashed #dbe4ef;
+      }
+
+      .item:hover {
+        background: #f8fbff;
+      }
+      .item:last-child {
+        border-bottom: none;
+      }
+
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .grid-4 {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+      }
+
+      .metric {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 10px;
+        background: linear-gradient(180deg, #ffffff, #f8fafc);
+      }
+
+      .metric .k {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .metric .v {
+        font-weight: 700;
+        font-family: 'Fira Code', monospace;
+        margin-top: 4px;
+      }
+
+      pre.snapshot {
+        margin: 0;
+        white-space: pre-wrap;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 8px;
+        max-height: 220px;
+        overflow: auto;
+        background: #ffffff;
+      }
+
+      #globalStatus {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--muted);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 5px 10px;
+        background: #f8fafc;
+      }
+
+      #globalStatus.online {
+        color: #166534;
+        border-color: #86efac;
+        background: #dcfce7;
+      }
+
+      #globalStatus.offline {
+        color: #991b1b;
+        border-color: #fecaca;
+        background: #fee2e2;
+      }
+
+      @media (max-width: 900px) {
+        .grid-2,
+        .grid-4 {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="topbar">
+        <div>
+          <div class="brand">TeleNexus Web Console</div>
+          <div class="muted">Plain Vanilla SPA (hash routes)</div>
+        </div>
+        <div id="globalStatus">connecting...</div>
+      </div>
+
+      <nav class="menu" id="menu">
+        <a href="#/chat" data-route="chat">Chat</a>
+        <a href="#/memory" data-route="memory">Memory</a>
+        <a href="#/schedules" data-route="schedules">Schedules</a>
+        <a href="#/status" data-route="status">Status</a>
+      </nav>
+
+      <div id="globalAlert" class="alert"></div>
+      <main id="app" class="content card"></main>
+    </div>
+
+    <script>
+      window.__APP_CONFIG__ = __APP_CONFIG_JSON__;
+    </script>
+    <script type="module" src="/app/main.js"></script>
+  </body>
+</html>
