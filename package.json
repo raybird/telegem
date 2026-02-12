@@ -1,6 +1,6 @@
 {
   "name": "telenexus",
-  "version": "2.5.5",
+  "version": "2.5.6",
   "description": "",
   "type": "module",
   "main": "index.js",
