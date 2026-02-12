@@ -85,3 +85,15 @@ APP_GIT_SHA=$(git rev-parse --short HEAD) \
 APP_BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
 docker compose up -d --build
 ```
+
+或直接使用已自動化腳本：
+
+```bash
+npm run docker:up
+```
+
+僅重建主服務可用：
+
+```bash
+npm run docker:up:telenexus
+```
