@@ -84,7 +84,8 @@ function sendJson(res: http.ServerResponse, statusCode: number, payload: unknown
   const body = JSON.stringify(payload);
   res.writeHead(statusCode, {
     'Content-Type': 'application/json; charset=utf-8',
-    'Content-Length': Buffer.byteLength(body)
+    'Content-Length': Buffer.byteLength(body),
+    'Cache-Control': 'no-store'
   });
   res.end(body);
 }
@@ -278,7 +279,8 @@ function serveStaticFile(res: http.ServerResponse, filePath: string): boolean {
     const data = fs.readFileSync(filePath);
     res.writeHead(200, {
       'Content-Type': getStaticContentType(filePath),
-      'Content-Length': data.byteLength
+      'Content-Length': data.byteLength,
+      'Cache-Control': 'no-store'
     });
     res.end(data);
     return true;
@@ -1386,7 +1388,8 @@ export function startWebServer(options: WebServerOptions): WebServerHandle {
         const html = template.replace('__APP_CONFIG_JSON__', buildAppConfigScript(options));
         res.writeHead(200, {
           'Content-Type': 'text/html; charset=utf-8',
-          'Content-Length': Buffer.byteLength(html)
+          'Content-Length': Buffer.byteLength(html),
+          'Cache-Control': 'no-store'
         });
         res.end(html);
         return;
@@ -1394,7 +1397,8 @@ export function startWebServer(options: WebServerOptions): WebServerHandle {
         const fallback = getWebAppHtml(options);
         res.writeHead(200, {
           'Content-Type': 'text/html; charset=utf-8',
-          'Content-Length': Buffer.byteLength(fallback)
+          'Content-Length': Buffer.byteLength(fallback),
+          'Cache-Control': 'no-store'
         });
         res.end(fallback);
         return;
@@ -1603,6 +1607,72 @@ export function startWebServer(options: WebServerOptions): WebServerHandle {
         'Content-Length': Buffer.byteLength(payload)
       });
       res.end(payload);
+      return;
+    }
+
+    if (req.method === 'GET' && url.pathname === '/api/memory/stream') {
+      let monitor: NodeJS.Timeout | null = null;
+      let keepalive: NodeJS.Timeout | null = null;
+      let closed = false;
+
+      const closeStream = () => {
+        if (closed) return;
+        closed = true;
+        if (monitor) {
+          clearInterval(monitor);
+          monitor = null;
+        }
+        if (keepalive) {
+          clearInterval(keepalive);
+          keepalive = null;
+        }
+        try {
+          res.end();
+        } catch {
+          // ignore close failures
+        }
+      };
+
+      try {
+        res.writeHead(200, {
+          'Content-Type': 'text/event-stream; charset=utf-8',
+          'Cache-Control': 'no-cache, no-transform',
+          Connection: 'keep-alive'
+        });
+
+        let previous = options.memory.getStats(options.defaultUserId);
+        writeSseEvent(res, 'snapshot', {
+          ok: true,
+          totalMessages: previous.totalMessages,
+          lastActive: previous.lastActive,
+          timestamp: Date.now()
+        });
+
+        monitor = setInterval(() => {
+          const current = options.memory.getStats(options.defaultUserId);
+          if (
+            current.totalMessages !== previous.totalMessages ||
+            current.lastActive !== previous.lastActive
+          ) {
+            previous = current;
+            writeSseEvent(res, 'update', {
+              ok: true,
+              totalMessages: current.totalMessages,
+              lastActive: current.lastActive,
+              timestamp: Date.now()
+            });
+          }
+        }, 2000);
+
+        keepalive = setInterval(() => {
+          writeSseEvent(res, 'ping', { timestamp: Date.now() });
+        }, 15000);
+
+        req.on('close', closeStream);
+        req.on('aborted', closeStream);
+      } catch {
+        closeStream();
+      }
       return;
     }
 

@@ -17,6 +17,9 @@ export function createMemoryService(api, state) {
         `/api/memory/history?offset=${encodeURIComponent(String(offset))}&limit=${encodeURIComponent(String(limit))}`
       );
     },
+    streamUpdates(handlers) {
+      return api.openSse('/api/memory/stream', handlers);
+    },
     exportUrl(format) {
       const token = state.getToken();
       const extra = token ? `&token=${encodeURIComponent(token)}` : '';

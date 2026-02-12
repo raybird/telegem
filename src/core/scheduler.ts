@@ -381,10 +381,9 @@ AI Response:
       await this.connector.sendMessage(schedule.user_id, messageHeader + response);
     } catch (error) {
       console.error(`[Scheduler] Error executing task #${schedule.id}:`, error);
-      await this.connector.sendMessage(
-        schedule.user_id,
-        `❌ 排程任務 "${schedule.name}" 執行失敗：${error}`
-      );
+      const errorMessage = `❌ 排程任務 "${schedule.name}" 執行失敗：${error}`;
+      this.memory.addMessage(schedule.user_id, 'model', errorMessage);
+      await this.connector.sendMessage(schedule.user_id, errorMessage);
     }
   }
 
@@ -585,6 +584,7 @@ ${historyText}
 
       if (isRepeatedReflection) {
         const checkedMsg = '✅ [追蹤檢查] 已完成檢查，目前沒有新的事項變化。';
+        this.memory.addMessage(userId, 'model', checkedMsg);
         if (type === 'manual' && messageIdToEdit) {
           await this.connector.editMessage(userId, messageIdToEdit, checkedMsg);
         } else {
@@ -592,17 +592,20 @@ ${historyText}
         }
       } else if (!hasNoAction) {
         const header = type === 'silence' ? '🔔 [追蹤提醒]\n\n' : '🔍 [手動追蹤]\n\n';
+        const outgoing = header + response;
+        this.memory.addMessage(userId, 'model', outgoing);
 
         if (messageIdToEdit) {
-          await this.connector.editMessage(userId, messageIdToEdit, header + response);
+          await this.connector.editMessage(userId, messageIdToEdit, outgoing);
         } else {
-          await this.connector.sendMessage(userId, header + response);
+          await this.connector.sendMessage(userId, outgoing);
         }
 
         this.lastReflectionFingerprint.set(userId, currentFingerprint);
       } else {
         console.log('[Scheduler] Follow-up completed, no action needed.');
         const noTodoMsg = '✨ 無待辦。';
+        this.memory.addMessage(userId, 'model', noTodoMsg);
         // 沉默模式也發送精簡通知
         if (type === 'silence') {
           await this.connector.sendMessage(userId, noTodoMsg);
@@ -612,6 +615,13 @@ ${historyText}
       }
     } catch (error) {
       console.error('[Scheduler] Error during reflection:', error);
+      const errorMessage = `❌ 追蹤提醒執行失敗：${error}`;
+      this.memory.addMessage(userId, 'model', errorMessage);
+      if (type === 'manual' && messageIdToEdit) {
+        await this.connector.editMessage(userId, messageIdToEdit, errorMessage);
+      } else {
+        await this.connector.sendMessage(userId, errorMessage);
+      }
     }
 
     // 如果是沉默觸發，執行完成後再次設定計時器（每 30 分鐘循環）
@@ -669,9 +679,14 @@ System: 你是 TeleNexus，正在執行「每日對話摘要」任務。
 `.trim();
 
       const response = await this.gemini.chat(summaryPrompt);
-      await this.connector.sendMessage(userId, '📅 [每日摘要]\n\n' + response);
+      const outgoing = '📅 [每日摘要]\n\n' + response;
+      this.memory.addMessage(userId, 'model', outgoing);
+      await this.connector.sendMessage(userId, outgoing);
     } catch (error) {
       console.error('[Scheduler] Error generating daily summary:', error);
+      const errorMessage = `❌ 每日摘要執行失敗：${error}`;
+      this.memory.addMessage(userId, 'model', errorMessage);
+      await this.connector.sendMessage(userId, errorMessage);
     }
   }
 }

@@ -125,6 +125,11 @@ function renderRoute() {
 
   const nextView = viewCache.get(route);
   nextView.container.style.display = 'block';
+  nextView.container.dispatchEvent(
+    new CustomEvent('view:show', {
+      detail: { route }
+    })
+  );
   activeRoute = route;
 
   requestAnimationFrame(() => {

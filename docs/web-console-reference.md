@@ -41,6 +41,7 @@ WEB_USER_ID=
 - `POST /api/chat/stream`（SSE: `start` / `status` / `chunk` / `done` / `error`）
 - `GET /api/memory/stats`
 - `GET /api/memory/recent`
+- `GET /api/memory/stream`（SSE: `snapshot` / `update` / `ping`）
 - `GET /api/memory/search`
 - `GET /api/memory/history?offset=0&limit=20`
 - `GET /api/memory/export?format=json|csv`

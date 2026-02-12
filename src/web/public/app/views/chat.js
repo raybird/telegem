@@ -164,6 +164,15 @@ export function mountChatView(container, ctx) {
     ctx.state.setToken(tokenInput.value || '');
     status.textContent = 'Token saved';
   });
+  scope.on(container, 'view:show', () => {
+    scope.run(async () => {
+      try {
+        await loadRecentMessages();
+      } catch (error) {
+        status.textContent = `Error: ${toErrorMessage(error)}`;
+      }
+    });
+  });
 
   void scope.run(loadRecentMessages);
 

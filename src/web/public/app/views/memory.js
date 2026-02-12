@@ -71,6 +71,7 @@ export function mountMemoryView(container, ctx) {
     <section class="col" style="margin-top:12px;">
       <div class="row">
         <strong>History</strong>
+        <button id="refreshHistoryBtn">刷新最新</button>
         <button id="prevPageBtn">上一頁</button>
         <button id="nextPageBtn">下一頁</button>
         <span id="pageInfo" class="muted"></span>
@@ -88,6 +89,7 @@ export function mountMemoryView(container, ctx) {
   const pageInfo = byId(container, '#pageInfo');
 
   const searchBtn = byId(container, '#searchBtn');
+  const refreshHistoryBtn = byId(container, '#refreshHistoryBtn');
   const prevPageBtn = byId(container, '#prevPageBtn');
   const nextPageBtn = byId(container, '#nextPageBtn');
   const exportJsonBtn = byId(container, '#exportJsonBtn');
@@ -95,6 +97,7 @@ export function mountMemoryView(container, ctx) {
 
   let offset = 0;
   const limit = 12;
+  let stopMemoryStream = null;
 
   async function doSearch() {
     const q = (searchInput.value || '').trim();
@@ -117,11 +120,20 @@ export function mountMemoryView(container, ctx) {
     nextPageBtn.disabled = !(data.hasMore === true);
   }
 
+  async function refreshLatest() {
+    offset = 0;
+    await loadHistory();
+    if ((searchInput.value || '').trim()) {
+      await doSearch();
+    }
+  }
+
   function exportMemory(format) {
     window.open(ctx.services.memory.exportUrl(format), '_blank');
   }
 
   const onSearch = () => void doSearch().catch((e) => setListError(searchList, e));
+  const onRefreshHistory = () => void refreshLatest().catch((e) => setListError(historyList, e));
   const onPrev = () => {
     offset = Math.max(0, offset - limit);
     void loadHistory().catch((e) => setListError(historyList, e));
@@ -138,14 +150,33 @@ export function mountMemoryView(container, ctx) {
   };
 
   scope.on(searchBtn, 'click', onSearch);
+  scope.on(refreshHistoryBtn, 'click', onRefreshHistory);
   scope.on(prevPageBtn, 'click', onPrev);
   scope.on(nextPageBtn, 'click', onNext);
   scope.on(exportJsonBtn, 'click', () => exportMemory('json'));
   scope.on(exportCsvBtn, 'click', () => exportMemory('csv'));
   scope.on(searchInput, 'keydown', onSearchEnter);
+  scope.on(container, 'view:show', () => {
+    onRefreshHistory();
+  });
+
+  stopMemoryStream = ctx.services.memory.streamUpdates({
+    snapshot() {
+      onRefreshHistory();
+    },
+    update() {
+      onRefreshHistory();
+    }
+  });
 
   renderEmptyState(searchList, '請輸入關鍵字');
   void loadHistory();
 
-  return () => scope.destroy();
+  return () => {
+    if (typeof stopMemoryStream === 'function') {
+      stopMemoryStream();
+      stopMemoryStream = null;
+    }
+    scope.destroy();
+  };
 }
