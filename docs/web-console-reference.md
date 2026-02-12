@@ -37,6 +37,7 @@ WEB_USER_ID=
 ## API 清單
 
 - `GET /api/health`
+- `GET /api/debug/version`（回傳目前容器版本與啟動時間，供除錯）
 - `POST /api/chat`
 - `POST /api/chat/stream`（SSE: `start` / `status` / `chunk` / `done` / `error`）
 - `GET /api/memory/stats`
@@ -73,4 +74,14 @@ src/web/public/app/
 ├── services/        # 資料存取層
 ├── views/           # 頁面渲染與互動
 └── utils/           # 共用工具
+```
+
+## Build Metadata（可選）
+
+若希望 `/api/debug/version` 回傳實際 git SHA 與 build time，可在 build 時注入：
+
+```bash
+APP_GIT_SHA=$(git rev-parse --short HEAD) \
+APP_BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
+docker compose up -d --build
 ```

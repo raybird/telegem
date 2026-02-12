@@ -198,6 +198,19 @@ function splitStreamChunks(text: string): string[] {
   return [normalized.trim()];
 }
 
+function readAppVersion(): string {
+  try {
+    const packageJsonPath = path.resolve(process.cwd(), 'package.json');
+    const raw = fs.readFileSync(packageJsonPath, 'utf8');
+    const parsed = JSON.parse(raw) as { version?: string };
+    return typeof parsed.version === 'string' && parsed.version.trim().length > 0
+      ? parsed.version.trim()
+      : 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -1353,6 +1366,8 @@ export function startWebServer(options: WebServerOptions): WebServerHandle {
 
   const defaultConnector = new CaptureConnector();
   const publicDir = resolveWebPublicDir();
+  const appStartedAt = Date.now();
+  const appVersion = readAppVersion();
   const handleWebMessage = createMessagePipeline({
     connector: defaultConnector,
     resolveConnector: (msg: UnifiedMessage) => {
@@ -1440,6 +1455,20 @@ export function startWebServer(options: WebServerOptions): WebServerHandle {
         host: options.host,
         port: options.port,
         timestamp: Date.now()
+      });
+      return;
+    }
+
+    if (req.method === 'GET' && url.pathname === '/api/debug/version') {
+      sendJson(res, 200, {
+        ok: true,
+        version: appVersion,
+        pid: process.pid,
+        startedAt: appStartedAt,
+        uptimeSec: Math.floor((Date.now() - appStartedAt) / 1000),
+        nodeEnv: process.env.NODE_ENV || 'unknown',
+        gitSha: process.env.APP_GIT_SHA || 'unknown',
+        buildTime: process.env.APP_BUILD_TIME || 'unknown'
       });
       return;
     }
