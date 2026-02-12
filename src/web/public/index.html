@@ -235,6 +235,59 @@
         border-bottom: none;
       }
 
+      .memory-chat-list {
+        display: grid;
+        gap: 8px;
+        padding: 10px;
+      }
+
+      .memory-chat-list .item {
+        border: none;
+        padding: 8px 10px;
+        background: #f8fafc;
+        border-radius: 8px;
+      }
+
+      .memory-chat-row {
+        display: flex;
+      }
+
+      .memory-chat-row.user {
+        justify-content: flex-end;
+      }
+
+      .memory-chat-row.model {
+        justify-content: flex-start;
+      }
+
+      .memory-chat-bubble {
+        max-width: min(92%, 760px);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 8px 10px;
+      }
+
+      .memory-chat-bubble.user {
+        background: #ecfeff;
+        border-color: #a5f3fc;
+      }
+
+      .memory-chat-bubble.model {
+        background: #fff7ed;
+        border-color: #fed7aa;
+      }
+
+      .memory-chat-meta {
+        color: var(--muted);
+        font-size: 12px;
+        margin-bottom: 4px;
+      }
+
+      .memory-chat-content {
+        white-space: normal;
+        line-height: 1.45;
+      }
+
       .grid-2 {
         display: grid;
         grid-template-columns: 1fr 1fr;

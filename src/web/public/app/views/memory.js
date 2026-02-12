@@ -1,38 +1,72 @@
 import { byId } from '../utils/dom.js';
 import { escapeHtml, formatTimestamp } from '../utils/format.js';
-import { renderList, setListError } from '../utils/list.js';
+import { setListError } from '../utils/list.js';
 import { createViewScope } from '../utils/view.js';
 
+function renderEmptyState(container, text) {
+  container.innerHTML = `<div class="item">${escapeHtml(text)}</div>`;
+}
+
+function formatMessageContent(text) {
+  return escapeHtml(text || '').replace(/\n/g, '<br />');
+}
+
+function scrollToBottom(container) {
+  container.scrollTop = container.scrollHeight;
+}
+
+function toConversationOrder(items) {
+  if (!Array.isArray(items)) return [];
+  if (items.length <= 1) return items;
+
+  const firstTs = Number(items[0]?.timestamp || 0);
+  const lastTs = Number(items[items.length - 1]?.timestamp || 0);
+
+  if (firstTs > lastTs) {
+    return [...items].reverse();
+  }
+  return items;
+}
+
 function renderMessageList(container, items) {
-  renderList(
-    container,
-    items,
-    (item) =>
-      `<div class="muted">${item.role} | ${formatTimestamp(item.timestamp)}</div><div>${escapeHtml(item.content || '')}</div>`
-  );
+  container.innerHTML = '';
+
+  if (!Array.isArray(items) || items.length === 0) {
+    renderEmptyState(container, '(none)');
+    return;
+  }
+
+  const orderedItems = toConversationOrder(items);
+
+  for (const item of orderedItems) {
+    const role = String(item.role || 'unknown').toLowerCase();
+    const isUser = role === 'user';
+    const row = document.createElement('div');
+    row.className = `memory-chat-row ${isUser ? 'user' : 'model'}`;
+    row.innerHTML = `
+      <div class="memory-chat-bubble ${isUser ? 'user' : 'model'}">
+        <div class="memory-chat-meta">${escapeHtml(role)} | ${escapeHtml(formatTimestamp(item.timestamp))}</div>
+        <div class="memory-chat-content">${formatMessageContent(item.content)}</div>
+      </div>
+    `;
+    container.appendChild(row);
+  }
+
+  scrollToBottom(container);
 }
 
 export function mountMemoryView(container, ctx) {
   const scope = createViewScope();
   container.innerHTML = `
     <h2 class="title">Memory</h2>
-    <div class="grid-2">
-      <section class="col">
-        <div class="row">
-          <strong>Recent</strong>
-          <button id="refreshRecentBtn">刷新</button>
-        </div>
-        <div id="recentList" class="list"></div>
-      </section>
-      <section class="col">
-        <div class="row">
-          <strong>Search</strong>
-          <input id="searchInput" style="flex:1;" placeholder="關鍵字" />
-          <button id="searchBtn">搜尋</button>
-        </div>
-        <div id="searchList" class="list"></div>
-      </section>
-    </div>
+    <section class="col">
+      <div class="row">
+        <strong>Search</strong>
+        <input id="searchInput" style="flex:1;" placeholder="關鍵字" />
+        <button id="searchBtn">搜尋</button>
+      </div>
+      <div id="searchList" class="list memory-chat-list"></div>
+    </section>
 
     <section class="col" style="margin-top:12px;">
       <div class="row">
@@ -44,17 +78,15 @@ export function mountMemoryView(container, ctx) {
         <button id="exportJsonBtn">匯出 JSON</button>
         <button id="exportCsvBtn">匯出 CSV</button>
       </div>
-      <div id="historyList" class="list"></div>
+      <div id="historyList" class="list memory-chat-list"></div>
     </section>
   `;
 
-  const recentList = byId(container, '#recentList');
   const searchInput = byId(container, '#searchInput');
   const searchList = byId(container, '#searchList');
   const historyList = byId(container, '#historyList');
   const pageInfo = byId(container, '#pageInfo');
 
-  const refreshRecentBtn = byId(container, '#refreshRecentBtn');
   const searchBtn = byId(container, '#searchBtn');
   const prevPageBtn = byId(container, '#prevPageBtn');
   const nextPageBtn = byId(container, '#nextPageBtn');
@@ -64,15 +96,10 @@ export function mountMemoryView(container, ctx) {
   let offset = 0;
   const limit = 12;
 
-  async function loadRecent() {
-    const data = await ctx.services.memory.getRecent(12);
-    renderMessageList(recentList, data.items || []);
-  }
-
   async function doSearch() {
     const q = (searchInput.value || '').trim();
     if (!q) {
-      renderList(searchList, [], () => '', { emptyText: '請輸入關鍵字' });
+      renderEmptyState(searchList, '請輸入關鍵字');
       return;
     }
     const data = await ctx.services.memory.search(q, 20);
@@ -94,7 +121,6 @@ export function mountMemoryView(container, ctx) {
     window.open(ctx.services.memory.exportUrl(format), '_blank');
   }
 
-  const onRefresh = () => void loadRecent().catch((e) => setListError(recentList, e));
   const onSearch = () => void doSearch().catch((e) => setListError(searchList, e));
   const onPrev = () => {
     offset = Math.max(0, offset - limit);
@@ -111,7 +137,6 @@ export function mountMemoryView(container, ctx) {
     }
   };
 
-  scope.on(refreshRecentBtn, 'click', onRefresh);
   scope.on(searchBtn, 'click', onSearch);
   scope.on(prevPageBtn, 'click', onPrev);
   scope.on(nextPageBtn, 'click', onNext);
@@ -119,7 +144,7 @@ export function mountMemoryView(container, ctx) {
   scope.on(exportCsvBtn, 'click', () => exportMemory('csv'));
   scope.on(searchInput, 'keydown', onSearchEnter);
 
-  void loadRecent();
+  renderEmptyState(searchList, '請輸入關鍵字');
   void loadHistory();
 
   return () => scope.destroy();
