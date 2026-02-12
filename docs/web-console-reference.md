@@ -86,14 +86,17 @@ APP_BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
 docker compose up -d --build
 ```
 
-或直接使用已自動化腳本：
+或直接使用已自動化腳本（依情境分流）：
 
 ```bash
+# 日常最快（不 build）
 npm run docker:up
+
+# 有程式碼變更需要重建 telenexus
+npm run docker:up:build
+
+# 需要 /api/debug/version 帶入 gitSha/buildTime
+npm run docker:up:meta
 ```
 
-僅重建主服務可用：
-
-```bash
-npm run docker:up:telenexus
-```
+相容別名：`npm run docker:up:telenexus`（等同 `docker:up:meta`）。
