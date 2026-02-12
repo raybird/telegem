@@ -537,19 +537,29 @@ AI Response:
     );
 
     try {
-      // 取得過去 24 小時的對話歷史
+      // 取得過去 24 小時對話
       const extendedHistory = this.memory.getExtendedHistory(userId, 24);
-      if (extendedHistory.length === 0) {
+      const userHistory = extendedHistory.filter((msg) => msg.role === 'user');
+      if (userHistory.length === 0) {
         console.log('[Scheduler] No recent conversations, skipping reflection.');
         return;
       }
+      const modelHistory = extendedHistory.filter((msg) => msg.role === 'model');
 
-      // 格式化歷史
-      const historyText = extendedHistory
+      // 格式化使用者歷史（主證據）
+      const userHistoryText = userHistory
         .map((msg) => {
-          const role = msg.role === 'user' ? 'User' : 'AI';
           const time = new Date(msg.timestamp).toLocaleString('zh-TW');
-          return `[${time}] ${role}: ${msg.content.substring(0, 500)}${msg.content.length > 500 ? '...' : ''}`;
+          return `[${time}] User: ${msg.content.substring(0, 500)}${msg.content.length > 500 ? '...' : ''}`;
+        })
+        .join('\n\n');
+
+      // 格式化模型歷史（次要上下文），僅取最近 12 筆避免雜訊
+      const modelHistoryText = modelHistory
+        .slice(-12)
+        .map((msg) => {
+          const time = new Date(msg.timestamp).toLocaleString('zh-TW');
+          return `[${time}] AI: ${msg.content.substring(0, 500)}${msg.content.length > 500 ? '...' : ''}`;
         })
         .join('\n\n');
 
@@ -567,11 +577,36 @@ ${longTermMemory ? longTermMemory + '\n\n' : ''}【任務說明】
 2. 🟡 可優化事項：討論過但可以做得更好的地方
 3. 🟢 待辦提醒：用戶提到想做但可能忘記的事
 
-【過去 24 小時對話】
-${historyText}
+【嚴格限制】
+- 「User 訊息」是主證據；「AI 訊息」只能作為補充上下文
+- 若某項目僅出現在 AI 訊息、未出現在 User 訊息，禁止列入待辦/問題
+- 不可引用 AI 先前推測、假設、或未經使用者確認的專有名詞
+- 若資訊不足，請明確寫「資訊不足，待使用者確認」
+
+【證據標註規則】
+- 每一項都要標註 evidence: user | mixed
+- confidence 僅可為 high | medium | low
+- 僅當 evidence=user 或 evidence=mixed 時，該項目才可列入輸出
+
+【過去 24 小時 User 對話（主證據）】
+${userHistoryText}
+
+【過去 24 小時 AI 對話（僅供上下文）】
+${modelHistoryText || '(none)'}
 
 【輸出格式】
-請簡潔彙整你的發現。如果沒有需要提醒的事項，請簡短說明「近期對話無待處理事項」。
+請用以下格式簡潔輸出，避免長篇敘述：
+
+🔴 未解決的問題：
+- <項目>（evidence=<user|mixed>, confidence=<high|medium|low>）
+
+🟡 可優化事項：
+- <項目>（evidence=<user|mixed>, confidence=<high|medium|low>）
+
+🟢 待辦提醒：
+- <項目>（evidence=<user|mixed>, confidence=<high|medium|low>）
+
+若沒有需要提醒的事項，請輸出「近期對話無待處理事項」。
 你的回應會自動儲存到記憶系統中，供未來參考。
 `.trim();
 

@@ -865,3 +865,63 @@
 
 - 若需快速回退，可先移除 Chat 的 Recent 自動載入區塊與 `reload` 按鈕。
 - 再將 Memory 視圖回復為列表型 `Recent + Search + History` 三段式布局。
+
+---
+
+## 2026-02-12 - Web 記憶同步與版本可觀測補強（v2.5.4 ~ v2.5.5）
+
+### 階段
+
+- 針對「Web Memory 與 Telegram 實際輸出不一致」與「容器版本難以確認」做穩定化補強。
+
+### 已完成
+
+- Web Memory 即時同步：
+  - 新增 `GET /api/memory/stream`（SSE: `snapshot` / `update` / `ping`）。
+  - Memory 視圖改為訂閱 stream，自動刷新最新歷史。
+  - Chat / Memory 切換時觸發 `view:show` 自動重拉資料。
+- 快取防呆：
+  - Web 靜態資源與 JSON API 加入 `Cache-Control: no-store`，降低舊 JS 快取造成的假象。
+- Scheduler 記憶一致性：
+  - 追蹤提醒、手動追蹤、每日摘要與相關錯誤訊息均寫入 memory。
+  - 讓 Telegram 收到的系統輸出可在 Web Memory 追溯。
+- 版本可觀測：
+  - 新增 `GET /api/debug/version`，回傳 `version/pid/startedAt/uptime/gitSha/buildTime`。
+  - Docker build 支援注入 `APP_GIT_SHA`、`APP_BUILD_TIME`。
+- 開發流程優化：
+  - 新增 `npm run docker:up:fast` / `docker:up:build` / `docker:up:meta` 三種模式。
+  - `docker:up` 預設改為快速模式，避免每次全量重建。
+
+### 後續補強（同日）
+
+- 追蹤分析提示詞加入「證據門檻」：
+  - User 訊息為主證據，AI 訊息僅作補充。
+  - 僅 AI 出現、未被 User 提及的項目不得列為待辦。
+  - 每項輸出要求標註 `evidence` 與 `confidence`。
+
+### 影響檔案
+
+- `src/web/server.ts`
+- `src/web/public/app/api.js`
+- `src/web/public/app/main.js`
+- `src/web/public/app/services/memory-service.js`
+- `src/web/public/app/views/chat.js`
+- `src/web/public/app/views/memory.js`
+- `src/core/scheduler.ts`
+- `Dockerfile`
+- `docker-compose.yml`
+- `package.json`
+- `docs/web-console-reference.md`
+- `docs/migration-log.md`
+
+### 驗證結果
+
+- `npm run build`：通過。
+- `curl http://127.0.0.1:3030/api/memory/stream`：可收到 `snapshot`/`update`。
+- `curl http://127.0.0.1:3030/api/debug/version`：可回傳版本與 runtime metadata。
+
+### 回滾計畫
+
+- 若要回退即時同步，可先移除 `memory/stream` 與前端 SSE 訂閱。
+- 若要回退版本可觀測，可移除 `api/debug/version` 與 build metadata 注入。
+- 若要回退部署腳本分流，可將 `docker:up` 指令還原為單一命令。
