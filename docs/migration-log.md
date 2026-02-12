@@ -831,3 +831,37 @@
 - 若需回退,可在 `docker-compose.yml` 中為 `agent-runner` 重新添加 `profiles: [phase3]`
 - 調整環境變數預設值回到 `SCHEDULE_USE_RUNNER=false`, `CHAT_USE_RUNNER_PERCENT=0`
 
+---
+
+## 2026-02-12 - Web Chat/Memory 對話閱讀體驗優化（v2.5.2）
+
+### 階段
+
+- 針對 Web Console 的聊天閱讀體驗做一致性收斂（Chat 與 Memory 對齊）。
+
+### 已完成
+
+- Memory 顯示改為對話泡泡樣式（user/model 左右分流）。
+- Memory 清單改為主流對話閱讀順序（上舊下新），並在渲染後自動捲到最新。
+- Chat 頁面整合 Recent memory：
+  - 初次載入自動帶入最近訊息做上下文
+  - 提供手動「重載 Recent」
+- Chat 與 Memory 採用同一套對話泡泡 UI 元件風格，減少切頁認知成本。
+- Memory 頁面收斂為 `Search + History`，避免與 Chat Recent 重複。
+
+### 影響檔案
+
+- `src/web/public/app/views/chat.js`
+- `src/web/public/app/views/memory.js`
+- `src/web/public/index.html`
+- `README.md`
+- `docs/migration-log.md`
+
+### 驗證結果
+
+- `npm run build`：通過（`tsc` + `copy-web-assets`）。
+
+### 回滾計畫
+
+- 若需快速回退，可先移除 Chat 的 Recent 自動載入區塊與 `reload` 按鈕。
+- 再將 Memory 視圖回復為列表型 `Recent + Search + History` 三段式布局。
