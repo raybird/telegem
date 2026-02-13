@@ -6,6 +6,7 @@ export interface UserProfile {
 
 export interface UnifiedMessage {
   id: string;
+  chatId?: string;
   content: string;
   sender: UserProfile;
   timestamp: number;
@@ -15,7 +16,7 @@ export interface UnifiedMessage {
 export interface Connector {
   name: string;
   initialize(): Promise<void>;
-  
+
   /**
    * 發送一般訊息
    */

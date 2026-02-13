@@ -45,6 +45,7 @@ export function createMessagePipeline(options: MessagePipelineOptions) {
     const connector = options.resolveConnector?.(msg) || options.connector;
     console.log(`📩 [${msg.sender.platform}] ${msg.sender.name}: ${msg.content}`);
     const userId = msg.sender.id;
+    const targetChatId = msg.chatId || userId;
 
     options.scheduler.resetSilenceTimer(userId);
     options.writeContextSnapshots();
@@ -83,13 +84,17 @@ export function createMessagePipeline(options: MessagePipelineOptions) {
     let messageIndex = 0;
 
     try {
-      placeholderMsgId = await connector.sendPlaceholder(userId, thinkingMessages[0]!);
+      placeholderMsgId = await connector.sendPlaceholder(targetChatId, thinkingMessages[0]!);
 
       if (placeholderMsgId) {
         thinkingInterval = setInterval(async () => {
           messageIndex = (messageIndex + 1) % thinkingMessages.length;
           try {
-            await connector.editMessage(userId, placeholderMsgId, thinkingMessages[messageIndex]!);
+            await connector.editMessage(
+              targetChatId,
+              placeholderMsgId,
+              thinkingMessages[messageIndex]!
+            );
           } catch (error) {
             console.warn('Failed to update thinking message', error);
           }
@@ -143,9 +148,9 @@ export function createMessagePipeline(options: MessagePipelineOptions) {
       }
 
       if (placeholderMsgId) {
-        await connector.editMessage(userId, placeholderMsgId, response);
+        await connector.editMessage(targetChatId, placeholderMsgId, response);
       } else {
-        await connector.sendMessage(userId, response);
+        await connector.sendMessage(targetChatId, response);
       }
     } catch (error) {
       console.error('❌ Error processing message:', error);
@@ -158,9 +163,9 @@ export function createMessagePipeline(options: MessagePipelineOptions) {
       }
 
       if (placeholderMsgId) {
-        await connector.editMessage(userId, placeholderMsgId, errorMsg);
+        await connector.editMessage(targetChatId, placeholderMsgId, errorMsg);
       } else {
-        await connector.sendMessage(userId, errorMsg);
+        await connector.sendMessage(targetChatId, errorMsg);
       }
     }
   };
