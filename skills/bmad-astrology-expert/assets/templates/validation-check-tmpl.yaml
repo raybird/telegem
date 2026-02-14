@@ -1,0 +1,709 @@
+# 驗證檢查模板 - 紫微命盤排盤結果驗證
+
+template_name: "驗證檢查模板"
+version: "2.1.0"
+description: "對紫微命盤排盤結果進行多層次驗證，確保計算準確性"
+created_date: "2025-09-14"
+last_updated: "2025-09-14"
+author: "BMAD Astrology Framework Team"
+
+---
+
+## 模板配置
+
+### 基本設定
+```yaml
+template_config:
+  name: "validation_check"
+  version: "2.1.0"
+  type: "validation_template"
+  category: "enhanced_calculation"
+  priority: "critical"
+  
+  validation_targets:
+    accuracy_validation: "95%"
+    consistency_validation: "98%"
+    completeness_validation: "100%"
+    logic_validation: "95%"
+  
+  performance_targets:
+    max_validation_time: "10秒"
+    max_error_detection_time: "5秒"
+    max_report_generation_time: "3秒"
+```
+
+### 驗證層次定義
+```yaml
+validation_levels:
+  level_1:
+    name: "基礎驗證"
+    description: "基本格式和範圍檢查"
+    coverage: "100%"
+    priority: "critical"
+    
+    validation_items:
+      - "輸入格式驗證"
+      - "數據範圍檢查"
+      - "必填字段驗證"
+      - "數據類型檢查"
+    
+    validation_criteria:
+      - "格式正確性 100%"
+      - "範圍合理性 100%"
+      - "完整性檢查 100%"
+      - "類型一致性 100%"
+    
+    error_handling:
+      - "格式錯誤自動修正"
+      - "範圍錯誤提示修正"
+      - "缺失字段補充提示"
+      - "類型錯誤轉換修正"
+
+  level_2:
+    name: "邏輯驗證"
+    description: "邏輯一致性和合理性檢查"
+    coverage: "95%"
+    priority: "high"
+    
+    validation_items:
+      - "計算邏輯一致性"
+      - "結果合理性檢查"
+      - "規則符合性驗證"
+      - "關係正確性檢查"
+    
+    validation_criteria:
+      - "邏輯一致性 ≥ 95%"
+      - "結果合理性 ≥ 90%"
+      - "規則符合性 100%"
+      - "關係正確性 ≥ 95%"
+    
+    error_handling:
+      - "邏輯錯誤重新計算"
+      - "不合理結果修正"
+      - "規則違反提示"
+      - "關係錯誤修正"
+
+  level_3:
+    name: "專業驗證"
+    description: "專業規則和標準檢查"
+    coverage: "90%"
+    priority: "medium"
+    
+    validation_items:
+      - "紫微斗數規則驗證"
+      - "星曜分佈合理性"
+      - "宮位關係正確性"
+      - "四化星計算驗證"
+    
+    validation_criteria:
+      - "專業規則符合性 ≥ 90%"
+      - "星曜分佈合理性 ≥ 85%"
+      - "宮位關係正確性 ≥ 95%"
+      - "四化星計算準確性 ≥ 95%"
+    
+    error_handling:
+      - "專業規則錯誤修正"
+      - "星曜分佈調整"
+      - "宮位關係修正"
+      - "四化星重新計算"
+
+  level_4:
+    name: "綜合驗證"
+    description: "整體系統一致性檢查"
+    coverage: "85%"
+    priority: "medium"
+    
+    validation_items:
+      - "系統整體一致性"
+      - "跨模組協調性"
+      - "歷史數據對比"
+      - "用戶期望符合性"
+    
+    validation_criteria:
+      - "系統一致性 ≥ 90%"
+      - "跨模組協調性 ≥ 85%"
+      - "歷史對比準確性 ≥ 80%"
+      - "用戶期望符合性 ≥ 85%"
+    
+    error_handling:
+      - "系統一致性調整"
+      - "模組協調優化"
+      - "歷史數據更新"
+      - "用戶期望管理"
+```
+
+---
+
+## 驗證項目定義
+
+### 時間換算驗證
+```yaml
+time_conversion_validation:
+  validation_name: "時間換算驗證"
+  validation_scope: "時間相關計算"
+  priority: "critical"
+  
+  validation_items:
+    lunar_conversion:
+      name: "農曆轉換驗證"
+      description: "驗證公曆到農曆的轉換準確性"
+      accuracy_target: "99%"
+      
+      validation_criteria:
+        - "農曆日期準確性"
+        - "閏月處理正確性"
+        - "跨年處理準確性"
+        - "歷史日期支援"
+      
+      validation_methods:
+        - "萬年曆對比驗證"
+        - "算法計算驗證"
+        - "交叉驗證"
+        - "專家驗證"
+    
+    solar_time_conversion:
+      name: "真太陽時轉換驗證"
+      description: "驗證真太陽時計算準確性"
+      accuracy_target: "99%"
+      
+      validation_criteria:
+        - "經度計算準確性"
+        - "時差計算正確性"
+        - "季節調整準確性"
+        - "歷史時區處理"
+      
+      validation_methods:
+        - "天文計算對比"
+        - "標準時區驗證"
+        - "地理位置驗證"
+        - "時間精度檢查"
+    
+    time_period_determination:
+      name: "時辰判定驗證"
+      description: "驗證時辰判定準確性"
+      accuracy_target: "100%"
+      
+      validation_criteria:
+        - "時辰邊界處理"
+        - "跨日時辰處理"
+        - "特殊時間處理"
+        - "歷史時辰標準"
+      
+      validation_methods:
+        - "時辰表對比"
+        - "邊界條件測試"
+        - "特殊情況驗證"
+        - "歷史標準檢查"
+
+  validation_output:
+    - "驗證狀態"
+    - "準確性評分"
+    - "錯誤列表"
+    - "修正建議"
+    - "置信度評分"
+```
+
+### 命盤計算驗證
+```yaml
+chart_calculation_validation:
+  validation_name: "命盤計算驗證"
+  validation_scope: "命盤結構計算"
+  priority: "critical"
+  
+  validation_items:
+    ming_gong_calculation:
+      name: "命宮計算驗證"
+      description: "驗證命宮位置計算準確性"
+      accuracy_target: "100%"
+      
+      validation_criteria:
+        - "命宮位置準確性"
+        - "身宮位置正確性"
+        - "十二宮位完整性"
+        - "陰陽順序正確性"
+      
+      validation_methods:
+        - "標準公式驗證"
+        - "邏輯一致性檢查"
+        - "完整性驗證"
+        - "順序正確性檢查"
+    
+    star_placement:
+      name: "星曜安放驗證"
+      description: "驗證星曜安放準確性"
+      accuracy_target: "95%"
+      
+      validation_criteria:
+        - "紫微星位置準確性"
+        - "天府星對宮關係"
+        - "主星分佈合理性"
+        - "輔星位置正確性"
+      
+      validation_methods:
+        - "星曜位置驗證"
+        - "分佈合理性檢查"
+        - "關係正確性驗證"
+        - "唯一性檢查"
+    
+    four_transformations:
+      name: "四化星驗證"
+      description: "驗證四化星計算準確性"
+      accuracy_target: "100%"
+      
+      validation_criteria:
+        - "四化星計算準確性"
+        - "四化星唯一性"
+        - "四化星位置正確性"
+        - "四化星影響計算"
+      
+      validation_methods:
+        - "四化表對比驗證"
+        - "唯一性檢查"
+        - "位置驗證"
+        - "影響計算驗證"
+
+  validation_output:
+    - "驗證狀態"
+    - "準確性評分"
+    - "錯誤列表"
+    - "修正建議"
+    - "置信度評分"
+```
+
+### 專業規則驗證
+```yaml
+professional_rules_validation:
+  validation_name: "專業規則驗證"
+  validation_scope: "紫微斗數專業規則"
+  priority: "high"
+  
+  validation_items:
+    ziwei_doushu_rules:
+      name: "紫微斗數規則驗證"
+      description: "驗證紫微斗數基本規則符合性"
+      accuracy_target: "90%"
+      
+      validation_criteria:
+        - "基本規則符合性"
+        - "計算方法正確性"
+        - "星曜關係正確性"
+        - "宮位關係正確性"
+      
+      validation_methods:
+        - "規則庫對比"
+        - "計算方法驗證"
+        - "關係檢查"
+        - "專家驗證"
+    
+    star_interactions:
+      name: "星曜互動驗證"
+      description: "驗證星曜間互動關係"
+      accuracy_target: "85%"
+      
+      validation_criteria:
+        - "星曜互動正確性"
+        - "影響力計算準確性"
+        - "互動模式合理性"
+        - "綜合影響評估"
+      
+      validation_methods:
+        - "互動規則驗證"
+        - "影響力計算檢查"
+        - "模式合理性分析"
+        - "綜合評估驗證"
+    
+    palace_relationships:
+      name: "宮位關係驗證"
+      description: "驗證宮位間關係正確性"
+      accuracy_target: "95%"
+      
+      validation_criteria:
+        - "三方四正關係"
+        - "對宮關係正確性"
+        - "六合關係準確性"
+        - "刑沖關係正確性"
+      
+      validation_methods:
+        - "關係規則驗證"
+        - "位置關係檢查"
+        - "影響關係驗證"
+        - "綜合關係分析"
+
+  validation_output:
+    - "驗證狀態"
+    - "規則符合性評分"
+    - "錯誤列表"
+    - "修正建議"
+    - "專業認可度"
+```
+
+---
+
+## 提示詞模板
+
+### 主要驗證提示詞
+```yaml
+main_validation_prompt: |
+  你是一位專業的紫微斗數驗證專家，請對以下命盤計算結果進行全面驗證：
+  
+  ## 驗證目標
+  確保命盤計算結果的準確性、一致性和可靠性
+  
+  ## 驗證數據
+  {calculation_results}
+  
+  ## 驗證步驟
+  
+  ### 步驟1：基礎驗證
+  請進行以下基礎驗證：
+  
+  **驗證項目：**
+  1. 輸入數據格式正確性
+  2. 計算結果完整性
+  3. 數據範圍合理性
+  4. 必填字段完整性
+  
+  **驗證標準：**
+  - 格式正確性：100%
+  - 完整性：100%
+  - 範圍合理性：100%
+  - 字段完整性：100%
+  
+  **驗證方法：**
+  - 格式檢查
+  - 完整性檢查
+  - 範圍驗證
+  - 字段驗證
+  
+  ### 步驟2：邏輯驗證
+  請進行以下邏輯驗證：
+  
+  **驗證項目：**
+  1. 計算邏輯一致性
+  2. 結果合理性檢查
+  3. 規則符合性驗證
+  4. 關係正確性檢查
+  
+  **驗證標準：**
+  - 邏輯一致性：≥ 95%
+  - 結果合理性：≥ 90%
+  - 規則符合性：100%
+  - 關係正確性：≥ 95%
+  
+  **驗證方法：**
+  - 邏輯一致性分析
+  - 合理性評估
+  - 規則符合性檢查
+  - 關係正確性驗證
+  
+  ### 步驟3：專業驗證
+  請進行以下專業驗證：
+  
+  **驗證項目：**
+  1. 紫微斗數規則驗證
+  2. 星曜分佈合理性
+  3. 宮位關係正確性
+  4. 四化星計算驗證
+  
+  **驗證標準：**
+  - 專業規則符合性：≥ 90%
+  - 星曜分佈合理性：≥ 85%
+  - 宮位關係正確性：≥ 95%
+  - 四化星計算準確性：≥ 95%
+  
+  **驗證方法：**
+  - 專業規則對比
+  - 分佈合理性分析
+  - 關係正確性檢查
+  - 計算準確性驗證
+  
+  ### 步驟4：綜合驗證
+  請進行以下綜合驗證：
+  
+  **驗證項目：**
+  1. 系統整體一致性
+  2. 跨模組協調性
+  3. 歷史數據對比
+  4. 用戶期望符合性
+  
+  **驗證標準：**
+  - 系統一致性：≥ 90%
+  - 跨模組協調性：≥ 85%
+  - 歷史對比準確性：≥ 80%
+  - 用戶期望符合性：≥ 85%
+  
+  **驗證方法：**
+  - 系統一致性分析
+  - 模組協調性檢查
+  - 歷史數據對比
+  - 用戶期望評估
+  
+  ## 驗證結果輸出
+  
+  請提供以下驗證結果：
+  1. **驗證狀態**：通過/失敗/警告
+  2. **準確性評分**：各項目的準確性評分
+  3. **錯誤列表**：發現的錯誤和問題
+  4. **修正建議**：針對錯誤的修正建議
+  5. **置信度評分**：整體置信度評分（0-100）
+  6. **驗證報告**：詳細的驗證過程和結果
+  
+  ## 重要提醒
+  - 每個驗證步驟都必須嚴格執行
+  - 發現問題時立即記錄和分類
+  - 提供具體的修正建議
+  - 保持驗證過程的客觀性
+  - 確保驗證結果的可信度
+```
+
+### 錯誤檢測提示詞
+```yaml
+error_detection_prompt: |
+  請對以下計算結果進行錯誤檢測：
+  
+  ## 檢測目標
+  識別和分類計算結果中的各種錯誤
+  
+  ## 檢測數據
+  {calculation_results}
+  
+  ## 錯誤類型定義
+  
+  ### 1. 格式錯誤
+  **錯誤特徵：**
+  - 數據格式不正確
+  - 字段缺失或重複
+  - 數據類型錯誤
+  - 編碼問題
+  
+  **檢測方法：**
+  - 格式規範檢查
+  - 字段完整性檢查
+  - 數據類型驗證
+  - 編碼格式檢查
+  
+  ### 2. 邏輯錯誤
+  **錯誤特徵：**
+  - 計算邏輯不一致
+  - 結果不合理
+  - 規則違反
+  - 關係錯誤
+  
+  **檢測方法：**
+  - 邏輯一致性分析
+  - 合理性評估
+  - 規則符合性檢查
+  - 關係正確性驗證
+  
+  ### 3. 計算錯誤
+  **錯誤特徵：**
+  - 計算公式錯誤
+  - 數值計算錯誤
+  - 單位換算錯誤
+  - 精度問題
+  
+  **檢測方法：**
+  - 公式正確性檢查
+  - 數值計算驗證
+  - 單位換算檢查
+  - 精度要求驗證
+  
+  ### 4. 專業錯誤
+  **錯誤特徵：**
+  - 專業規則違反
+  - 星曜分佈錯誤
+  - 宮位關係錯誤
+  - 四化星計算錯誤
+  
+  **檢測方法：**
+  - 專業規則對比
+  - 分佈合理性分析
+  - 關係正確性檢查
+  - 計算準確性驗證
+  
+  ## 錯誤檢測結果
+  
+  請提供以下檢測結果：
+  1. **錯誤總數**：發現的錯誤總數
+  2. **錯誤分類**：按類型分類的錯誤
+  3. **錯誤嚴重性**：錯誤的嚴重程度
+  4. **錯誤位置**：錯誤的具體位置
+  5. **錯誤原因**：錯誤的可能原因
+  6. **修正建議**：針對錯誤的修正建議
+  7. **檢測報告**：詳細的檢測過程和結果
+```
+
+### 修正建議提示詞
+```yaml
+correction_suggestion_prompt: |
+  基於以下驗證結果，請提供修正建議：
+  
+  ## 驗證結果
+  {validation_results}
+  
+  ## 修正建議要求
+  
+  ### 1. 錯誤分析
+  請對發現的錯誤進行分析：
+  - 錯誤的根本原因
+  - 錯誤的影響範圍
+  - 錯誤的嚴重程度
+  - 錯誤的修正難度
+  
+  ### 2. 修正方案
+  請提供以下修正方案：
+  
+  **立即修正方案：**
+  - 針對當前錯誤的直接修正
+  - 修正的具體步驟
+  - 修正的預期效果
+  - 修正的風險評估
+  
+  **預防措施：**
+  - 防止類似錯誤再次發生
+  - 改進計算流程
+  - 加強驗證檢查
+  - 優化錯誤處理
+  
+  **長期改進方案：**
+  - 系統架構優化
+  - 算法改進
+  - 流程優化
+  - 質量提升
+  
+  ### 3. 修正優先級
+  請按優先級排序修正建議：
+  1. **高優先級**：影響準確性的關鍵錯誤
+  2. **中優先級**：影響用戶體驗的錯誤
+  3. **低優先級**：影響性能的錯誤
+  4. **建議改進**：非關鍵的改進建議
+  
+  ### 4. 修正驗證
+  請提供修正後的驗證方法：
+  - 修正結果驗證
+  - 回歸測試建議
+  - 持續監控方案
+  - 質量保證措施
+  
+  ## 修正建議輸出
+  
+  請提供以下修正建議：
+  1. **修正摘要**：修正建議的總體概述
+  2. **詳細修正方案**：具體的修正步驟
+  3. **修正優先級**：按優先級排序的修正項目
+  4. **修正驗證**：修正後的驗證方法
+  5. **改進建議**：長期改進建議
+  6. **風險評估**：修正過程中的風險評估
+```
+
+---
+
+## 配置參數
+
+### 驗證精度設定
+```yaml
+validation_precision:
+  time_validation:
+    lunar_accuracy: "99%"
+    solar_time_accuracy: "99%"
+    time_period_accuracy: "100%"
+    five_elements_accuracy: "100%"
+  
+  chart_validation:
+    ming_gong_accuracy: "100%"
+    shen_gong_accuracy: "100%"
+    palace_sequence_accuracy: "100%"
+  
+  star_validation:
+    ziwei_accuracy: "98%"
+    tianfu_accuracy: "100%"
+    main_stars_accuracy: "95%"
+    auxiliary_stars_accuracy: "90%"
+  
+  professional_validation:
+    rules_compliance: "90%"
+    star_distribution: "85%"
+    palace_relationships: "95%"
+    four_transformations: "95%"
+```
+
+### 驗證規則設定
+```yaml
+validation_rules:
+  mandatory_validations:
+    - "時間格式驗證"
+    - "農曆轉換驗證"
+    - "真太陽時驗證"
+    - "命宮位置驗證"
+    - "主星分佈驗證"
+    - "四化星驗證"
+  
+  optional_validations:
+    - "歷史時間驗證"
+    - "特殊情況驗證"
+    - "邊界條件驗證"
+    - "性能指標驗證"
+  
+  error_thresholds:
+    critical_errors: 0
+    major_errors: 1
+    minor_errors: 3
+    warnings: 5
+```
+
+### 性能設定
+```yaml
+performance_settings:
+  time_limits:
+    max_validation_time: "10秒"
+    max_error_detection_time: "5秒"
+    max_report_generation_time: "3秒"
+    max_total_time: "20秒"
+  
+  resource_limits:
+    max_memory_usage: "256MB"
+    max_cpu_usage: "60%"
+    max_disk_usage: "50MB"
+  
+  optimization:
+    parallel_validation: true
+    cache_enabled: true
+    batch_validation: true
+    incremental_validation: true
+```
+
+---
+
+## 使用說明
+
+### 基本使用
+1. 載入驗證模板
+2. 輸入計算結果
+3. 執行多層次驗證
+4. 分析驗證結果
+5. 提供修正建議
+6. 生成驗證報告
+
+### 高級使用
+1. 自定義驗證規則
+2. 調整驗證精度
+3. 配置性能參數
+4. 啟用錯誤檢測
+5. 設置監控指標
+
+### 最佳實踐
+1. 始終進行多層次驗證
+2. 及時檢測和修正錯誤
+3. 保持驗證過程的客觀性
+4. 記錄所有驗證結果
+5. 定期更新驗證規則
+
+---
+
+**模板版本**：2.1.0  
+**最後更新**：2025年9月14日  
+**維護團隊**：BMAD Astrology Framework Team
+
+---
+
+*此模板為紫微命盤排盤結果提供了全面的驗證檢查機制，確保計算結果的準確性和可靠性。*

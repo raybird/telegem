@@ -1,0 +1,151 @@
+template:
+  name: "牌卡觸機分析模板"
+  version: "1.0.0"
+  description: "基於隨機抽取牌卡的觸機占卜分析"
+  category: "觸機占卜"
+  created_date: "2025-09-14"
+  
+  inputs:
+    - name: "selected_card"
+      type: "object"
+      required: true
+      description: "選中的牌卡資訊"
+      fields:
+        - name: "palace"
+          type: "string"
+          description: "宮位名稱"
+        - name: "main_star"
+          type: "string"
+          description: "主星名稱"
+        - name: "card_id"
+          type: "string"
+          description: "牌卡ID"
+    - name: "question_time"
+      type: "string"
+      required: true
+      description: "問事時間"
+      example: "2025-09-14 16:49"
+    - name: "question"
+      type: "string"
+      required: true
+      description: "問題內容"
+      example: "感情發展如何"
+    - name: "card_set_type"
+      type: "string"
+      required: false
+      description: "牌卡組類型 (144/72/12張)"
+      example: "144"
+      
+  prompt: |
+    你是一位專業的紫微斗數觸機占卜分析師。請基於以下資訊進行牌卡觸機占卜分析：
+    
+    **選中牌卡：** {{selected_card}}
+    **問事時間：** {{question_time}}
+    **問題內容：** {{question}}
+    **牌卡組類型：** {{card_set_type}}
+    
+    **觸機計算步驟：**
+    1. 以選中牌卡為命宮
+    2. 重新排定十二宮位
+    3. 結合問事時間天干引動四化
+    4. 生成觸機命盤
+    
+    **牌卡觸機分析要點：**
+    - 分析選中牌卡的含義和象徵
+    - 以牌卡為命宮重新排盤的變化
+    - 問事時間天干對四化的引動
+    - 觸機盤與問題的對應關係
+    
+    **牌卡組合含義：**
+    - 144張牌：12宮 × 12主星完整組合
+    - 72張牌：12宮 × 6主星精簡組合
+    - 12張牌：12宮 × 1主星基礎組合
+    
+    **分析重點：**
+    - 牌卡組合的含義和象徵
+    - 時間引動的變化趨勢
+    - 問題相關宮位的分析
+    - 四化飛星的影響
+    
+    **觸機盤解讀：**
+    - 以牌卡為命宮的重新排盤
+    - 各宮位的星曜配置變化
+    - 四化飛星的引動和影響
+    - 宮位之間的互動關係
+    
+    **輸出格式：**
+    1. 觸機盤資訊（牌卡配置、宮位變化）
+    2. 牌卡解讀（選中牌卡的含義）
+    3. 時間引動分析（問事時間的影響）
+    4. 綜合建議（基於觸機盤的建議）
+    
+    **免責聲明：**
+    牌卡觸機占卜分析結果僅供參考，不構成專業建議。占卜分析具有主觀性和不確定性，請勿用於醫療、法律或重大決策。
+    
+    請提供專業、準確的牌卡觸機占卜分析。
+    
+  outputs:
+    - name: "trigger_chart"
+      type: "object"
+      description: "觸機命盤資訊"
+      fields:
+        - name: "selected_card"
+          type: "object"
+          description: "選中的牌卡"
+        - name: "palaces"
+          type: "array"
+          description: "重新排定的十二宮位"
+        - name: "stars"
+          type: "array"
+          description: "星曜配置"
+        - name: "transformations"
+          type: "array"
+          description: "四化飛星引動"
+        - name: "time_activation"
+          type: "object"
+          description: "時間引動資訊"
+          
+    - name: "card_interpretation"
+      type: "string"
+      description: "牌卡解讀"
+      format: "選中牌卡的含義和象徵"
+      
+    - name: "time_activation"
+      type: "string"
+      description: "時間引動分析"
+      format: "問事時間對觸機盤的影響"
+      
+    - name: "comprehensive_advice"
+      type: "string"
+      description: "綜合建議"
+      format: "基於觸機盤的綜合建議"
+      
+  validation:
+    - rule: "牌卡資訊必須完整"
+      description: "選中牌卡的宮位和主星資訊必須完整"
+    - rule: "觸機盤計算必須準確"
+      description: "以牌卡為命宮的重新排盤必須正確"
+    - rule: "時間引動分析必須合理"
+      description: "問事時間對四化的引動分析必須合理"
+    - rule: "建議必須具體可行"
+      description: "綜合建議必須具體且可執行"
+    - rule: "必須包含免責聲明"
+      description: "所有輸出都必須包含適當的免責聲明"
+      
+  examples:
+    - input:
+        selected_card:
+          palace: "命宮"
+          main_star: "紫微星"
+          card_id: "card_001"
+        question_time: "2025-09-14 16:49"
+        question: "感情發展如何"
+        card_set_type: "144"
+      output:
+        trigger_chart:
+          selected_card:
+            palace: "命宮"
+            main_star: "紫微星"
+        card_interpretation: "紫微坐命，象徵領導能力和尊貴氣質..."
+        time_activation: "申時問事，引動化權，增強決斷力..."
+        comprehensive_advice: "在感情方面，建議主動表達心意..."

@@ -1,0 +1,359 @@
+# 規則衝突解決提示詞模板
+# 用於解決命理規則之間的衝突和矛盾
+# 版本: 1.0.0
+# 創建日期: 2025-09-13
+
+template_metadata:
+  name: "規則衝突解決模板"
+  version: "1.0.0"
+  description: "解決命理規則之間的衝突和矛盾"
+  author: "BMAD Astrology Framework"
+  created_date: "2025-09-13"
+  last_updated: "2025-09-13"
+  compatible_agents: ["rule-constructor"]
+  input_format: "JSON"
+  output_format: "JSON"
+
+# 模板變數定義
+variables:
+  conflicting_rules:
+    type: "array"
+    description: "衝突的規則列表"
+    items:
+      type: "object"
+      properties:
+        rule_id: "規則ID"
+        rule_name: "規則名稱"
+        rule_type: "規則類型"
+        rule_content: "規則內容"
+        rule_weight: "規則權重"
+        rule_source: "規則來源"
+    required: true
+    
+  context:
+    type: "object"
+    description: "分析上下文"
+    properties:
+      natal_chart: "命盤數據"
+      analysis_type: "分析類型"
+      user_question: "用戶問題"
+      previous_analysis: "先前分析結果"
+    required: true
+    
+  user_preferences:
+    type: "object"
+    description: "用戶偏好設置"
+    properties:
+      rule_set: "規則集偏好"
+      interpretation_style: "解釋風格"
+      detail_level: "詳細程度"
+      school_preference: "流派偏好"
+    required: true
+
+# 核心提示詞模板
+prompt_template: |
+  你是一位專業的紫微斗數規則衝突解決專家，精通各種命理規則的衝突檢測和解決。
+  
+  ## 任務描述
+  請根據提供的衝突規則和上下文，解決規則之間的衝突和矛盾。
+  
+  ## 輸入資訊
+  - 衝突規則：{{conflicting_rules}}
+  - 分析上下文：{{context}}
+  - 用戶偏好：{{user_preferences}}
+  
+  ## 衝突解決要求
+  
+  ### 1. 衝突類型識別
+  識別以下衝突類型：
+  - **星曜屬性衝突**：同一星曜的不同屬性解釋
+  - **宮位關係衝突**：不同宮位關係的解釋
+  - **格局解釋衝突**：同一格局的不同解釋
+  - **流派規則衝突**：不同流派的規則差異
+  - **四化邏輯衝突**：四化星的不同邏輯解釋
+  
+  ### 2. 衝突嚴重程度評估
+  根據以下因素評估衝突嚴重程度：
+  - **規則權重**：權重高的規則優先
+  - **規則來源**：傳統規則優先於現代規則
+  - **邏輯一致性**：邏輯一致的規則優先
+  - **實用性**：實用性高的規則優先
+  
+  ### 3. 解決策略選擇
+  根據衝突類型選擇解決策略：
+  - **權重優先策略**：選擇權重最高的規則
+  - **傳統優先策略**：選擇傳統規則
+  - **邏輯優先策略**：選擇邏輯最一致的規則
+  - **平衡策略**：平衡多個規則的解釋
+  - **用戶偏好策略**：根據用戶偏好選擇規則
+  
+  ### 4. 衝突解決方案
+  提供以下解決方案：
+  - **主要解釋**：選擇的主要規則解釋
+  - **替代解釋**：可選的替代解釋
+  - **綜合解釋**：綜合多個規則的解釋
+  - **注意事項**：需要特別注意的方面
+  
+  ## 輸出格式要求
+  
+  請以以下 JSON 格式輸出結果：
+  
+  ```json
+  {
+    "conflict_analysis": {
+      "analysis_time": "分析時間",
+      "total_conflicts": "衝突總數",
+      "conflict_types": ["衝突類型列表"],
+      "severity_level": "嚴重程度等級"
+    },
+    "identified_conflicts": [
+      {
+        "conflict_id": "衝突ID",
+        "conflict_type": "衝突類型",
+        "conflicting_rules": ["衝突規則列表"],
+        "conflict_description": "衝突描述",
+        "severity_level": "嚴重程度",
+        "impact_assessment": "影響評估"
+      }
+    ],
+    "resolution_strategies": [
+      {
+        "strategy_name": "策略名稱",
+        "strategy_type": "策略類型",
+        "applicable_conflicts": ["適用衝突"],
+        "strategy_description": "策略描述",
+        "effectiveness_score": "有效性分數"
+      }
+    ],
+    "resolution_results": [
+      {
+        "conflict_id": "衝突ID",
+        "selected_rule": {
+          "rule_id": "規則ID",
+          "rule_name": "規則名稱",
+          "rule_content": "規則內容",
+          "selection_reason": "選擇理由"
+        },
+        "alternative_rules": [
+          {
+            "rule_id": "規則ID",
+            "rule_name": "規則名稱",
+            "rule_content": "規則內容",
+            "alternative_reason": "替代理由"
+          }
+        ],
+        "comprehensive_interpretation": "綜合解釋",
+        "resolution_confidence": "解決置信度"
+      }
+    ],
+    "final_interpretation": {
+      "primary_interpretation": "主要解釋",
+      "alternative_interpretations": ["替代解釋列表"],
+      "comprehensive_interpretation": "綜合解釋",
+      "key_insights": ["關鍵洞察"],
+      "recommendations": ["建議事項"],
+      "cautions": ["注意事項"]
+    },
+    "validation": {
+      "resolution_consistency": "解決一致性",
+      "logic_validation": "邏輯驗證",
+      "completeness_check": "完整性檢查",
+      "confidence_assessment": "置信度評估"
+    }
+  }
+  ```
+  
+  ## 衝突解決規則
+  
+  ### 1. 星曜屬性衝突解決
+  - **廟旺陷優先**：廟旺陷狀態優先於其他屬性
+  - **主星優先**：主星屬性優先於輔星屬性
+  - **四化優先**：四化星影響優先於基礎屬性
+  
+  ### 2. 宮位關係衝突解決
+  - **三合優先**：三合關係優先於其他關係
+  - **對沖平衡**：對沖關係需要平衡處理
+  - **刑剋注意**：刑剋關係需要特別注意
+  
+  ### 3. 格局解釋衝突解決
+  - **貴格優先**：貴格解釋優先於其他格局
+  - **富格次之**：富格解釋次於貴格
+  - **特殊格注意**：特殊格需要特別注意
+  
+  ### 4. 流派規則衝突解決
+  - **傳統優先**：傳統規則優先於現代規則
+  - **用戶偏好**：根據用戶偏好選擇流派
+  - **平衡處理**：平衡不同流派的解釋
+  
+  ### 5. 四化邏輯衝突解決
+  - **計算優先**：四化計算結果優先
+  - **邏輯一致**：保持邏輯一致性
+  - **影響評估**：評估四化影響
+  
+  ## 解決策略
+  
+  ### 1. 權重優先策略
+  - 選擇權重最高的規則
+  - 適用於權重差異明顯的衝突
+  - 確保規則的權威性
+  
+  ### 2. 傳統優先策略
+  - 選擇傳統規則
+  - 適用於傳統與現代的衝突
+  - 保持命理傳統的完整性
+  
+  ### 3. 邏輯優先策略
+  - 選擇邏輯最一致的規則
+  - 適用於邏輯矛盾的衝突
+  - 確保分析的邏輯性
+  
+  ### 4. 平衡策略
+  - 平衡多個規則的解釋
+  - 適用於權重相近的衝突
+  - 提供全面的解釋
+  
+  ### 5. 用戶偏好策略
+  - 根據用戶偏好選擇規則
+  - 適用於用戶有明確偏好的情況
+  - 提供個性化的解釋
+  
+  ## 質量檢查
+  
+  請確保：
+  1. 衝突識別準確無誤
+  2. 解決策略合理有效
+  3. 解釋邏輯清晰一致
+  4. 建議實用可行
+  5. 輸出格式符合要求
+  
+  ## 注意事項
+  
+  - 請使用專業的命理術語
+  - 保持解決方案的客觀性
+  - 注意不同流派的差異
+  - 提供實用的建議和注意事項
+
+# 驗證規則
+validation_rules:
+  input_validation:
+    - rule: "衝突規則檢查"
+      condition: "conflicting_rules 必須包含至少一個衝突規則"
+      error_message: "衝突規則列表不能為空，請提供衝突的規則"
+    
+    - rule: "分析上下文檢查"
+      condition: "context 必須包含完整的分析上下文"
+      error_message: "分析上下文不完整，請提供完整的分析上下文"
+    
+    - rule: "用戶偏好檢查"
+      condition: "user_preferences 必須包含用戶偏好設置"
+      error_message: "用戶偏好設置不完整，請提供完整的用戶偏好設置"
+    
+    - rule: "數據格式檢查"
+      condition: "輸入數據必須是有效的 JSON 格式"
+      error_message: "輸入數據格式不正確，請使用有效的 JSON 格式"
+
+  output_validation:
+    - rule: "衝突識別完整性檢查"
+      condition: "必須識別出所有衝突規則"
+      error_message: "衝突識別不完整"
+    
+    - rule: "解決策略檢查"
+      condition: "必須提供有效的解決策略"
+      error_message: "解決策略無效"
+    
+    - rule: "解決結果檢查"
+      condition: "必須提供完整的解決結果"
+      error_message: "解決結果不完整"
+    
+    - rule: "JSON 格式檢查"
+      condition: "輸出必須是有效的 JSON 格式"
+      error_message: "輸出格式不正確"
+
+# 錯誤處理
+error_handling:
+  conflict_resolution_error:
+    template: |
+      規則衝突解決過程中出現錯誤：{{error_message}}
+      請檢查輸入數據是否正確，特別是：
+      - 衝突規則是否有效
+      - 分析上下文是否完整
+      - 用戶偏好是否合理
+      
+      建議：請重新確認輸入數據後再次嘗試。
+    
+  validation_error:
+    template: |
+      數據驗證失敗：{{validation_error}}
+      請檢查以下項目：
+      - 輸入格式是否符合要求
+      - 必填欄位是否完整
+      - 數據值是否在有效範圍內
+      
+      建議：請參考模板說明修正輸入數據。
+    
+  unknown_error:
+    template: |
+      解決過程中出現未知錯誤。
+      錯誤詳情：{{error_details}}
+      
+      建議：請稍後重試，如問題持續存在，請聯繫技術支援。
+
+# 測試用例
+test_cases:
+  - name: "星曜屬性衝突測試"
+    input:
+      conflicting_rules:
+        - {rule_id: "rule_1", rule_name: "紫微廟旺規則", rule_type: "星曜屬性", rule_content: "紫微廟旺主貴", rule_weight: 0.9, rule_source: "traditional"}
+        - {rule_id: "rule_2", rule_name: "紫微陷地規則", rule_type: "星曜屬性", rule_content: "紫微陷地主賤", rule_weight: 0.8, rule_source: "traditional"}
+      context:
+        natal_chart: "命盤數據"
+        analysis_type: "comprehensive"
+        user_question: "紫微星在命宮的影響"
+      user_preferences:
+        rule_set: "traditional"
+        interpretation_style: "detailed"
+    expected_output:
+      conflict_analysis:
+        total_conflicts: 1
+        conflict_types: ["星曜屬性衝突"]
+      resolution_results:
+        - conflict_id: "conflict_1"
+          selected_rule:
+            rule_id: "rule_1"
+            selection_reason: "權重較高"
+  
+  - name: "流派規則衝突測試"
+    input:
+      conflicting_rules:
+        - {rule_id: "rule_1", rule_name: "傳統派規則", rule_type: "流派規則", rule_content: "傳統解釋", rule_weight: 1.0, rule_source: "traditional"}
+        - {rule_id: "rule_2", rule_name: "現代派規則", rule_type: "流派規則", rule_content: "現代解釋", rule_weight: 0.8, rule_source: "modern"}
+      context:
+        natal_chart: "命盤數據"
+        analysis_type: "comprehensive"
+        user_question: "命盤分析"
+      user_preferences:
+        rule_set: "traditional"
+        interpretation_style: "detailed"
+    expected_output:
+      conflict_analysis:
+        total_conflicts: 1
+        conflict_types: ["流派規則衝突"]
+      resolution_results:
+        - conflict_id: "conflict_1"
+          selected_rule:
+            rule_id: "rule_1"
+            selection_reason: "符合用戶偏好"
+
+# 性能配置
+performance:
+  timeout: "35s"
+  max_retries: 3
+  cache_duration: "6h"
+  parallel_processing: false
+
+# 版本歷史
+version_history:
+  - version: "1.0.0"
+    date: "2025-09-13"
+    changes: "初始版本，包含基本的規則衝突解決功能"
+    author: "BMAD Astrology Framework"

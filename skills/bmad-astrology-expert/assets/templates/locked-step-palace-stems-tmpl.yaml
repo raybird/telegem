@@ -1,0 +1,164 @@
+# 鎖步模板：十二宮天干查表（確定性，禁止自由推理）
+# 目的：根據年干和命宮地支，確定性產出十二宮天干配置
+
+meta:
+  version: 1.0
+  type: "locked_step_template"
+  purpose: "十二宮天干查表（禁止自由推理）"
+  data_source: "assets/data/palace-stems.yaml"
+
+# 系統提示詞（嚴格約束）
+system_prompt: |
+  你是專業的紫微斗數十二宮天干查表專家。你的任務是：
+  1. 嚴格按照 YAML 查表資料產出十二宮天干配置
+  2. 禁止任何自由推理、計算或臆測
+  3. 僅能返回表中存在的鍵值對應
+  4. 格式必須完全一致
+  5. 查無對應時必須回報 UNRESOLVED
+
+# 鎖步流程（不可跳步或改變順序）
+steps:
+  step1_validate_input:
+    name: "驗證輸入格式"
+    prompt: |
+      檢查輸入的年干和命宮地支是否為標準格式。
+      年干：甲乙丙丁戊己庚辛壬癸
+      命宮地支：子丑寅卯辰巳午未申酉戌亥
+      如格式不正確，立即回報 UNRESOLVED。
+    output_keys: ["year_stem_validated", "life_palace_branch_validated"]
+    
+  step2_construct_lookup_key:
+    name: "構建查表鍵"
+    prompt: |
+      將年干和命宮地支組合成查表鍵，格式：{年干}_{命宮地支}
+      例如：庚年命宮在午 → "庚_午"
+      必須嚴格按照此格式，不得修改。
+    output_keys: ["lookup_key"]
+    
+  step3_lookup_table:
+    name: "查表取得十二宮天干"
+    prompt: |
+      從 palace-stems.yaml 的 mappings 中查找對應的十二宮天干配置。
+      嚴格按照表中的鍵值返回，不得修改或推理。
+      必須同時找到十二宮的天干配置。
+    data_source: "mappings.{lookup_key}"
+    output_keys: ["命宮", "父母宮", "福德宮", "田宅宮", "官祿宮", "交友宮", "遷移宮", "疾厄宮", "財帛宮", "子女宮", "夫妻宮", "兄弟宮"]
+    
+  step4_validate_output:
+    name: "驗證輸出完整性"
+    prompt: |
+      檢查是否成功取得十二宮的天干配置。
+      如任一宮位天干缺失或為空，標記為 UNRESOLVED。
+      確認所有天干都在有效範圍內（甲乙丙丁戊己庚辛壬癸）。
+    output_keys: ["validation_status"]
+
+# I/O 契約（固定格式）
+input_schema:
+  year_stem:
+    type: "string"
+    format: "天干"
+    example: "庚"
+    required: true
+  life_palace_branch:
+    type: "string"
+    format: "地支"
+    example: "午"
+    required: true
+
+output_schema:
+  palace_stems:
+    命宮:
+      type: "string"
+      description: "命宮天干"
+    父母宮:
+      type: "string" 
+      description: "父母宮天干"
+    福德宮:
+      type: "string"
+      description: "福德宮天干"
+    田宅宮:
+      type: "string"
+      description: "田宅宮天干"
+    官祿宮:
+      type: "string"
+      description: "官祿宮天干"
+    交友宮:
+      type: "string"
+      description: "交友宮天干"
+    遷移宮:
+      type: "string"
+      description: "遷移宮天干"
+    疾厄宮:
+      type: "string"
+      description: "疾厄宮天干"
+    財帛宮:
+      type: "string"
+      description: "財帛宮天干"
+    子女宮:
+      type: "string"
+      description: "子女宮天干"
+    夫妻宮:
+      type: "string"
+      description: "夫妻宮天干"
+    兄弟宮:
+      type: "string"
+      description: "兄弟宮天干"
+  status:
+    type: "string"
+    enum: ["OK", "UNRESOLVED"]
+    required: true
+
+# 拒輸政策（嚴格執行）
+rejection_policy:
+  triggers:
+    - "年干格式不符標準（非甲乙丙丁戊己庚辛壬癸）"
+    - "命宮地支格式不符標準（非子丑寅卯辰巳午未申酉戌亥）"
+    - "查表結果缺失任一宮位天干"
+    - "返回非表內天干值"
+    - "輸出格式不符契約"
+  action: "立即標記 UNRESOLVED，停止處理，要求重新輸入"
+
+# 範例（標準測試用例）
+examples:
+  standard_test:
+    input:
+      year_stem: "庚"
+      life_palace_branch: "午"
+    expected_output:
+      palace_stems:
+        命宮: "壬"
+        父母宮: "癸"
+        福德宮: "甲"
+        田宅宮: "乙"
+        官祿宮: "丙"
+        交友宮: "丁"
+        遷移宮: "戊"
+        疾厄宮: "己"
+        財帛宮: "庚"
+        子女宮: "辛"
+        夫妻宮: "壬"
+        兄弟宮: "癸"
+      status: "OK"
+      
+  error_case:
+    input:
+      year_stem: "無效天干"
+      life_palace_branch: "午"
+    expected_output:
+      status: "UNRESOLVED"
+
+# 使用指引
+usage_instructions: |
+  1. 提供標準年干（甲乙丙丁戊己庚辛壬癸）和命宮地支（子丑寅卯辰巳午未申酉戌亥）
+  2. 模板會自動查表並返回十二宮天干配置
+  3. 如遇 UNRESOLVED，請檢查輸入格式或聯繫維護者
+  4. 不得手動修改或推理十二宮天干結果
+
+# 計算規則說明（僅供理解，不可用於推理）
+calculation_rules_info: |
+  十二宮天干推導規則：
+  1. 命宮天干 = 年干
+  2. 從命宮開始，按順時針方向（命→父母→福德→田宅→官祿→交友→遷移→疾厄→財帛→子女→夫妻→兄弟）
+  3. 天干按順序循環（甲→乙→丙→丁→戊→己→庚→辛→壬→癸→甲）
+  注意：此說明僅供理解，實際執行時必須嚴格查表，禁止按規則推理
+

@@ -1,0 +1,335 @@
+# 星曜規則應用提示詞模板
+# 用於應用星曜屬性和規則進行分析
+# 版本: 1.0.0
+# 創建日期: 2025-09-13
+
+template_metadata:
+  name: "星曜規則應用模板"
+  version: "1.0.0"
+  description: "根據星曜屬性和規則進行命理分析"
+  author: "BMAD Astrology Framework"
+  created_date: "2025-09-13"
+  last_updated: "2025-09-13"
+  compatible_agents: ["rule-constructor"]
+  input_format: "JSON"
+  output_format: "JSON"
+
+# 模板變數定義
+variables:
+  star_name:
+    type: "string"
+    description: "星曜名稱"
+    example: "紫微"
+    required: true
+    
+  star_properties:
+    type: "object"
+    description: "星曜屬性資訊"
+    properties:
+      type: "星曜類型"
+      category: "星曜類別"
+      element: "五行屬性"
+      yin_yang: "陰陽性質"
+      nature: "吉凶性質"
+      strength: "廟旺陷狀態"
+    required: true
+    
+  palace_position:
+    type: "string"
+    description: "星曜落宮位置"
+    example: "命宮"
+    required: true
+    
+  rule_set:
+    type: "string"
+    enum: ["traditional", "modern", "hybrid"]
+    description: "規則集類型"
+    example: "traditional"
+    required: true
+
+# 核心提示詞模板
+prompt_template: |
+  你是一位專業的紫微斗數規則建構專家，精通各種命理規則的應用和驗證。
+  
+  ## 任務描述
+  請根據提供的星曜資訊和規則集，應用相應的命理規則進行分析。
+  
+  ## 輸入資訊
+  - 星曜名稱：{{star_name}}
+  - 星曜屬性：{{star_properties}}
+  - 落宮位置：{{palace_position}}
+  - 規則集：{{rule_set}}
+  
+  ## 分析要求
+  
+  ### 1. 星曜屬性規則應用
+  根據星曜的基本屬性應用規則：
+  - **星曜類型規則**：主星、輔星、煞星、四化星的不同規則
+  - **五行屬性規則**：金、木、水、火、土的相生相剋規則
+  - **陰陽性質規則**：陰陽平衡和互補規則
+  - **吉凶性質規則**：吉星、凶星的不同影響規則
+  
+  ### 2. 廟旺陷規則應用
+  根據星曜的廟旺陷狀態應用規則：
+  - **廟**：星曜力量最強，正面影響最大
+  - **旺**：星曜力量強，正面影響大
+  - **利**：星曜力量中等，正面影響中等
+  - **得地**：星曜力量較弱，正面影響較小
+  - **不得地**：星曜力量弱，正面影響小
+  - **陷**：星曜力量最弱，負面影響最大
+  
+  ### 3. 宮位規則應用
+  根據星曜落宮位置應用規則：
+  - **命宮**：個人性格、外貌、才能
+  - **兄弟宮**：兄弟姐妹、朋友、同事關係
+  - **夫妻宮**：婚姻、感情、配偶關係
+  - **子女宮**：子女、學生、下屬關係
+  - **財帛宮**：財富、理財、投資能力
+  - **疾厄宮**：健康、疾病、意外
+  - **遷移宮**：遷移、旅行、外地發展
+  - **奴僕宮**：朋友、下屬、服務關係
+  - **官祿宮**：事業、工作、成就
+  - **田宅宮**：不動產、家庭、居住環境
+  - **福德宮**：福氣、享受、精神生活
+  - **父母宮**：父母、長輩、上司關係
+  
+  ### 4. 流派規則應用
+  根據選擇的規則集應用相應的流派規則：
+  - **傳統派**：嚴格遵循傳統命理理論
+  - **現代派**：結合現代心理學和社會學
+  - **混合派**：平衡傳統和現代理論
+  
+  ## 輸出格式要求
+  
+  請以以下 JSON 格式輸出結果：
+  
+  ```json
+  {
+    "analysis_info": {
+      "star_name": "星曜名稱",
+      "palace_position": "落宮位置",
+      "rule_set": "規則集類型",
+      "analysis_time": "分析時間"
+    },
+    "rule_application": {
+      "basic_properties": {
+        "type_rule": "星曜類型規則應用結果",
+        "element_rule": "五行屬性規則應用結果",
+        "yin_yang_rule": "陰陽性質規則應用結果",
+        "nature_rule": "吉凶性質規則應用結果"
+      },
+      "strength_analysis": {
+        "strength_level": "廟旺陷等級",
+        "strength_rule": "廟旺陷規則應用結果",
+        "influence_power": "影響力強度",
+        "positive_effects": ["正面影響列表"],
+        "negative_effects": ["負面影響列表"]
+      },
+      "palace_analysis": {
+        "palace_rule": "宮位規則應用結果",
+        "palace_influence": "宮位影響分析",
+        "life_aspects": ["相關人生面向"],
+        "characteristics": ["特徵描述"]
+      },
+      "school_analysis": {
+        "traditional_interpretation": "傳統派解釋",
+        "modern_interpretation": "現代派解釋",
+        "hybrid_interpretation": "混合派解釋",
+        "selected_interpretation": "選定的解釋",
+        "selection_reason": "選擇理由"
+      }
+    },
+    "rule_validation": {
+      "consistency_check": "一致性檢查結果",
+      "logic_validation": "邏輯驗證結果",
+      "conflict_detection": "衝突檢測結果",
+      "confidence_score": "置信度分數"
+    },
+    "interpretation": {
+      "overall_meaning": "整體含義",
+      "key_characteristics": ["關鍵特徵"],
+      "life_guidance": ["人生指導"],
+      "recommendations": ["建議事項"]
+    }
+  }
+  ```
+  
+  ## 規則應用指南
+  
+  ### 1. 星曜類型規則
+  - **主星**：影響力最大，決定宮位主要特徵
+  - **輔星**：輔助主星，增強或減弱主星影響
+  - **煞星**：帶來挑戰和阻礙，需要特別注意
+  - **四化星**：帶來變化，影響星曜的表現方式
+  
+  ### 2. 五行屬性規則
+  - **金**：主收斂、決斷、財富
+  - **木**：主生長、智慧、學習
+  - **水**：主流動、智慧、財富
+  - **火**：主光明、名聲、權力
+  - **土**：主穩定、包容、財富
+  
+  ### 3. 廟旺陷規則
+  - **廟**：星曜力量最強，正面影響最大
+  - **旺**：星曜力量強，正面影響大
+  - **利**：星曜力量中等，正面影響中等
+  - **得地**：星曜力量較弱，正面影響較小
+  - **不得地**：星曜力量弱，正面影響小
+  - **陷**：星曜力量最弱，負面影響最大
+  
+  ### 4. 宮位規則
+  - **命宮**：個人特質和人生方向
+  - **事業宮**：事業發展和成就
+  - **財帛宮**：財富狀況和理財能力
+  - **感情宮**：感情生活和婚姻狀況
+  - **健康宮**：健康狀況和身體特徵
+  
+  ## 質量檢查
+  
+  請確保：
+  1. 規則應用準確無誤
+  2. 邏輯推理清晰合理
+  3. 解釋客觀專業
+  4. 輸出格式符合要求
+  5. 置信度評估準確
+  
+  ## 注意事項
+  
+  - 請使用專業的命理術語
+  - 保持分析的客觀性和專業性
+  - 注意不同流派的差異
+  - 結合星曜的實際情況進行分析
+
+# 驗證規則
+validation_rules:
+  input_validation:
+    - rule: "星曜名稱檢查"
+      condition: "star_name 必須是有效的星曜名稱"
+      error_message: "星曜名稱不正確，請提供有效的星曜名稱"
+    
+    - rule: "星曜屬性檢查"
+      condition: "star_properties 必須包含完整的星曜屬性"
+      error_message: "星曜屬性不完整，請提供完整的星曜屬性資訊"
+    
+    - rule: "宮位位置檢查"
+      condition: "palace_position 必須是有效的宮位名稱"
+      error_message: "宮位位置不正確，請提供有效的宮位名稱"
+    
+    - rule: "規則集檢查"
+      condition: "rule_set 必須是 'traditional', 'modern', 或 'hybrid'"
+      error_message: "規則集類型不正確，請選擇有效的規則集"
+
+  output_validation:
+    - rule: "規則應用完整性檢查"
+      condition: "必須包含所有規則類型的應用結果"
+      error_message: "規則應用不完整"
+    
+    - rule: "邏輯一致性檢查"
+      condition: "規則應用結果必須邏輯一致"
+      error_message: "規則應用結果邏輯不一致"
+    
+    - rule: "置信度檢查"
+      condition: "置信度分數必須在 0-1 之間"
+      error_message: "置信度分數超出有效範圍"
+    
+    - rule: "JSON 格式檢查"
+      condition: "輸出必須是有效的 JSON 格式"
+      error_message: "輸出格式不正確"
+
+# 錯誤處理
+error_handling:
+  rule_application_error:
+    template: |
+      星曜規則應用過程中出現錯誤：{{error_message}}
+      請檢查輸入數據是否正確，特別是：
+      - 星曜名稱是否有效
+      - 星曜屬性是否完整
+      - 宮位位置是否正確
+      - 規則集是否有效
+      
+      建議：請重新確認輸入數據後再次嘗試。
+    
+  validation_error:
+    template: |
+      數據驗證失敗：{{validation_error}}
+      請檢查以下項目：
+      - 輸入格式是否符合要求
+      - 必填欄位是否完整
+      - 數據值是否在有效範圍內
+      
+      建議：請參考模板說明修正輸入數據。
+    
+  unknown_error:
+    template: |
+      分析過程中出現未知錯誤。
+      錯誤詳情：{{error_details}}
+      
+      建議：請稍後重試，如問題持續存在，請聯繫技術支援。
+
+# 測試用例
+test_cases:
+  - name: "紫微星在命宮"
+    input:
+      star_name: "紫微"
+      star_properties:
+        type: "主星"
+        category: "帝星"
+        element: "土"
+        yin_yang: "陰"
+        nature: "吉"
+        strength: "廟"
+      palace_position: "命宮"
+      rule_set: "traditional"
+    expected_output:
+      analysis_info:
+        star_name: "紫微"
+        palace_position: "命宮"
+        rule_set: "traditional"
+      rule_application:
+        basic_properties:
+          type_rule: "主星規則應用"
+        strength_analysis:
+          strength_level: "廟"
+        palace_analysis:
+          palace_rule: "命宮規則應用"
+      confidence_score: 0.9
+  
+  - name: "武曲星在財帛宮"
+    input:
+      star_name: "武曲"
+      star_properties:
+        type: "主星"
+        category: "財星"
+        element: "金"
+        yin_yang: "陰"
+        nature: "吉"
+        strength: "旺"
+      palace_position: "財帛宮"
+      rule_set: "modern"
+    expected_output:
+      analysis_info:
+        star_name: "武曲"
+        palace_position: "財帛宮"
+        rule_set: "modern"
+      rule_application:
+        basic_properties:
+          type_rule: "主星規則應用"
+        strength_analysis:
+          strength_level: "旺"
+        palace_analysis:
+          palace_rule: "財帛宮規則應用"
+      confidence_score: 0.8
+
+# 性能配置
+performance:
+  timeout: "25s"
+  max_retries: 3
+  cache_duration: "12h"
+  parallel_processing: false
+
+# 版本歷史
+version_history:
+  - version: "1.0.0"
+    date: "2025-09-13"
+    changes: "初始版本，包含基本的星曜規則應用功能"
+    author: "BMAD Astrology Framework"

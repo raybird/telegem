@@ -1,0 +1,314 @@
+# 流日分析提示詞模板
+# 用於時間敘事者智能體進行流日運勢分析
+# 版本: 1.0.0
+# 創建日期: 2025-09-13
+
+template_metadata:
+  name: "流日分析模板"
+  version: "1.0.0"
+  description: "基於流日計算規則進行詳細的流日運勢分析"
+  author: "BMAD Astrology Framework"
+  created_date: "2025-09-13"
+  last_updated: "2025-09-13"
+  target_agent: "time-narrator"
+  template_type: "daily_analysis"
+  complexity_level: "advanced"
+
+# 流日分析提示詞模板
+daily_analysis_prompt:
+  system_prompt: |
+    你是專業的紫微斗數時間敘事者，專門負責流日運勢分析。你具備深厚的命理學知識和豐富的實戰經驗，能夠準確計算流日宮位、主星、四化，並提供詳細的運勢分析和實用建議。
+    
+    **你的核心能力：**
+    1. 精確計算流日宮位、主星、四化星配置
+    2. 分析流日運勢的吉凶強弱
+    3. 預測流日可能發生的事件和機遇
+    4. 提供具體的行動建議和注意事項
+    5. 結合本命盤和流月特點進行個性化分析
+    
+    **分析原則：**
+    - 基於科學的命理計算方法
+    - 提供機率性預測，避免絕對化表述
+    - 結合實際生活情況給出實用建議
+    - 保持客觀中立的分析態度
+    - 重視用戶的隱私和個人選擇
+
+  user_prompt_template: |
+    請為我分析{{year}}年{{month}}月{{day}}日的流日運勢。
+    
+    **用戶基本資訊：**
+    - 出生日期：{{birth_date}}
+    - 出生時間：{{birth_time}}
+    - 出生地點：{{birth_location}}
+    - 性別：{{gender}}
+    
+    **本命盤資訊：**
+    - 命宮主星：{{life_palace_main_star}}
+    - 流年宮位：{{yearly_palace}}
+    - 流年主星：{{yearly_main_star}}
+    - 流年四化：{{yearly_four_transformations}}
+    
+    **流月資訊：**
+    - 流月宮位：{{monthly_palace}}
+    - 流月主星：{{monthly_main_star}}
+    - 流月四化：{{monthly_four_transformations}}
+    
+    **分析要求：**
+    1. 計算流日宮位、主星、四化配置
+    2. 分析流日整體運勢強弱
+    3. 預測流日可能發生的事件
+    4. 提供具體的行動建議
+    5. 指出需要注意的事項
+    
+    請按照以下格式提供分析結果：
+
+  analysis_format: |
+    ## 🌅 {{year}}年{{month}}月{{day}}日流日運勢分析
+    
+    ### 📊 流日基本配置
+    **流日宮位：** {{daily_palace}}
+    **流日主星：** {{daily_main_star}}
+    **流日四化：** {{daily_four_transformations}}
+    **流日強度：** {{daily_intensity}}/10
+    
+    ### 🔮 流日運勢分析
+    **整體運勢：** {{overall_fortune}}
+    **運勢特點：** {{fortune_characteristics}}
+    **吉凶判斷：** {{fortune_judgment}}
+    
+    ### 🎯 各宮位影響
+    {% for palace in affected_palaces %}
+    **{{palace.name}}：** {{palace.influence}}
+    {% endfor %}
+    
+    ### 📅 流日事件預測
+    {% for event in predicted_events %}
+    **{{event.category}}：** {{event.description}}
+    - 發生機率：{{event.probability}}%
+    - 最佳時機：{{event.best_timing}}
+    - 應對建議：{{event.advice}}
+    {% endfor %}
+    
+    ### 💡 流日行動建議
+    **積極行動：**
+    {% for action in positive_actions %}
+    - {{action}}
+    {% endfor %}
+    
+    **注意事項：**
+    {% for warning in warnings %}
+    - {{warning}}
+    {% endfor %}
+    
+    **開運方法：**
+    {% for method in fortune_methods %}
+    - {{method}}
+    {% endfor %}
+    
+    ### ⚠️ 流日禁忌提醒
+    {% for taboo in taboos %}
+    - {{taboo}}
+    {% endfor %}
+    
+    ### 🔄 流月流日互動分析
+    **互動關係：** {{monthly_daily_interaction}}
+    **綜合影響：** {{combined_influence}}
+    **建議調整：** {{adjustment_suggestions}}
+    
+    ---
+    *本分析基於傳統紫微斗數理論，僅供參考，請結合實際情況理性判斷。*
+
+# 流日計算規則
+calculation_rules:
+  daily_palace_calculation:
+    formula: "流日宮位 = (流月宮位 + 流日數 - 1) % 12 + 1"
+    example: "流月在寅宮(3)，流日為15日，則流日宮位 = (3 + 15 - 1) % 12 + 1 = 5 (辰宮)"
+    
+  daily_star_calculation:
+    formula: "流日主星 = 流月主星 + 流日天干對應主星"
+    example: "流月主星為廉貞，流日天干為乙，乙年化祿為天機，則流日主星為天機"
+    
+  daily_four_transformations:
+    formula: "流日四化 = 流月四化 + 流日天干四化"
+    example: "流月四化 + 乙年四化(天機化祿、天梁化權、紫微化科、太陰化忌)"
+
+# 流日分析標準
+analysis_standards:
+  intensity_levels:
+    - level: "極強"
+      range: "9-10"
+      description: "運勢極其強烈，影響力巨大"
+      
+    - level: "很強"
+      range: "7-8"
+      description: "運勢很強，影響力明顯"
+      
+    - level: "中等"
+      range: "5-6"
+      description: "運勢中等，影響力一般"
+      
+    - level: "較弱"
+      range: "3-4"
+      description: "運勢較弱，影響力有限"
+      
+    - level: "很弱"
+      range: "1-2"
+      description: "運勢很弱，影響力微小"
+
+  fortune_categories:
+    - category: "大吉"
+      description: "運勢極佳，機遇多多"
+      characteristics: ["貴人相助", "機遇頻現", "事事順利", "成就顯著"]
+      
+    - category: "中吉"
+      description: "運勢良好，平穩發展"
+      characteristics: ["運勢平穩", "小有收穫", "人際和諧", "健康良好"]
+      
+    - category: "平"
+      description: "運勢平穩，無大起大落"
+      characteristics: ["運勢平穩", "按部就班", "無大變化", "保持現狀"]
+      
+    - category: "中凶"
+      description: "運勢不佳，需要謹慎"
+      characteristics: ["阻礙較多", "困難增加", "需要努力", "謹慎行事"]
+      
+    - category: "大凶"
+      description: "運勢極差，挑戰重重"
+      characteristics: ["阻礙重重", "困難巨大", "需要堅強", "避免冒險"]
+
+# 流日事件預測標準
+event_prediction_standards:
+  probability_levels:
+    - level: "極高"
+      range: "80-100%"
+      description: "事件發生機率極高"
+      
+    - level: "高"
+      range: "60-79%"
+      description: "事件發生機率較高"
+      
+    - level: "中等"
+      range: "40-59%"
+      description: "事件發生機率中等"
+      
+    - level: "低"
+      range: "20-39%"
+      description: "事件發生機率較低"
+      
+    - level: "極低"
+      range: "0-19%"
+      description: "事件發生機率極低"
+
+  event_categories:
+    - category: "日常機遇"
+      triggers: ["化祿流日", "吉星流日", "有利宮位流日"]
+      events: ["貴人相助", "意外收穫", "好消息", "機會出現"]
+      
+    - category: "日常挑戰"
+      triggers: ["化忌流日", "煞星流日", "不利宮位流日"]
+      events: ["阻礙出現", "困難增加", "意外狀況", "需要謹慎"]
+      
+    - category: "日常活動"
+      triggers: ["化權流日", "化科流日", "中性星流日"]
+      events: ["重要決策", "學習進修", "社交活動", "例行工作"]
+
+# 流月流日互動分析
+monthly_daily_interaction:
+  interaction_types:
+    - type: "同宮"
+      condition: "流月宮位 = 流日宮位"
+      effect: "運勢加倍，吉凶更明顯"
+      multiplier: 1.5
+      description: "流月流日同宮，運勢影響力增強"
+      
+    - type: "對沖"
+      condition: "流月宮位與流日宮位相差6"
+      effect: "運勢對沖，變化較大"
+      multiplier: 0.8
+      description: "流月流日對沖，運勢變化較大"
+      
+    - type: "三合"
+      condition: "流月宮位與流日宮位成三合關係"
+      effect: "運勢和諧，穩定發展"
+      multiplier: 1.2
+      description: "流月流日三合，運勢和諧穩定"
+      
+    - type: "六合"
+      condition: "流月宮位與流日宮位成六合關係"
+      effect: "運勢協調，相互促進"
+      multiplier: 1.1
+      description: "流月流日六合，運勢協調促進"
+      
+    - type: "無特殊關係"
+      condition: "流月宮位與流日宮位無特殊關係"
+      effect: "運勢獨立，各自發揮"
+      multiplier: 1.0
+      description: "流月流日無特殊關係，運勢獨立發揮"
+
+# 流日建議模板
+advice_templates:
+  positive_actions:
+    - "把握當日機遇，積極行動"
+    - "加強人際互動，尋求合作"
+    - "專注於重要事務，提高效率"
+    - "保持樂觀心態，迎接挑戰"
+    - "投資理財，增加收入來源"
+    - "學習進修，提升能力"
+    - "參與社交活動，擴展人脈"
+    
+  warnings:
+    - "避免衝動決策，三思而後行"
+    - "注意身體健康，適當休息"
+    - "謹慎處理人際關係，避免衝突"
+    - "控制支出，避免過度消費"
+    - "保持低調，避免過度張揚"
+    - "注意交通安全，謹慎出行"
+    - "避免與他人發生爭執"
+    
+  fortune_methods:
+    - "佩戴幸運飾品，增強運勢"
+    - "調整居住環境，改善風水"
+    - "進行適當運動，增強體質"
+    - "學習新技能，提升能力"
+    - "參與慈善活動，積累福德"
+    - "調整作息時間，保持規律"
+    - "選擇有利方位進行重要活動"
+    
+  taboos:
+    - "避免在不利時機進行重大決策"
+    - "不要與他人發生爭執或衝突"
+    - "避免過度勞累，注意休息"
+    - "不要進行高風險投資"
+    - "避免在不利方位進行重要活動"
+    - "不要忽略身體健康信號"
+    - "避免在情緒不穩定時做決定"
+
+# 流日強度評估標準
+intensity_assessment:
+  assessment_criteria:
+    - criterion: "主星廟旺"
+      weight: 0.25
+      description: "流日主星在流日宮位的廟旺程度"
+      
+    - criterion: "四化星影響"
+      weight: 0.25
+      description: "流日四化星的吉凶影響"
+      
+    - criterion: "宮位強弱"
+      weight: 0.25
+      description: "流日宮位的先天強弱"
+      
+    - criterion: "流月流日互動"
+      weight: 0.25
+      description: "流月流日之間的互動影響"
+
+  intensity_calculation:
+    formula: "流日強度 = (主星廟旺 × 0.25) + (四化星影響 × 0.25) + (宮位強弱 × 0.25) + (流月流日互動 × 0.25)"
+    example: "主星廟旺8分 + 四化星影響7分 + 宮位強弱6分 + 流月流日互動8分 = (8×0.25) + (7×0.25) + (6×0.25) + (8×0.25) = 7.25分"
+
+# 版本歷史
+version_history:
+  - version: "1.0.0"
+    date: "2025-09-13"
+    changes: "初始版本，包含完整的流日分析模板"
+    author: "BMAD Astrology Framework"

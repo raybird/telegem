@@ -49,6 +49,7 @@ docker compose logs -f telenexus
 - 排程系統（新增、刪除、重載、健康檢查）
 - 雙服務標準架構（`telenexus` + `agent-runner`）
 - `workspace/context/` 觀測快照（runtime/provider/scheduler/error/runner）
+- 內建常用基礎工具（`git`、`unzip`）減少臨時繞道
 
 ---
 

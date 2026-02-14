@@ -1,0 +1,362 @@
+# 格局識別提示詞模板
+# 用於識別和分析紫微斗數命盤中的特殊格局
+# 版本: 1.0.0
+# 創建日期: 2025-09-13
+
+template_metadata:
+  name: "格局識別模板"
+  version: "1.0.0"
+  description: "識別和分析紫微斗數命盤中的特殊格局"
+  author: "BMAD Astrology Framework"
+  created_date: "2025-09-13"
+  last_updated: "2025-09-13"
+  compatible_agents: ["rule-constructor"]
+  input_format: "JSON"
+  output_format: "JSON"
+
+# 模板變數定義
+variables:
+  natal_chart:
+    type: "object"
+    description: "命盤數據，包含星曜位置和宮位資訊"
+    required: true
+    
+  star_configurations:
+    type: "array"
+    description: "星曜配置資訊"
+    items:
+      type: "object"
+      properties:
+        star_name: "星曜名稱"
+        palace: "落宮位置"
+        strength: "廟旺陷狀態"
+        attributes: "星曜屬性"
+    required: true
+    
+  palace_relations:
+    type: "object"
+    description: "宮位關係資訊"
+    properties:
+      triangular_relations: "三合關係"
+      opposition_relations: "對沖關係"
+      harmony_relations: "六合關係"
+      conflict_relations: "刑剋關係"
+    required: true
+
+# 核心提示詞模板
+prompt_template: |
+  你是一位專業的紫微斗數格局識別專家，精通各種特殊格局的識別和分析。
+  
+  ## 任務描述
+  請根據提供的命盤數據，識別和分析其中的特殊格局。
+  
+  ## 輸入資訊
+  - 命盤數據：{{natal_chart}}
+  - 星曜配置：{{star_configurations}}
+  - 宮位關係：{{palace_relations}}
+  
+  ## 識別要求
+  
+  ### 1. 貴格識別
+  識別以下貴格：
+  - **君臣慶會格**：紫微、天府同宮或會照，有左輔、右弼、文昌、文曲等吉星
+  - **紫府同宮格**：紫微、天府同宮
+  - **日月並明格**：太陽、太陰在對宮或三合
+  - **機月同梁格**：天機、太陰、天同、天梁會照
+  - **三奇嘉會格**：化祿、化權、化科三奇星會照
+  
+  ### 2. 富格識別
+  識別以下富格：
+  - **財星得地格**：武曲、天府在財帛宮廟旺
+  - **祿存得地格**：祿存在財帛宮廟旺
+  - **四化財星格**：化祿在財帛宮或與財星會照
+  
+  ### 3. 貧格識別
+  識別以下貧格：
+  - **財星失地格**：武曲、天府在財帛宮陷地
+  - **四化破財格**：化忌在財帛宮或與財星會照
+  - **煞星破財格**：煞星在財帛宮或與財星會照
+  
+  ### 4. 賤格識別
+  識別以下賤格：
+  - **煞星守命格**：煞星在命宮或與主星會照
+  - **四化失地格**：化忌在命宮或與主星會照
+  
+  ### 5. 特殊格識別
+  識別以下特殊格：
+  - **桃花格**：貪狼、廉貞、太陰等桃花星會照
+  - **文才格**：文昌、文曲會照或化科
+  - **武才格**：武曲、七殺、破軍會照
+  - **長壽格**：天梁、天同會照或化科
+  
+  ## 分析要求
+  
+  ### 1. 格局強度評估
+  根據以下因素評估格局強度：
+  - **星曜廟旺陷狀態**：廟旺為強，陷地為弱
+  - **輔星配置情況**：吉星多為強，煞星多為弱
+  - **四化星影響**：化祿、化權、化科為吉，化忌為凶
+  - **宮位關係影響**：三合、六合為吉，刑剋為凶
+  
+  ### 2. 格局組合分析
+  分析多個格局的組合效果：
+  - **格局相生**：多個格局相互支援
+  - **格局相剋**：多個格局相互制約
+  - **格局平衡**：多個格局形成平衡
+  
+  ### 3. 格局影響評估
+  評估格局對人生的影響：
+  - **事業影響**：對事業發展的影響
+  - **財運影響**：對財富狀況的影響
+  - **感情影響**：對感情生活的影響
+  - **健康影響**：對健康狀況的影響
+  
+  ## 輸出格式要求
+  
+  請以以下 JSON 格式輸出結果：
+  
+  ```json
+  {
+    "recognition_info": {
+      "analysis_time": "分析時間",
+      "total_patterns": "識別格局總數",
+      "recognition_method": "識別方法"
+    },
+    "identified_patterns": [
+      {
+        "pattern_name": "格局名稱",
+        "pattern_type": "格局類型",
+        "pattern_level": "格局等級",
+        "involved_stars": ["相關星曜"],
+        "involved_palaces": ["相關宮位"],
+        "pattern_conditions": "格局條件",
+        "strength_assessment": {
+          "strength_level": "強度等級",
+          "strength_score": "強度分數",
+          "strength_factors": ["強度因素"]
+        },
+        "influence_analysis": {
+          "career_impact": "事業影響",
+          "wealth_impact": "財運影響",
+          "relationship_impact": "感情影響",
+          "health_impact": "健康影響",
+          "overall_impact": "整體影響"
+        },
+        "interpretation": {
+          "traditional_meaning": "傳統含義",
+          "modern_meaning": "現代含義",
+          "life_guidance": "人生指導",
+          "recommendations": ["建議事項"]
+        },
+        "confidence_score": "置信度分數"
+      }
+    ],
+    "pattern_combinations": [
+      {
+        "combination_type": "組合類型",
+        "involved_patterns": ["相關格局"],
+        "combination_effect": "組合效果",
+        "synergy_level": "協同程度",
+        "overall_influence": "整體影響"
+      }
+    ],
+    "special_insights": {
+      "unique_characteristics": ["獨特特徵"],
+      "rare_combinations": ["稀有組合"],
+      "notable_aspects": ["值得注意的面向"],
+      "life_themes": ["人生主題"]
+    },
+    "validation": {
+      "recognition_accuracy": "識別準確性",
+      "logic_consistency": "邏輯一致性",
+      "completeness_check": "完整性檢查",
+      "confidence_assessment": "置信度評估"
+    }
+  }
+  ```
+  
+  ## 識別規則
+  
+  ### 1. 貴格識別規則
+  - **君臣慶會格**：紫微、天府同宮或會照，且有左輔、右弼、文昌、文曲等吉星
+  - **紫府同宮格**：紫微、天府同宮
+  - **日月並明格**：太陽、太陰在對宮或三合
+  - **機月同梁格**：天機、太陰、天同、天梁會照
+  - **三奇嘉會格**：化祿、化權、化科三奇星會照
+  
+  ### 2. 富格識別規則
+  - **財星得地格**：武曲、天府在財帛宮廟旺
+  - **祿存得地格**：祿存在財帛宮廟旺
+  - **四化財星格**：化祿在財帛宮或與財星會照
+  
+  ### 3. 貧格識別規則
+  - **財星失地格**：武曲、天府在財帛宮陷地
+  - **四化破財格**：化忌在財帛宮或與財星會照
+  - **煞星破財格**：煞星在財帛宮或與財星會照
+  
+  ### 4. 賤格識別規則
+  - **煞星守命格**：煞星在命宮或與主星會照
+  - **四化失地格**：化忌在命宮或與主星會照
+  
+  ### 5. 特殊格識別規則
+  - **桃花格**：貪狼、廉貞、太陰等桃花星會照
+  - **文才格**：文昌、文曲會照或化科
+  - **武才格**：武曲、七殺、破軍會照
+  - **長壽格**：天梁、天同會照或化科
+  
+  ## 強度評估標準
+  
+  ### 1. 星曜強度評估
+  - **廟**：1.0 分
+  - **旺**：0.8 分
+  - **利**：0.6 分
+  - **得地**：0.4 分
+  - **不得地**：0.2 分
+  - **陷**：0.0 分
+  
+  ### 2. 輔星強度評估
+  - **吉星**：+0.2 分
+  - **煞星**：-0.2 分
+  - **四化吉星**：+0.3 分
+  - **四化凶星**：-0.3 分
+  
+  ### 3. 宮位關係強度評估
+  - **三合支援**：+0.2 分
+  - **六合支援**：+0.1 分
+  - **對沖平衡**：0.0 分
+  - **刑剋阻礙**：-0.2 分
+  
+  ## 質量檢查
+  
+  請確保：
+  1. 格局識別準確無誤
+  2. 強度評估客觀合理
+  3. 影響分析全面深入
+  4. 解釋專業客觀
+  5. 輸出格式符合要求
+  
+  ## 注意事項
+  
+  - 請使用專業的命理術語
+  - 保持分析的客觀性和專業性
+  - 注意格局的複雜性和多樣性
+  - 結合命盤整體進行分析
+
+# 驗證規則
+validation_rules:
+  input_validation:
+    - rule: "命盤數據完整性檢查"
+      condition: "natal_chart 必須包含完整的命盤資訊"
+      error_message: "命盤數據不完整，請提供完整的命盤資訊"
+    
+    - rule: "星曜配置檢查"
+      condition: "star_configurations 必須包含所有星曜的配置資訊"
+      error_message: "星曜配置不完整，請提供所有星曜的配置資訊"
+    
+    - rule: "宮位關係檢查"
+      condition: "palace_relations 必須包含完整的宮位關係資訊"
+      error_message: "宮位關係不完整，請提供完整的宮位關係資訊"
+    
+    - rule: "數據格式檢查"
+      condition: "輸入數據必須是有效的 JSON 格式"
+      error_message: "輸入數據格式不正確，請使用有效的 JSON 格式"
+
+  output_validation:
+    - rule: "格局識別完整性檢查"
+      condition: "必須識別出命盤中的所有特殊格局"
+      error_message: "格局識別不完整"
+    
+    - rule: "強度評估檢查"
+      condition: "強度評估必須客觀合理"
+      error_message: "強度評估不準確"
+    
+    - rule: "影響分析檢查"
+      condition: "影響分析必須全面深入"
+      error_message: "影響分析不完整"
+    
+    - rule: "JSON 格式檢查"
+      condition: "輸出必須是有效的 JSON 格式"
+      error_message: "輸出格式不正確"
+
+# 錯誤處理
+error_handling:
+  recognition_error:
+    template: |
+      格局識別過程中出現錯誤：{{error_message}}
+      請檢查輸入數據是否正確，特別是：
+      - 命盤數據是否完整
+      - 星曜配置是否正確
+      - 宮位關係是否合理
+      
+      建議：請重新確認命盤數據後再次嘗試。
+    
+  validation_error:
+    template: |
+      數據驗證失敗：{{validation_error}}
+      請檢查以下項目：
+      - 輸入格式是否符合要求
+      - 必填欄位是否完整
+      - 數據值是否在有效範圍內
+      
+      建議：請參考模板說明修正輸入數據。
+    
+  unknown_error:
+    template: |
+      識別過程中出現未知錯誤。
+      錯誤詳情：{{error_details}}
+      
+      建議：請稍後重試，如問題持續存在，請聯繫技術支援。
+
+# 測試用例
+test_cases:
+  - name: "君臣慶會格測試"
+    input:
+      natal_chart:
+        palaces: 12
+        stars: 14
+        four_transformations: 4
+      star_configurations:
+        - {star_name: "紫微", palace: "命宮", strength: "廟"}
+        - {star_name: "天府", palace: "命宮", strength: "廟"}
+        - {star_name: "左輔", palace: "命宮", strength: "廟"}
+        - {star_name: "右弼", palace: "命宮", strength: "廟"}
+      palace_relations:
+        triangular_relations: ["命宮", "官祿宮", "財帛宮"]
+    expected_output:
+      identified_patterns:
+        - pattern_name: "君臣慶會格"
+          pattern_type: "貴格"
+          pattern_level: "上等"
+          confidence_score: 0.9
+  
+  - name: "財星得地格測試"
+    input:
+      natal_chart:
+        palaces: 12
+        stars: 14
+        four_transformations: 4
+      star_configurations:
+        - {star_name: "武曲", palace: "財帛宮", strength: "廟"}
+        - {star_name: "天府", palace: "財帛宮", strength: "廟"}
+      palace_relations:
+        triangular_relations: ["命宮", "官祿宮", "財帛宮"]
+    expected_output:
+      identified_patterns:
+        - pattern_name: "財星得地格"
+          pattern_type: "富格"
+          pattern_level: "上等"
+          confidence_score: 0.8
+
+# 性能配置
+performance:
+  timeout: "30s"
+  max_retries: 3
+  cache_duration: "18h"
+  parallel_processing: true
+
+# 版本歷史
+version_history:
+  - version: "1.0.0"
+    date: "2025-09-13"
+    changes: "初始版本，包含基本的格局識別功能"
+    author: "BMAD Astrology Framework"

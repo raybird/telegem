@@ -1,0 +1,387 @@
+# 星曜位置計算提示詞模板（整合四柱八字）
+# 用於計算紫微斗數命盤中星曜的落宮位置
+# 版本: 2.0.0
+# 創建日期: 2025-09-13
+# 更新日期: 2025-01-27
+
+template_metadata:
+  name: "星曜位置計算模板（整合四柱八字）"
+  version: "2.0.0"
+  description: "根據出生資訊計算完整的四柱八字和紫微斗數命盤中所有星曜的落宮位置"
+  author: "BMAD Astrology Framework"
+  created_date: "2025-09-13"
+  last_updated: "2025-12-03"
+  compatible_agents: ["structure-analyst"]
+  input_format: "YAML"
+  output_format: "JSON"
+  dependencies: ["four-pillars-calculation-tmpl.yaml", "heavenly-stem-earthly-branch-cycle-table.yaml", "lunar-calendar-conversion.yaml"]
+
+# 模板變數定義
+variables:
+  birth_date:
+    type: "string"
+    format: "YYYY-MM-DD"
+    description: "出生日期（公曆）"
+    example: "1990-05-15"
+    required: true
+    
+  birth_time:
+    type: "string"
+    format: "HH:MM"
+    description: "出生時間（24小時制）"
+    example: "14:30"
+    required: true
+    
+  birth_location:
+    type: "object"
+    description: "出生地點資訊"
+    properties:
+      latitude:
+        type: "number"
+        description: "緯度"
+        example: 25.0330
+        required: true
+      longitude:
+        type: "number"
+        description: "經度"
+        example: 121.5654
+        required: true
+      timezone:
+        type: "string"
+        description: "時區"
+        example: "Asia/Taipei"
+        required: true
+      city:
+        type: "string"
+        description: "城市名稱"
+        example: "台北"
+        required: true
+      country:
+        type: "string"
+        description: "國家名稱"
+        example: "台灣"
+        required: true
+    required: true
+    
+  gender:
+    type: "string"
+    enum: ["male", "female"]
+    description: "性別"
+    example: "male"
+    required: true
+
+# 核心提示詞模板
+prompt_template: |
+  你是一位專業的紫微斗數命理師，具有深厚的傳統命理學知識和精確的計算能力。
+  
+  ## 任務描述
+  請根據提供的出生資訊，計算紫微斗數命盤中所有星曜的落宮位置。
+  
+  ## 輸入資訊
+  - 出生日期：{{birth_date}}
+  - 出生時間：{{birth_time}}
+  - 出生地點：{{birth_location.city}}, {{birth_location.country}}
+  - 經緯度：{{birth_location.latitude}}, {{birth_location.longitude}}
+  - 時區：{{birth_location.timezone}}
+  - 性別：{{gender}}
+  
+  ## 計算要求
+  
+  ### 1. 真太陽時校正
+  - 根據出生地點經度計算真太陽時
+  - 公式：真太陽時 = 當地時間 + (經度 - 標準經度) × 4分鐘
+  - 標準經度：東經120度（台灣標準時間）
+  - 校正後確定正確的時辰
+  
+  ### 2. 四柱八字計算
+  - 計算完整的四柱八字（年柱、月柱、日柱、時柱）
+  - 使用天干地支循環系統
+  - 確定五行屬性和陰陽屬性
+  - 進行農曆轉換和節氣計算
+  
+  ### 3. 命宮計算
+  - 根據四柱八字確定命宮位置
+  - 按照順時針方向排列十二宮位
+  - 確定各宮位的天干地支
+  
+  ### 4. 星曜位置計算
+  請計算以下星曜的落宮位置：
+  
+  #### 主星（14顆）
+  - 紫微、天機、太陽、武曲、天同、廉貞
+  - 天府、太陰、貪狼、巨門、天相、天梁、七殺、破軍
+  
+  #### 輔星（重要）
+  - 左輔、右弼、文昌、文曲、祿存、天魁、天鉞
+  - 擎羊、陀羅、火星、鈴星、地空、地劫
+  
+  #### 四化星
+  - 化祿、化權、化科、化忌（根據出生年份天干確定）
+  
+  ### 5. 星曜屬性判斷
+  - 判斷各星曜的廟旺陷狀態
+  - 確定星曜的五行屬性
+  - 標記星曜的陰陽性質
+  
+  ## 輸出格式要求
+  
+  請以以下 JSON 格式輸出結果：
+  
+  ```json
+  {
+    "calculation_info": {
+      "solar_date": "公曆日期",
+      "lunar_date": "農曆日期",
+      "true_solar_time": "真太陽時",
+      "corrected_hour": "校正後時辰",
+      "life_palace": "命宮位置",
+      "calculation_time": "計算時間"
+    },
+    "four_pillars": {
+      "year_pillar": {
+        "heavenly_stem": "年干",
+        "earthly_branch": "年支",
+        "element": "五行屬性",
+        "yin_yang": "陰陽屬性",
+        "full_name": "完整名稱"
+      },
+      "month_pillar": {
+        "heavenly_stem": "月干",
+        "earthly_branch": "月支",
+        "element": "五行屬性",
+        "yin_yang": "陰陽屬性",
+        "full_name": "完整名稱"
+      },
+      "day_pillar": {
+        "heavenly_stem": "日干",
+        "earthly_branch": "日支",
+        "element": "五行屬性",
+        "yin_yang": "陰陽屬性",
+        "full_name": "完整名稱"
+      },
+      "hour_pillar": {
+        "heavenly_stem": "時干",
+        "earthly_branch": "時支",
+        "element": "五行屬性",
+        "yin_yang": "陰陽屬性",
+        "full_name": "完整名稱"
+      }
+    },
+    "five_elements_analysis": {
+      "wood_count": "木的數量",
+      "fire_count": "火的數量",
+      "earth_count": "土的數量",
+      "metal_count": "金的數量",
+      "water_count": "水的數量",
+      "strongest_element": "最強五行",
+      "weakest_element": "最弱五行"
+    },
+    "palaces": [
+      {
+        "id": "宮位名稱",
+        "position": "宮位序號",
+        "heavenly_stem": "天干",
+        "earthly_branch": "地支",
+        "main_stars": ["主星列表"],
+        "secondary_stars": ["輔星列表"],
+        "four_transformations": ["四化星列表"]
+      }
+    ],
+    "stars": [
+      {
+        "name": "星曜名稱",
+        "type": "星曜類型",
+        "palace": "落宮位置",
+        "strength": "廟旺陷狀態",
+        "element": "五行屬性",
+        "yin_yang": "陰陽性質",
+        "nature": "吉凶性質"
+      }
+    ],
+    "four_transformations": {
+      "hua_lu": "化祿星",
+      "hua_quan": "化權星", 
+      "hua_ke": "化科星",
+      "hua_ji": "化忌星"
+    },
+    "validation": {
+      "total_stars": "星曜總數",
+      "palace_coverage": "宮位覆蓋情況",
+      "calculation_accuracy": "計算準確性檢查"
+    }
+  }
+  ```
+  
+  ## 計算規則
+  
+  ### 1. 真太陽時校正規則
+  - 經度差 = 出生地經度 - 標準經度
+  - 時間差 = 經度差 × 4分鐘
+  - 真太陽時 = 當地時間 + 時間差
+  
+  ### 2. 四柱八字計算規則
+  - 年柱：根據出生年份確定年干和年支
+  - 月柱：根據農曆月份和年干確定月干和月支（五虎遁）
+  - 日柱：根據公曆日期計算日干和日支
+  - 時柱：根據校正後的時辰和日干確定時干和時支（五鼠遁）
+  
+  ### 3. 命宮計算規則
+  - 根據四柱八字中的月支和時支確定命宮位置
+  - 命宮地支 = (月支 + 時支) % 12
+  - 按照順時針方向排列十二宮位
+  
+  ### 4. 星曜排列規則
+  - 紫微星：根據出生日期和時辰計算
+  - 天府星：與紫微星相對位置固定
+  - 其他主星：按照固定順序排列
+  - 輔星：根據主星位置和特定規則計算
+  
+  ### 5. 四化星計算規則
+  - 根據四柱八字中的年干確定四化星
+  - 甲年：化祿在廉貞，化權在破軍，化科在武曲，化忌在太陽
+  - 乙年：化祿在天機，化權在天梁，化科在紫微，化忌在太陰
+  - 丙年：化祿在天同，化權在天機，化科在文昌，化忌在廉貞
+  - 丁年：化祿在太陰，化權在天同，化科在天機，化忌在巨門
+  - 戊年：化祿在貪狼，化權在太陰，化科在右弼，化忌在天機
+  - 己年：化祿在武曲，化權在貪狼，化科在天梁，化忌在文曲
+  - 庚年：化祿在太陽，化權在武曲，化科在太陰，化忌在天同
+  - 辛年：化祿在巨門，化權在太陽，化科在文曲，化忌在文昌
+  - 壬年：化祿在天梁，化權在紫微，化科在左輔，化忌在武曲
+  - 癸年：化祿在破軍，化權在巨門，化科在太陰，化忌在貪狼
+  
+  ## 質量檢查
+  
+  請確保：
+  1. 所有星曜位置計算準確
+  2. 十二宮位完整無遺漏
+  3. 星曜屬性判斷正確
+  4. 四化星計算符合規則
+  5. 輸出格式符合要求
+  
+  ## 注意事項
+  
+  - 請使用傳統紫微斗數計算方法
+  - 確保計算過程的邏輯性和一致性
+  - 如有不確定的地方，請標註說明
+  - 保持專業和客觀的分析態度
+
+# 驗證規則
+validation_rules:
+  input_validation:
+    - rule: "日期格式檢查"
+      condition: "birth_date 必須符合 YYYY-MM-DD 格式"
+      error_message: "出生日期格式不正確，請使用 YYYY-MM-DD 格式"
+    
+    - rule: "時間格式檢查"
+      condition: "birth_time 必須符合 HH:MM 格式"
+      error_message: "出生時間格式不正確，請使用 HH:MM 格式"
+    
+    - rule: "經緯度範圍檢查"
+      condition: "緯度在 -90 到 90 之間，經度在 -180 到 180 之間"
+      error_message: "經緯度超出有效範圍"
+    
+    - rule: "性別值檢查"
+      condition: "gender 必須是 'male' 或 'female'"
+      error_message: "性別值不正確，請使用 'male' 或 'female'"
+
+  output_validation:
+    - rule: "星曜完整性檢查"
+      condition: "必須包含所有 14 顆主星的位置"
+      error_message: "主星位置計算不完整"
+    
+    - rule: "宮位完整性檢查"
+      condition: "必須包含所有 12 個宮位"
+      error_message: "宮位計算不完整"
+    
+    - rule: "四化星檢查"
+      condition: "必須包含化祿、化權、化科、化忌四顆星"
+      error_message: "四化星計算不完整"
+    
+    - rule: "JSON 格式檢查"
+      condition: "輸出必須是有效的 JSON 格式"
+      error_message: "輸出格式不正確"
+
+# 錯誤處理
+error_handling:
+  calculation_error:
+    template: |
+      計算過程中出現錯誤：{{error_message}}
+      請檢查輸入數據是否正確，特別是：
+      - 出生日期是否有效
+      - 出生時間是否在合理範圍內
+      - 出生地點的經緯度是否正確
+      
+      建議：請重新確認出生資訊後再次嘗試。
+    
+  validation_error:
+    template: |
+      數據驗證失敗：{{validation_error}}
+      請檢查以下項目：
+      - 輸入格式是否符合要求
+      - 必填欄位是否完整
+      - 數據值是否在有效範圍內
+      
+      建議：請參考模板說明修正輸入數據。
+    
+  unknown_error:
+    template: |
+      分析過程中出現未知錯誤。
+      錯誤詳情：{{error_details}}
+      
+      建議：請稍後重試，如問題持續存在，請聯繫技術支援。
+
+# 測試用例
+test_cases:
+  - name: "標準測試案例"
+    input:
+      birth_date: "1990-05-15"
+      birth_time: "14:30"
+      birth_location:
+        latitude: 25.0330
+        longitude: 121.5654
+        timezone: "Asia/Taipei"
+        city: "台北"
+        country: "台灣"
+      gender: "male"
+    expected_output:
+      calculation_info:
+        lunar_date: "農曆日期"
+        birth_hour: "未時"
+        life_palace: "命宮位置"
+      palaces_count: 12
+      stars_count: 14
+      four_transformations_count: 4
+  
+  - name: "邊界測試案例"
+    input:
+      birth_date: "2000-12-31"
+      birth_time: "23:59"
+      birth_location:
+        latitude: 0.0
+        longitude: 0.0
+        timezone: "UTC"
+        city: "格林威治"
+        country: "英國"
+      gender: "female"
+    expected_output:
+      calculation_info:
+        lunar_date: "農曆日期"
+        birth_hour: "子時"
+        life_palace: "命宮位置"
+      palaces_count: 12
+      stars_count: 14
+      four_transformations_count: 4
+
+# 性能配置
+performance:
+  timeout: "30s"
+  max_retries: 3
+  cache_duration: "24h"
+  parallel_processing: false
+
+# 版本歷史
+version_history:
+  - version: "1.0.0"
+    date: "2025-09-13"
+    changes: "初始版本，包含基本的星曜位置計算功能"
+    author: "BMAD Astrology Framework"

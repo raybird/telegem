@@ -1,0 +1,132 @@
+template:
+  name: "時間筆劃觸機分析模板"
+  version: "1.0.0"
+  description: "基於問事時間和問題筆劃的觸機占卜分析"
+  category: "觸機占卜"
+  created_date: "2025-09-14"
+  
+  inputs:
+    - name: "question_time"
+      type: "string"
+      required: true
+      description: "問事時間 (年-月)"
+      example: "2025-09"
+    - name: "question_text"
+      type: "string"
+      required: true
+      description: "問題文字"
+      example: "工作運勢如何"
+    - name: "question_type"
+      type: "string"
+      required: false
+      description: "問題類型 (工作/感情/健康/財運等)"
+      example: "工作"
+      
+  prompt: |
+    你是一位專業的紫微斗數觸機占卜分析師。請基於以下資訊進行觸機占卜分析：
+    
+    **問事時間：** {{question_time}}
+    **問題文字：** {{question_text}}
+    **問題類型：** {{question_type}}
+    
+    **觸機計算步驟：**
+    1. 提取問事時間的年月
+    2. 計算問題文字的總筆劃數
+    3. 日 = 筆劃數 % 當月天數
+    4. 時 = 筆劃數 % 12
+    5. 生成觸機命盤
+    
+    **筆劃計算規則：**
+    - 計算問題文字的總筆劃數
+    - 超過當月天數則扣除當月天數再取其數
+    - 超過12則扣除12取其數
+    - 時辰對應：1=子時，2=丑時，依此類推
+    
+    **分析重點：**
+    - 根據問題類型分析對應宮位
+    - 工作問題 → 官祿宮
+    - 感情問題 → 夫妻宮
+    - 健康問題 → 疾厄宮
+    - 財運問題 → 財帛宮
+    - 家庭問題 → 父母宮
+    - 子女問題 → 子女宮
+    
+    **觸機盤分析要點：**
+    - 分析觸機盤的星曜配置
+    - 觀察四化飛星的影響
+    - 注意宮位之間的互動關係
+    - 結合問事時間的時空因素
+    
+    **輸出格式：**
+    1. 觸機盤資訊（年月日時、宮位配置）
+    2. 主要分析結果（重點宮位、關鍵星曜）
+    3. 時機建議（最佳行動時機）
+    4. 行動指引（具體可行的建議）
+    
+    **免責聲明：**
+    觸機占卜分析結果僅供參考，不構成專業建議。占卜分析具有主觀性和不確定性，請勿用於醫療、法律或重大決策。
+    
+    請提供專業、準確的觸機占卜分析。
+    
+  outputs:
+    - name: "trigger_chart"
+      type: "object"
+      description: "觸機命盤資訊"
+      fields:
+        - name: "year_month"
+          type: "string"
+          description: "問事年月"
+        - name: "day"
+          type: "integer"
+          description: "計算得出的日"
+        - name: "hour"
+          type: "integer"
+          description: "計算得出的時辰"
+        - name: "palaces"
+          type: "array"
+          description: "十二宮位配置"
+        - name: "stars"
+          type: "array"
+          description: "星曜配置"
+        - name: "transformations"
+          type: "array"
+          description: "四化飛星"
+          
+    - name: "analysis_result"
+      type: "string"
+      description: "分析結果"
+      format: "詳細的觸機占卜分析"
+      
+    - name: "timing_advice"
+      type: "string"
+      description: "時機建議"
+      format: "基於觸機盤的時機建議"
+      
+    - name: "action_guidance"
+      type: "string"
+      description: "行動指引"
+      format: "具體可行的行動建議"
+      
+  validation:
+    - rule: "觸機盤計算必須準確"
+      description: "年月日時的計算必須正確"
+    - rule: "分析結果必須與問題相關"
+      description: "分析重點必須對應問題類型"
+    - rule: "建議必須具體可行"
+      description: "行動建議必須具體且可執行"
+    - rule: "必須包含免責聲明"
+      description: "所有輸出都必須包含適當的免責聲明"
+      
+  examples:
+    - input:
+        question_time: "2025-09"
+        question_text: "工作運勢如何"
+        question_type: "工作"
+      output:
+        trigger_chart:
+          year_month: "2025-09"
+          day: 15
+          hour: 3
+        analysis_result: "基於觸機盤分析，官祿宮顯示..."
+        timing_advice: "建議在農曆九月進行工作相關決策..."
+        action_guidance: "可以考慮主動爭取新的工作機會..."

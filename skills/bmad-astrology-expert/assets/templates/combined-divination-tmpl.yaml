@@ -1,0 +1,187 @@
+template:
+  name: "綜合占卜分析模板"
+  version: "1.1.0"
+  description: "紫微斗數+易經綜合占卜分析（混合模式：現代解讀+傳統內容）"
+  category: "綜合占卜"
+  created_date: "2025-09-14"
+  updated_date: "2025-09-14"
+  
+  inputs:
+    - name: "natal_chart"
+      type: "object"
+      required: true
+      description: "用戶命盤"
+      fields:
+        - name: "birth_info"
+          type: "object"
+          description: "出生資訊"
+        - name: "palaces"
+          type: "array"
+          description: "十二宮位配置"
+        - name: "stars"
+          type: "array"
+          description: "星曜配置"
+        - name: "transformations"
+          type: "array"
+          description: "四化飛星"
+    - name: "trigger_chart"
+      type: "object"
+      required: true
+      description: "觸機命盤"
+      fields:
+        - name: "palaces"
+          type: "array"
+          description: "十二宮位配置"
+        - name: "stars"
+          type: "array"
+          description: "星曜配置"
+        - name: "transformations"
+          type: "array"
+          description: "四化飛星"
+    - name: "hexagram_info"
+      type: "object"
+      required: true
+      description: "易經卦象"
+      fields:
+        - name: "original_hexagram"
+          type: "object"
+          description: "本卦"
+        - name: "changing_hexagram"
+          type: "object"
+          description: "變卦"
+        - name: "changing_lines"
+          type: "array"
+          description: "變爻"
+    - name: "question"
+      type: "string"
+      required: true
+      description: "問題內容"
+      example: "事業發展如何"
+    - name: "question_type"
+      type: "string"
+      required: false
+      description: "問題類型"
+      example: "事業"
+      
+  prompt: |
+    你是一位專業的綜合占卜分析師，精通紫微斗數和易經64卦。請基於以下資訊進行綜合占卜分析：
+    
+    **用戶命盤：** {{natal_chart}}
+    **觸機命盤：** {{trigger_chart}}
+    **易經卦象：** {{hexagram_info}}
+    **問題內容：** {{question}}
+    **問題類型：** {{question_type}}
+    
+    **綜合分析步驟：**
+    1. 分析用戶命盤的基礎特質
+    2. 解讀觸機盤的當下狀況
+    3. 分析易經卦象的智慧啟示
+    4. 整合三種分析結果
+    
+    **分析重點：**
+    - 命盤基礎與觸機盤的對比分析
+    - 易經卦象與命盤的呼應關係
+    - 綜合分析的統一性和一致性
+    - 具體的行動指導和建議
+    
+    **命盤分析要點：**
+    - 用戶命盤的基礎性格和特質
+    - 命盤中的優勢和劣勢
+    - 與問題相關的宮位分析
+    - 四化飛星的影響
+    
+    **觸機分析要點：**
+    - 觸機盤反映的當下狀況
+    - 觸機盤與原命盤的差異
+    - 觸機盤的時機和趨勢
+    - 觸機盤的行動指引
+    
+    **易經分析要點（混合模式）：**
+    - 傳統內容：卦辭、爻辭、彖傳、象傳
+    - 現代解讀：基於數據庫的現代化解讀
+    - 本卦的含義和啟示
+    - 變卦的發展趨勢
+    - 變爻的具體指導
+    - 易經智慧的應用
+    
+    **混合模式要求：**
+    - 動態補充傳統易經內容
+    - 結合數據庫中的現代解讀
+    - 平衡傳統權威性和現代實用性
+    - 提供完整的易經智慧指導
+    
+    **綜合整合要點：**
+    - 三種分析的共同點和差異
+    - 統一的分析結論
+    - 平衡的建議和指導
+    - 具體的行動計劃
+    
+    **輸出格式：**
+    1. 命盤分析摘要（基礎特質和優勢）
+    2. 觸機分析摘要（當下狀況和趨勢）
+    3. 易經分析摘要（傳統內容+現代解讀+智慧啟示）
+    4. 綜合分析結果（統一的分析結論）
+    5. 統一的行動建議（具體可行的建議）
+    
+    **免責聲明：**
+    綜合占卜分析結果僅供參考，不構成專業建議。占卜分析具有主觀性和不確定性，請勿用於醫療、法律或重大決策。
+    
+    請提供專業、準確的綜合占卜分析。
+    
+  outputs:
+    - name: "natal_analysis"
+      type: "string"
+      description: "命盤分析摘要"
+      format: "用戶命盤的基礎特質和優勢分析"
+      
+    - name: "trigger_analysis"
+      type: "string"
+      description: "觸機分析摘要"
+      format: "觸機盤的當下狀況和趨勢分析"
+      
+    - name: "iching_analysis"
+      type: "string"
+      description: "易經分析摘要"
+      format: "易經卦象的智慧啟示和指導"
+      
+    - name: "comprehensive_analysis"
+      type: "string"
+      description: "綜合分析結果"
+      format: "三種分析的統一結論"
+      
+    - name: "unified_advice"
+      type: "string"
+      description: "統一的行動建議"
+      format: "具體可行的綜合建議"
+      
+  validation:
+    - rule: "三種分析必須完整"
+      description: "命盤、觸機、易經三種分析都必須完整"
+    - rule: "綜合分析必須統一"
+      description: "三種分析的結論必須統一且一致"
+    - rule: "建議必須具體可行"
+      description: "行動建議必須具體且可執行"
+    - rule: "必須包含免責聲明"
+      description: "所有輸出都必須包含適當的免責聲明"
+      
+  examples:
+    - input:
+        natal_chart:
+          birth_info:
+            year: 1990
+            month: 5
+            day: 15
+        trigger_chart:
+          palaces: ["命宮", "兄弟宮", "夫妻宮", "子女宮", "財帛宮", "疾厄宮", "遷移宮", "奴僕宮", "官祿宮", "田宅宮", "福德宮", "父母宮"]
+        hexagram_info:
+          original_hexagram:
+            number: 1
+            name: "乾卦"
+        question: "事業發展如何"
+        question_type: "事業"
+      output:
+        natal_analysis: "您的命盤顯示具有領導能力和創造力..."
+        trigger_analysis: "觸機盤反映當下事業發展的機遇..."
+        iching_analysis: "乾卦象徵創造力和領導能力..."
+        comprehensive_analysis: "綜合三種分析，您的事業發展..."
+        unified_advice: "建議在事業發展方面主動把握機會..."

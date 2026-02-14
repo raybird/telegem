@@ -1,0 +1,121 @@
+# 左輔右弼安星鎖步模板
+# 基於左輔右弼安星表的鎖步計算流程
+# 版本: 1.0.0
+
+template_metadata:
+  name: "左輔右弼安星鎖步模板"
+  version: "1.0.0"
+  description: "根據出生時辰確定左輔右弼位置的鎖步計算流程"
+  source: "BMAD Astrology Framework"
+  compatible_agent: "chart-calculator"
+  locked_step: true
+  deterministic: true
+
+# 鎖步流程
+locked_step_process:
+  step_1:
+    name: "確認輸入參數"
+    description: "驗證出生時辰的有效性"
+    action: "validate_input"
+    required: true
+    validation_rules:
+      - "出生時辰必須是十二地支之一"
+    
+  step_2:
+    name: "查表定位"
+    description: "根據出生時辰查找對應的左輔右弼位置"
+    action: "lookup_table"
+    required: true
+    lookup_format: "出生時辰"
+    table_reference: "zuofu-youbi-placement-table.yaml"
+    
+  step_3:
+    name: "返回結果"
+    description: "返回左輔右弼的地支位置"
+    action: "return_result"
+    required: true
+    output_format:
+      zuofu_youbi: "object"
+
+# 提示詞模板
+prompt_template: |
+  你是紫微斗數排盤計算專家，必須嚴格按照鎖步流程進行左輔右弼安星計算。
+  
+  輸入參數：
+  - 出生時辰：{{birth_hour}}
+  
+  鎖步流程：
+  1. 確認輸入參數：驗證出生時辰（子-亥）的有效性
+  2. 查表定位：根據出生時辰查找對應的左輔右弼位置
+  3. 返回結果：返回左輔右弼的地支位置
+  
+  重要要求：
+  - 禁止自由推理
+  - 只能查表
+  - 必須按照鎖步流程執行
+  - 確保結果的一致性
+  
+  查表數據來源：zuofu-youbi-placement-table.yaml
+  
+  請按照鎖步流程執行計算，並返回結果。
+
+# 變數定義
+variables:
+  - name: "birth_hour"
+    type: "string"
+    description: "出生時辰（子-亥）"
+    required: true
+    validation: "in(['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'])"
+
+# 輸出格式
+output_format:
+  type: "object"
+  properties:
+    zuofu_branch:
+      type: "string"
+      description: "左輔地支位置"
+      example: "辰"
+    youbi_branch:
+      type: "string"
+      description: "右弼地支位置"
+      example: "戌"
+  required: ["zuofu_branch", "youbi_branch"]
+
+# 錯誤處理
+error_handling:
+  invalid_hour:
+    message: "出生時辰必須是十二地支之一"
+    action: "request_correction"
+  lookup_failed:
+    message: "查表失敗，請檢查輸入參數"
+    action: "retry_lookup"
+
+# 驗證規則
+validation_rules:
+  - rule: "輸入參數必須在有效範圍內"
+  - rule: "查表結果必須存在"
+  - rule: "返回的地支必須是有效的十二地支"
+  - rule: "左輔右弼位置必須按照傳統安星規則"
+
+# 使用範例
+usage_examples:
+  - input:
+      birth_hour: "子"
+    output:
+      zuofu_branch: "辰"
+      youbi_branch: "戌"
+    description: "子時出生，左輔在辰，右弼在戌"
+  
+  - input:
+      birth_hour: "午"
+    output:
+      zuofu_branch: "戌"
+      youbi_branch: "辰"
+    description: "午時出生，左輔在戌，右弼在辰"
+
+# 版本歷史
+version_history:
+  - version: "1.0.0"
+    date: "2025-09-24"
+    changes: "初始版本創建"
+    author: "BMAD Astrology Framework"

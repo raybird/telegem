@@ -1,0 +1,366 @@
+# 問題分類提示詞模板
+# 用於分類和分析用戶的命理問題
+# 版本: 1.0.0
+# 創建日期: 2025-09-13
+
+template_metadata:
+  name: "問題分類模板"
+  version: "1.0.0"
+  description: "分類和分析用戶的命理問題，確定所需的智能體和分析範圍"
+  author: "BMAD Astrology Framework"
+  created_date: "2025-09-13"
+  last_updated: "2025-09-13"
+  compatible_agents: ["conversation-coordinator"]
+  input_format: "text"
+  output_format: "JSON"
+
+# 模板變數定義
+variables:
+  user_question:
+    type: "string"
+    description: "用戶的問題"
+    example: "我想了解我的事業運勢"
+    required: true
+    
+  user_context:
+    type: "object"
+    description: "用戶背景資訊"
+    properties:
+      age: "年齡"
+      gender: "性別"
+      occupation: "職業"
+      background: "背景描述"
+    required: false
+    
+  conversation_history:
+    type: "array"
+    description: "對話歷史"
+    items:
+      type: "object"
+      properties:
+        question: "問題"
+        answer: "回答"
+        timestamp: "時間戳"
+    required: false
+
+# 核心提示詞模板
+prompt_template: |
+  你是一位專業的命理問題分類專家，精通各種命理問題的分類和分析。
+  
+  ## 任務描述
+  請根據提供的用戶問題和背景資訊，分類問題並確定所需的智能體和分析範圍。
+  
+  ## 輸入資訊
+  - 用戶問題：{{user_question}}
+  - 用戶背景：{{user_context}}
+  - 對話歷史：{{conversation_history}}
+  
+  ## 分類要求
+  
+  ### 1. 問題類型分類
+  將問題分類為以下類型：
+  - **命盤分析**：整體命盤分析、性格分析、天賦分析
+  - **事業運勢**：工作運勢、升遷機會、創業建議
+  - **財運分析**：財富狀況、投資建議、理財規劃
+  - **感情運勢**：戀愛運勢、婚姻狀況、感情建議
+  - **健康運勢**：健康狀況、疾病預防、養生建議
+  - **學業運勢**：學習運勢、考試運勢、教育建議
+  - **家庭運勢**：家庭關係、子女狀況、長輩健康
+  - **時間分析**：大運分析、流年運勢、時機建議
+  - **事件預測**：未來事件、機遇預測、風險評估
+  - **格局分析**：特殊格局、格局解釋、格局影響
+  - **星曜分析**：星曜配置、星曜影響、星曜建議
+  - **宮位分析**：宮位強弱、宮位關係、宮位影響
+  - **四化分析**：四化飛星、四化影響、四化建議
+  - **其他問題**：不屬於以上類型的問題
+  
+  ### 2. 問題複雜度評估
+  評估問題的複雜度：
+  - **簡單**：單一面向的問題，需要基礎分析
+  - **中等**：多面向的問題，需要綜合分析
+  - **複雜**：複雜的問題，需要深度分析
+  - **極複雜**：極其複雜的問題，需要全面分析
+  
+  ### 3. 所需智能體確定
+  根據問題類型確定所需的智能體：
+  - **結構分析者**：命盤分析、星曜分析、宮位分析
+  - **規則建構者**：格局分析、規則驗證、衝突解決
+  - **時間敘事者**：時間分析、事件預測、生活建議
+  - **對話協調者**：問題分類、回應生成、上下文管理
+  
+  ### 4. 分析範圍確定
+  根據問題確定分析範圍：
+  - **基礎分析**：基本的命盤分析
+  - **綜合分析**：多面向的綜合分析
+  - **深度分析**：深入的專業分析
+  - **全面分析**：全面的完整分析
+  
+  ## 輸出格式要求
+  
+  請以以下 JSON 格式輸出結果：
+  
+  ```json
+  {
+    "classification_info": {
+      "analysis_time": "分析時間",
+      "question_id": "問題ID",
+      "classification_confidence": "分類置信度"
+    },
+    "question_analysis": {
+      "original_question": "原始問題",
+      "question_type": "問題類型",
+      "question_category": "問題類別",
+      "question_complexity": "問題複雜度",
+      "key_keywords": ["關鍵詞列表"],
+      "question_intent": "問題意圖",
+      "question_context": "問題上下文"
+    },
+    "user_profile": {
+      "age": "年齡",
+      "gender": "性別",
+      "occupation": "職業",
+      "background": "背景描述",
+      "experience_level": "經驗水平",
+      "preference_style": "偏好風格"
+    },
+    "required_agents": [
+      {
+        "agent_name": "智能體名稱",
+        "agent_role": "智能體角色",
+        "priority": "優先級",
+        "analysis_scope": "分析範圍",
+        "required_templates": ["所需模板列表"]
+      }
+    ],
+    "analysis_scope": {
+      "scope_type": "分析範圍類型",
+      "scope_description": "分析範圍描述",
+      "analysis_depth": "分析深度",
+      "required_data": ["所需數據列表"],
+      "expected_output": "預期輸出"
+    },
+    "conversation_context": {
+      "is_follow_up": "是否為後續問題",
+      "related_questions": ["相關問題列表"],
+      "conversation_theme": "對話主題",
+      "context_continuity": "上下文連續性",
+      "previous_analysis": "先前分析結果"
+    },
+    "response_strategy": {
+      "response_type": "回應類型",
+      "response_style": "回應風格",
+      "response_length": "回應長度",
+      "response_format": "回應格式",
+      "personalization_level": "個性化程度"
+    },
+    "quality_requirements": {
+      "accuracy_level": "準確性要求",
+      "detail_level": "詳細程度要求",
+      "professionalism_level": "專業性要求",
+      "practicality_level": "實用性要求"
+    },
+    "validation": {
+      "classification_accuracy": "分類準確性",
+      "logic_consistency": "邏輯一致性",
+      "completeness_check": "完整性檢查",
+      "confidence_assessment": "置信度評估"
+    }
+  }
+  ```
+  
+  ## 分類規則
+  
+  ### 1. 問題類型識別規則
+  - **命盤分析**：包含"命盤"、"性格"、"天賦"等關鍵詞
+  - **事業運勢**：包含"事業"、"工作"、"升遷"、"創業"等關鍵詞
+  - **財運分析**：包含"財運"、"財富"、"投資"、"理財"等關鍵詞
+  - **感情運勢**：包含"感情"、"戀愛"、"婚姻"、"愛情"等關鍵詞
+  - **健康運勢**：包含"健康"、"疾病"、"養生"、"身體"等關鍵詞
+  - **學業運勢**：包含"學業"、"學習"、"考試"、"教育"等關鍵詞
+  - **家庭運勢**：包含"家庭"、"子女"、"長輩"、"親人"等關鍵詞
+  - **時間分析**：包含"大運"、"流年"、"時機"、"時間"等關鍵詞
+  - **事件預測**：包含"預測"、"未來"、"事件"、"機遇"等關鍵詞
+  - **格局分析**：包含"格局"、"特殊"、"組合"等關鍵詞
+  - **星曜分析**：包含"星曜"、"主星"、"輔星"等關鍵詞
+  - **宮位分析**：包含"宮位"、"十二宮"等關鍵詞
+  - **四化分析**：包含"四化"、"化祿"、"化權"等關鍵詞
+  
+  ### 2. 複雜度評估規則
+  - **簡單**：單一問題，明確的答案
+  - **中等**：多個相關問題，需要綜合分析
+  - **複雜**：複雜問題，需要深度分析
+  - **極複雜**：多層次問題，需要全面分析
+  
+  ### 3. 智能體選擇規則
+  - **結構分析者**：命盤、星曜、宮位相關問題
+  - **規則建構者**：格局、規則、衝突相關問題
+  - **時間敘事者**：時間、事件、預測相關問題
+  - **對話協調者**：分類、協調、管理相關問題
+  
+  ### 4. 分析範圍確定規則
+  - **基礎分析**：簡單問題，基礎答案
+  - **綜合分析**：中等問題，綜合答案
+  - **深度分析**：複雜問題，深度答案
+  - **全面分析**：極複雜問題，全面答案
+  
+  ## 個性化策略
+  
+  ### 1. 用戶背景適應
+  - **年齡適應**：根據年齡調整解釋風格
+  - **職業適應**：根據職業調整建議內容
+  - **經驗適應**：根據經驗水平調整詳細程度
+  
+  ### 2. 回應風格調整
+  - **專業風格**：專業術語，詳細解釋
+  - **通俗風格**：通俗易懂，簡潔明瞭
+  - **親切風格**：親切友好，溫暖關懷
+  
+  ### 3. 個性化程度
+  - **高度個性化**：完全根據用戶背景調整
+  - **中度個性化**：部分根據用戶背景調整
+  - **低度個性化**：基本不根據用戶背景調整
+  
+  ## 質量檢查
+  
+  請確保：
+  1. 問題分類準確無誤
+  2. 複雜度評估客觀合理
+  3. 智能體選擇正確
+  4. 分析範圍確定合適
+  5. 個性化策略有效
+  
+  ## 注意事項
+  
+  - 請使用專業的命理術語
+  - 保持分類的客觀性和準確性
+  - 注意問題的複雜性和多樣性
+  - 結合用戶背景進行個性化分析
+
+# 驗證規則
+validation_rules:
+  input_validation:
+    - rule: "用戶問題檢查"
+      condition: "user_question 不能為空"
+      error_message: "用戶問題不能為空，請提供有效的問題"
+    
+    - rule: "問題長度檢查"
+      condition: "user_question 長度必須在 1-1000 字符之間"
+      error_message: "問題長度超出有效範圍，請提供 1-1000 字符的問題"
+    
+    - rule: "問題內容檢查"
+      condition: "user_question 必須包含有效的命理相關內容"
+      error_message: "問題內容無效，請提供命理相關的問題"
+    
+    - rule: "數據格式檢查"
+      condition: "輸入數據必須是有效的格式"
+      error_message: "輸入數據格式不正確，請使用有效的格式"
+
+  output_validation:
+    - rule: "問題分類完整性檢查"
+      condition: "必須包含完整的問題分類"
+      error_message: "問題分類不完整"
+    
+    - rule: "智能體選擇檢查"
+      condition: "必須選擇正確的智能體"
+      error_message: "智能體選擇不正確"
+    
+    - rule: "分析範圍檢查"
+      condition: "分析範圍必須合適"
+      error_message: "分析範圍不合適"
+    
+    - rule: "JSON 格式檢查"
+      condition: "輸出必須是有效的 JSON 格式"
+      error_message: "輸出格式不正確"
+
+# 錯誤處理
+error_handling:
+  classification_error:
+    template: |
+      問題分類過程中出現錯誤：{{error_message}}
+      請檢查輸入數據是否正確，特別是：
+      - 用戶問題是否有效
+      - 用戶背景是否完整
+      - 對話歷史是否正確
+      
+      建議：請重新確認輸入數據後再次嘗試。
+    
+  validation_error:
+    template: |
+      數據驗證失敗：{{validation_error}}
+      請檢查以下項目：
+      - 輸入格式是否符合要求
+      - 必填欄位是否完整
+      - 數據值是否在有效範圍內
+      
+      建議：請參考模板說明修正輸入數據。
+    
+  unknown_error:
+    template: |
+      分類過程中出現未知錯誤。
+      錯誤詳情：{{error_details}}
+      
+      建議：請稍後重試，如問題持續存在，請聯繫技術支援。
+
+# 測試用例
+test_cases:
+  - name: "事業運勢問題測試"
+    input:
+      user_question: "我想了解我的事業運勢，特別是未來三年的發展機會"
+      user_context:
+        age: 35
+        gender: "male"
+        occupation: "金融業"
+        background: "從事投資分析工作"
+      conversation_history: []
+    expected_output:
+      question_analysis:
+        question_type: "事業運勢"
+        question_category: "career_analysis"
+        question_complexity: "中等"
+        key_keywords: ["事業運勢", "發展機會", "未來三年"]
+      required_agents:
+        - agent_name: "時間敘事者"
+          priority: 1
+        - agent_name: "結構分析者"
+          priority: 2
+      analysis_scope:
+        scope_type: "綜合分析"
+        analysis_depth: "中等"
+  
+  - name: "命盤分析問題測試"
+    input:
+      user_question: "請幫我分析一下我的命盤，我想了解自己的性格特點"
+      user_context:
+        age: 28
+        gender: "female"
+        occupation: "教師"
+        background: "對命理學感興趣"
+      conversation_history: []
+    expected_output:
+      question_analysis:
+        question_type: "命盤分析"
+        question_category: "natal_chart_analysis"
+        question_complexity: "簡單"
+        key_keywords: ["命盤", "性格特點"]
+      required_agents:
+        - agent_name: "結構分析者"
+          priority: 1
+        - agent_name: "規則建構者"
+          priority: 2
+      analysis_scope:
+        scope_type: "基礎分析"
+        analysis_depth: "基礎"
+
+# 性能配置
+performance:
+  timeout: "15s"
+  max_retries: 3
+  cache_duration: "1h"
+  parallel_processing: false
+
+# 版本歷史
+version_history:
+  - version: "1.0.0"
+    date: "2025-09-13"
+    changes: "初始版本，包含基本的問題分類功能"
+    author: "BMAD Astrology Framework"

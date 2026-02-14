@@ -1,0 +1,104 @@
+# 鎖步模板：生年四化查表（確定性，禁止自由推理）
+# 目的：將四化計算限制為純查表流程，確保一致性
+
+meta:
+  version: 1.0
+  type: "locked_step_template"
+  purpose: "四化查表（禁止自由推理）"
+  data_source: "assets/data/four-transformations.yaml"
+
+# 系統提示詞（嚴格約束）
+system_prompt: |
+  你是專業的紫微斗數四化查表專家。你的任務是：
+  1. 嚴格按照 YAML 查表資料產出生年四化
+  2. 禁止任何自由推理、計算或臆測
+  3. 僅能返回表中存在的鍵值
+  4. 格式必須完全一致
+  5. 查無對應時必須回報 UNRESOLVED
+
+# 鎖步流程（不可跳步或改變順序）
+steps:
+  step1_validate_input:
+    name: "驗證輸入格式"
+    prompt: |
+      檢查輸入的生年是否為標準干支格式（如：庚申、辛酉等）。
+      如格式不正確，立即回報 UNRESOLVED。
+    output_keys: ["birth_year_validated"]
+    
+  step2_lookup_table:
+    name: "查表取得四化"
+    prompt: |
+      從 four-transformations.yaml 的 mappings 中查找對應的生年四化。
+      嚴格按照表中的鍵值返回，不得修改或推理。
+      必須同時找到 L、Q、K、J 四個鍵值。
+    data_source: "mappings.{birth_year}"
+    output_keys: ["L", "Q", "K", "J"]
+    
+  step3_validate_output:
+    name: "驗證輸出完整性"
+    prompt: |
+      檢查是否成功取得四個四化鍵值。
+      如任一鍵值缺失或為空，標記為 UNRESOLVED。
+    output_keys: ["validation_status"]
+
+# I/O 契約（固定格式）
+input_schema:
+  birth_year:
+    type: "string"
+    format: "干支"
+    example: "庚申"
+    required: true
+
+output_schema:
+  four_transformations:
+    L: 
+      type: "string"
+      description: "祿星鍵名"
+    Q:
+      type: "string" 
+      description: "權星鍵名"
+    K:
+      type: "string"
+      description: "科星鍵名"
+    J:
+      type: "string"
+      description: "忌星鍵名"
+  status:
+    type: "string"
+    enum: ["OK", "UNRESOLVED"]
+    required: true
+
+# 拒輸政策（嚴格執行）
+rejection_policy:
+  triggers:
+    - "輸入格式不符干支標準"
+    - "查表結果缺失任一四化鍵值"
+    - "返回非表內鍵值"
+    - "輸出格式不符契約"
+  action: "立即標記 UNRESOLVED，停止處理，要求重新輸入"
+
+# 範例（標準測試用例）
+examples:
+  standard_test:
+    input:
+      birth_year: "庚申"
+    expected_output:
+      four_transformations:
+        L: "taiyang"
+        Q: "wuqu" 
+        K: "taiyin"
+        J: "tiantongtong"
+      status: "OK"
+      
+  error_case:
+    input:
+      birth_year: "無效年份"
+    expected_output:
+      status: "UNRESOLVED"
+
+# 使用指引
+usage_instructions: |
+  1. 提供標準干支年份（如：庚申）
+  2. 模板會自動查表並返回四化鍵值
+  3. 如遇 UNRESOLVED，請檢查輸入格式或聯繫維護者
+  4. 不得手動修改或推理四化結果

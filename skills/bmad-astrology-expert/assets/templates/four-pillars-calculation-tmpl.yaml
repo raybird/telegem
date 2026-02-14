@@ -1,0 +1,245 @@
+# 四柱八字計算提示詞模板
+# 用於計算完整的四柱八字（年柱、月柱、日柱、時柱）
+# 版本: 1.0.0
+# 創建日期: 2025-01-27
+
+template_metadata:
+  name: "四柱八字計算模板"
+  version: "1.0.0"
+  description: "根據出生資訊計算完整的四柱八字，包含天干地支和五行屬性"
+  author: "BMAD Astrology Framework"
+  created_date: "2025-01-27"
+  last_updated: "2025-01-27"
+  compatible_agents: ["structure-analyst"]
+  input_format: "YAML"
+  output_format: "JSON"
+
+# 模板變數定義
+variables:
+  birth_date:
+    type: "string"
+    format: "YYYY-MM-DD"
+    description: "出生日期（公曆）"
+    example: "1980-12-15"
+    required: true
+    
+  birth_time:
+    type: "string"
+    format: "HH:MM"
+    description: "出生時間（24小時制）"
+    example: "11:44"
+    required: true
+    
+  birth_location:
+    type: "object"
+    description: "出生地點資訊"
+    properties:
+      latitude:
+        type: "number"
+        description: "緯度"
+        example: 25.0330
+        required: true
+      longitude:
+        type: "number"
+        description: "經度"
+        example: 121.5654
+        required: true
+      timezone:
+        type: "string"
+        description: "時區"
+        example: "Asia/Taipei"
+        required: true
+      city:
+        type: "string"
+        description: "城市名稱"
+        example: "台北"
+        required: true
+      country:
+        type: "string"
+        description: "國家名稱"
+        example: "台灣"
+        required: true
+    required: true
+
+# 核心提示詞模板
+prompt_template: |
+  你是一位專業的紫微斗數命理師，精通四柱八字計算和農曆轉換。
+  
+  ## 任務描述
+  請根據提供的出生資訊，計算完整的四柱八字（年柱、月柱、日柱、時柱）。
+  
+  ## 輸入資訊
+  - 出生日期：{{birth_date}}
+  - 出生時間：{{birth_time}}
+  - 出生地點：{{birth_location.city}}, {{birth_location.country}}
+  - 經緯度：{{birth_location.latitude}}, {{birth_location.longitude}}
+  - 時區：{{birth_location.timezone}}
+  
+  ## 計算要求
+  
+  ### 1. 真太陽時校正
+  - 根據出生地點經度計算真太陽時
+  - 公式：真太陽時 = 當地時間 + (經度 - 標準經度) × 4分鐘
+  - 標準經度：東經120度（台灣標準時間）
+  - 校正後確定正確的時辰
+  
+  ### 2. 曆法轉換
+  - 將公曆日期轉換為農曆日期
+  - 確定農曆年月日時
+  - 計算節氣和閏月情況
+  
+  ### 3. 四柱八字計算
+  
+  #### 年柱計算
+  - 根據出生年份確定年干和年支
+  - 年干：(年份 - 4) % 10
+  - 年支：(年份 - 4) % 12
+  - 天干：甲(0)、乙(1)、丙(2)、丁(3)、戊(4)、己(5)、庚(6)、辛(7)、壬(8)、癸(9)
+  - 地支：子(0)、丑(1)、寅(2)、卯(3)、辰(4)、巳(5)、午(6)、未(7)、申(8)、酉(9)、戌(10)、亥(11)
+  
+  #### 月柱計算
+  - 根據農曆月份和年干確定月干和月支
+  - 月支：正月寅(2)、二月卯(3)、三月辰(4)、四月巳(5)、五月午(6)、六月未(7)、七月申(8)、八月酉(9)、九月戌(10)、十月亥(11)、十一月子(0)、十二月丑(1)
+  - 月干：根據年干和月支推算（五虎遁）
+    - 甲己之年丙作首（正月丙寅）
+    - 乙庚之年戊為頭（正月戊寅）
+    - 丙辛之年庚寅上（正月庚寅）
+    - 丁壬壬寅順水流（正月壬寅）
+    - 戊癸何處發，甲寅之上好追求（正月甲寅）
+  
+  #### 日柱計算
+  - 根據公曆日期計算日干和日支
+  - 使用萬年曆或日柱計算公式
+  - 日干：(基準日干 + 天數差) % 10
+  - 日支：(基準日支 + 天數差) % 12
+  
+  #### 時柱計算
+  - 根據校正後的時辰和日干確定時干和時支
+  - 時支：子時(23-01)、丑時(01-03)、寅時(03-05)、卯時(05-07)、辰時(07-09)、巳時(09-11)、午時(11-13)、未時(13-15)、申時(15-17)、酉時(17-19)、戌時(19-21)、亥時(21-23)
+  - 時干：根據日干和時支推算（五鼠遁）
+    - 甲己還甲（子時甲子）
+    - 乙庚丙作初（子時丙子）
+    - 丙辛從戊起（子時戊子）
+    - 丁壬庚子居（子時庚子）
+    - 戊癸何方發，壬子是真途（子時壬子）
+  
+  ### 4. 五行屬性判斷
+  - 天干五行：甲木、乙木、丙火、丁火、戊土、己土、庚金、辛金、壬水、癸水
+  - 地支五行：子水、丑土、寅木、卯木、辰土、巳火、午火、未土、申金、酉金、戌土、亥水
+  
+  ### 5. 陰陽屬性判斷
+  - 天干陰陽：甲丙戊庚壬為陽，乙丁己辛癸為陰
+  - 地支陰陽：子寅辰午申戌為陽，丑卯巳未酉亥為陰
+  
+  ## 輸出格式要求
+  
+  請以以下 JSON 格式輸出結果：
+  
+  ```json
+  {
+    "calculation_info": {
+      "solar_date": "公曆日期",
+      "lunar_date": "農曆日期",
+      "true_solar_time": "真太陽時",
+      "corrected_hour": "校正後時辰",
+      "calculation_time": "計算時間"
+    },
+    "four_pillars": {
+      "year_pillar": {
+        "heavenly_stem": "年干",
+        "earthly_branch": "年支",
+        "element": "五行屬性",
+        "yin_yang": "陰陽屬性",
+        "full_name": "完整名稱"
+      },
+      "month_pillar": {
+        "heavenly_stem": "月干",
+        "earthly_branch": "月支",
+        "element": "五行屬性",
+        "yin_yang": "陰陽屬性",
+        "full_name": "完整名稱"
+      },
+      "day_pillar": {
+        "heavenly_stem": "日干",
+        "earthly_branch": "日支",
+        "element": "五行屬性",
+        "yin_yang": "陰陽屬性",
+        "full_name": "完整名稱"
+      },
+      "hour_pillar": {
+        "heavenly_stem": "時干",
+        "earthly_branch": "時支",
+        "element": "五行屬性",
+        "yin_yang": "陰陽屬性",
+        "full_name": "完整名稱"
+      }
+    },
+    "five_elements_analysis": {
+      "wood_count": "木的數量",
+      "fire_count": "火的數量",
+      "earth_count": "土的數量",
+      "metal_count": "金的數量",
+      "water_count": "水的數量",
+      "strongest_element": "最強五行",
+      "weakest_element": "最弱五行"
+    },
+    "validation": {
+      "calculation_accuracy": "計算準確性",
+      "logic_consistency": "邏輯一致性",
+      "completeness": "完整性檢查"
+    }
+  }
+  ```
+  
+  ## 計算規則
+  
+  ### 1. 真太陽時校正規則
+  - 經度差 = 出生地經度 - 標準經度
+  - 時間差 = 經度差 × 4分鐘
+  - 真太陽時 = 當地時間 + 時間差
+  
+  ### 2. 時辰確定規則
+  - 子時：23:00-01:00
+  - 丑時：01:00-03:00
+  - 寅時：03:00-05:00
+  - 卯時：05:00-07:00
+  - 辰時：07:00-09:00
+  - 巳時：09:00-11:00
+  - 午時：11:00-13:00
+  - 未時：13:00-15:00
+  - 申時：15:00-17:00
+  - 酉時：17:00-19:00
+  - 戌時：19:00-21:00
+  - 亥時：21:00-23:00
+  
+  ### 3. 五虎遁月干推算
+  - 甲己之年丙作首：甲年、己年正月為丙寅
+  - 乙庚之年戊為頭：乙年、庚年正月為戊寅
+  - 丙辛之年庚寅上：丙年、辛年正月為庚寅
+  - 丁壬壬寅順水流：丁年、壬年正月為壬寅
+  - 戊癸何處發，甲寅之上好追求：戊年、癸年正月為甲寅
+  
+  ### 4. 五鼠遁時干推算
+  - 甲己還甲：甲日、己日子時為甲子
+  - 乙庚丙作初：乙日、庚日子時為丙子
+  - 丙辛從戊起：丙日、辛日子時為戊子
+  - 丁壬庚子居：丁日、壬日子時為庚子
+  - 戊癸何方發，壬子是真途：戊日、癸日子時為壬子
+  
+  ## 質量檢查
+  
+  請確保：
+  1. 真太陽時校正準確
+  2. 農曆轉換正確
+  3. 四柱計算無誤
+  4. 五行屬性判斷正確
+  5. 陰陽屬性判斷正確
+  6. 輸出格式符合要求
+  
+  ## 注意事項
+  
+  - 請使用傳統四柱八字理論
+  - 確保計算過程的邏輯一致性
+  - 注意閏年的處理
+  - 考慮節氣對月份的影響
+  - 保持計算結果的準確性

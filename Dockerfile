@@ -28,7 +28,7 @@ ARG APP_BUILD_TIME=unknown
 # 安裝執行時依賴 (不含編譯器 g++/make，比較安全)
 # 保留 python3 (許多 MCP 需要), curl/jq/bash (工具與除錯), chromium (Puppeteer)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-  python3 python3-venv curl jq bash \
+  python3 python3-venv curl jq bash git unzip \
   chromium \
   fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst fonts-freefont-ttf libxss1 \
   && rm -rf /var/lib/apt/lists/*

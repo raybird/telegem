@@ -1,0 +1,139 @@
+# 小限系統鎖步模板
+# 基於小限系統表的鎖步計算流程
+# 版本: 1.0.0
+
+template_metadata:
+  name: "小限系統鎖步模板"
+  version: "1.0.0"
+  description: "根據出生年支和性別確定小限系統的鎖步計算流程"
+  source: "BMAD Astrology Framework"
+  compatible_agent: "chart-calculator"
+  locked_step: true
+  deterministic: true
+
+# 鎖步流程
+locked_step_process:
+  step_1:
+    name: "確認輸入參數"
+    description: "驗證出生年支和性別的有效性"
+    action: "validate_input"
+    required: true
+    validation_rules:
+      - "出生年支必須是十二地支之一"
+      - "性別必須是男或女"
+    
+  step_2:
+    name: "查表定位"
+    description: "根據出生年支和性別查找對應的小限配置"
+    action: "lookup_table"
+    required: true
+    lookup_format: "出生年支_性別"
+    table_reference: "xiaoxian-system-table.yaml"
+    
+  step_3:
+    name: "返回結果"
+    description: "返回小限起始宮位、順序和年齡範圍"
+    action: "return_result"
+    required: true
+    output_format:
+      xiaoxian_system: "object"
+
+# 提示詞模板
+prompt_template: |
+  你是紫微斗數排盤計算專家，必須嚴格按照鎖步流程進行小限系統計算。
+  
+  輸入參數：
+  - 出生年支：{{year_branch}}
+  - 性別：{{gender}}
+  
+  鎖步流程：
+  1. 確認輸入參數：驗證出生年支（子-亥）和性別（男/女）的有效性
+  2. 查表定位：使用格式 '{{year_branch}}_{{gender}}' 查找對應條目
+  3. 返回結果：返回小限起始宮位、順序和年齡範圍
+  
+  重要要求：
+  - 禁止自由推理
+  - 只能查表
+  - 必須按照鎖步流程執行
+  - 確保結果的一致性
+  
+  查表數據來源：xiaoxian-system-table.yaml
+  
+  請按照鎖步流程執行計算，並返回結果。
+
+# 變數定義
+variables:
+  - name: "year_branch"
+    type: "string"
+    description: "出生年支（子-亥）"
+    required: true
+    validation: "in(['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'])"
+  - name: "gender"
+    type: "string"
+    description: "性別（男/女）"
+    required: true
+    validation: "in(['男', '女'])"
+
+# 輸出格式
+output_format:
+  type: "object"
+  properties:
+    start_palace:
+      type: "string"
+      description: "小限起始宮位"
+      example: "命宮"
+    direction:
+      type: "string"
+      description: "小限順序（順行/逆行）"
+      example: "順行"
+    age_ranges:
+      type: "array"
+      description: "小限年齡範圍"
+      example: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"]
+  required: ["start_palace", "direction", "age_ranges"]
+
+# 錯誤處理
+error_handling:
+  invalid_branch:
+    message: "出生年支必須是十二地支之一"
+    action: "request_correction"
+  invalid_gender:
+    message: "性別必須是男或女"
+    action: "request_correction"
+  lookup_failed:
+    message: "查表失敗，請檢查輸入參數"
+    action: "retry_lookup"
+
+# 驗證規則
+validation_rules:
+  - rule: "輸入參數必須在有效範圍內"
+  - rule: "查表結果必須存在"
+  - rule: "返回的宮位名稱必須是有效的"
+  - rule: "小限系統必須按照傳統安星規則"
+
+# 使用範例
+usage_examples:
+  - input:
+      year_branch: "子"
+      gender: "男"
+    output:
+      start_palace: "命宮"
+      direction: "順行"
+      age_ranges: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"]
+    description: "子年男性，小限從命宮開始順行"
+  
+  - input:
+      year_branch: "午"
+      gender: "女"
+    output:
+      start_palace: "遷移宮"
+      direction: "逆行"
+      age_ranges: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"]
+    description: "午年女性，小限從遷移宮開始逆行"
+
+# 版本歷史
+version_history:
+  - version: "1.0.0"
+    date: "2025-09-24"
+    changes: "初始版本創建"
+    author: "BMAD Astrology Framework"

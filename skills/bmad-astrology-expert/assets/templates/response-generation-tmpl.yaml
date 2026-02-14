@@ -1,0 +1,361 @@
+# 回應生成提示詞模板
+# 用於生成個性化的命理分析回應
+# 版本: 1.0.0
+# 創建日期: 2025-09-13
+
+template_metadata:
+  name: "回應生成模板"
+  version: "1.0.0"
+  description: "根據智能體分析結果生成個性化的命理分析回應"
+  author: "BMAD Astrology Framework"
+  created_date: "2025-09-13"
+  last_updated: "2025-09-13"
+  compatible_agents: ["conversation-coordinator"]
+  input_format: "JSON"
+  output_format: "text"
+
+# 模板變數定義
+variables:
+  user_question:
+    type: "string"
+    description: "用戶的問題"
+    example: "我想了解我的事業運勢"
+    required: true
+    
+  analysis_results:
+    type: "object"
+    description: "智能體分析結果"
+    properties:
+      structure_analysis: "結構分析結果"
+      rule_application: "規則應用結果"
+      time_analysis: "時間分析結果"
+      pattern_analysis: "格局分析結果"
+    required: true
+    
+  user_profile:
+    type: "object"
+    description: "用戶背景資訊"
+    properties:
+      age: "年齡"
+      gender: "性別"
+      occupation: "職業"
+      background: "背景描述"
+      experience_level: "經驗水平"
+    required: true
+    
+  response_requirements:
+    type: "object"
+    description: "回應要求"
+    properties:
+      response_type: "回應類型"
+      response_style: "回應風格"
+      response_length: "回應長度"
+      personalization_level: "個性化程度"
+    required: true
+
+# 核心提示詞模板
+prompt_template: |
+  你是一位專業的命理分析回應生成專家，精通將複雜的命理分析結果轉化為個性化、易懂的回應。
+  
+  ## 任務描述
+  請根據提供的智能體分析結果和用戶背景，生成個性化的命理分析回應。
+  
+  ## 輸入資訊
+  - 用戶問題：{{user_question}}
+  - 分析結果：{{analysis_results}}
+  - 用戶背景：{{user_profile}}
+  - 回應要求：{{response_requirements}}
+  
+  ## 回應生成要求
+  
+  ### 1. 回應結構設計
+  設計清晰的回應結構：
+  - **開場白**：親切的問候和問題確認
+  - **核心分析**：主要的命理分析結果
+  - **詳細解釋**：深入的解釋和說明
+  - **實用建議**：具體的建議和指導
+  - **總結**：簡潔的總結和鼓勵
+  - **免責聲明**：必要的免責聲明
+  
+  ### 2. 個性化調整
+  根據用戶背景調整回應：
+  - **年齡適應**：根據年齡調整語言風格
+  - **職業適應**：根據職業調整建議內容
+  - **經驗適應**：根據經驗水平調整詳細程度
+  - **背景適應**：根據背景調整解釋方式
+  
+  ### 3. 回應風格選擇
+  根據要求選擇回應風格：
+  - **專業風格**：使用專業術語，詳細解釋
+  - **通俗風格**：使用通俗語言，簡潔明瞭
+  - **親切風格**：使用親切語言，溫暖關懷
+  - **權威風格**：使用權威語言，自信肯定
+  
+  ### 4. 內容組織
+  合理組織回應內容：
+  - **邏輯清晰**：按照邏輯順序組織內容
+  - **重點突出**：突出重要的分析結果
+  - **層次分明**：使用適當的層次結構
+  - **過渡自然**：使用自然的過渡語言
+  
+  ## 回應生成指南
+  
+  ### 1. 開場白設計
+  - 親切問候用戶
+  - 確認用戶的問題
+  - 簡要說明分析範圍
+  - 建立信任關係
+  - 避免提及「BMAD-METHOD 架構」等技術術語
+  - 使用「基於您的命盤分析」等自然表述
+  
+  ### 開場白示例
+  - 正確：「好的，根據您提供的出生資訊，我將為您進行命盤分析...」
+  - 正確：「基於您的命盤，我來為您分析...」
+  - 錯誤：「好的，根據您提供的出生資訊，我將依據『BMAD-METHOD 架構』為您進行命盤分析」
+  
+  ### 2. 核心分析呈現
+  - 直接回答用戶問題
+  - 提供關鍵的分析結果
+  - 使用清晰的語言表達
+  - 避免過於技術性的術語
+  
+  ### 3. 詳細解釋說明
+  - 解釋分析結果的含義
+  - 說明命理學的原理
+  - 提供具體的例子
+  - 回答可能的疑問
+  
+  ### 4. 實用建議提供
+  - 提供具體的行動建議
+  - 給出時機建議
+  - 提供風險提醒
+  - 給出機會把握建議
+  
+  ### 5. 總結和鼓勵
+  - 簡潔總結主要觀點
+  - 給出積極的鼓勵
+  - 提供後續支持
+  - 建立持續關係
+  
+  ### 6. 免責聲明添加
+  - 說明分析的局限性
+  - 提醒用戶理性對待
+  - 建議結合實際情況
+  - 提供專業諮詢建議
+  
+  ## 回應質量要求
+  
+  ### 1. 準確性要求
+  - 分析結果準確無誤
+  - 解釋符合命理原理
+  - 建議實用可行
+  - 避免錯誤信息
+  
+  ### 2. 清晰性要求
+  - 語言表達清晰
+  - 邏輯結構清楚
+  - 重點突出明確
+  - 避免歧義表達
+  
+  ### 3. 個性化要求
+  - 符合用戶背景
+  - 適應用戶需求
+  - 體現個人特色
+  - 建立情感連接
+  
+  ### 4. 實用性要求
+  - 建議具體可行
+  - 指導明確有效
+  - 時機把握準確
+  - 風險提醒及時
+  
+  ## 回應長度控制
+  
+  ### 1. 簡短回應（200-400字）
+  - 直接回答核心問題
+  - 提供關鍵分析結果
+  - 給出主要建議
+  - 簡潔明瞭
+  
+  ### 2. 中等回應（400-800字）
+  - 詳細解釋分析結果
+  - 提供具體建議
+  - 包含實用指導
+  - 平衡詳細程度
+  
+  ### 3. 詳細回應（800-1500字）
+  - 全面分析問題
+  - 深入解釋原理
+  - 提供詳細建議
+  - 包含多個面向
+  
+  ### 4. 全面回應（1500字以上）
+  - 完整分析所有面向
+  - 深入解釋所有細節
+  - 提供全面建議
+  - 包含完整指導
+  
+  ## 免責聲明模板
+  
+  ### 1. 標準免責聲明
+  "本分析結果僅供參考，不構成專業建議。命理分析具有主觀性和不確定性，請結合實際情況理性對待。如有重大決策，建議諮詢專業命理師或相關專家。"
+  
+  ### 2. 詳細免責聲明
+  "本分析結果基於傳統命理學理論，僅供參考和娛樂，不構成醫療、法律、投資或其他專業建議。命理分析具有主觀性和不確定性，結果可能因個人理解和解釋而有所不同。請結合實際情況、個人判斷和專業建議做出決策。我們不對任何基於本分析結果的行動或決策承擔責任。"
+  
+  ### 3. 簡短免責聲明
+  "本分析僅供參考，請理性對待。"
+  
+  ## 質量檢查
+  
+  請確保：
+  1. 回應準確回答用戶問題
+  2. 分析結果解釋清晰
+  3. 建議實用可行
+  4. 語言風格適合用戶
+  5. 免責聲明完整
+  
+  ## 注意事項
+  
+  - 請使用適合用戶的語言風格
+  - 保持回應的客觀性和專業性
+  - 注意回應的個性化和實用性
+  - 確保免責聲明的完整性
+
+# 驗證規則
+validation_rules:
+  input_validation:
+    - rule: "用戶問題檢查"
+      condition: "user_question 不能為空"
+      error_message: "用戶問題不能為空，請提供有效的問題"
+    
+    - rule: "分析結果檢查"
+      condition: "analysis_results 必須包含分析結果"
+      error_message: "分析結果不完整，請提供完整的分析結果"
+    
+    - rule: "用戶背景檢查"
+      condition: "user_profile 必須包含用戶背景資訊"
+      error_message: "用戶背景資訊不完整，請提供完整的用戶背景資訊"
+    
+    - rule: "回應要求檢查"
+      condition: "response_requirements 必須包含回應要求"
+      error_message: "回應要求不完整，請提供完整的回應要求"
+    
+    - rule: "數據格式檢查"
+      condition: "輸入數據必須是有效的 JSON 格式"
+      error_message: "輸入數據格式不正確，請使用有效的 JSON 格式"
+
+  output_validation:
+    - rule: "回應完整性檢查"
+      condition: "回應必須完整回答用戶問題"
+      error_message: "回應不完整"
+    
+    - rule: "回應準確性檢查"
+      condition: "回應必須準確反映分析結果"
+      error_message: "回應不準確"
+    
+    - rule: "回應實用性檢查"
+      condition: "回應必須提供實用的建議"
+      error_message: "回應不實用"
+    
+    - rule: "免責聲明檢查"
+      condition: "回應必須包含免責聲明"
+      error_message: "免責聲明缺失"
+
+# 錯誤處理
+error_handling:
+  generation_error:
+    template: |
+      回應生成過程中出現錯誤：{{error_message}}
+      請檢查輸入數據是否正確，特別是：
+      - 用戶問題是否有效
+      - 分析結果是否完整
+      - 用戶背景是否完整
+      - 回應要求是否合理
+      
+      建議：請重新確認輸入數據後再次嘗試。
+    
+  validation_error:
+    template: |
+      數據驗證失敗：{{validation_error}}
+      請檢查以下項目：
+      - 輸入格式是否符合要求
+      - 必填欄位是否完整
+      - 數據值是否在有效範圍內
+      
+      建議：請參考模板說明修正輸入數據。
+    
+  unknown_error:
+    template: |
+      生成過程中出現未知錯誤。
+      錯誤詳情：{{error_details}}
+      
+      建議：請稍後重試，如問題持續存在，請聯繫技術支援。
+
+# 測試用例
+test_cases:
+  - name: "事業運勢回應測試"
+    input:
+      user_question: "我想了解我的事業運勢"
+      analysis_results:
+        structure_analysis: "命盤分析結果"
+        rule_application: "規則應用結果"
+        time_analysis: "時間分析結果"
+        pattern_analysis: "格局分析結果"
+      user_profile:
+        age: 35
+        gender: "male"
+        occupation: "金融業"
+        background: "從事投資分析工作"
+        experience_level: "中等"
+      response_requirements:
+        response_type: "comprehensive"
+        response_style: "professional"
+        response_length: "medium"
+        personalization_level: "high"
+    expected_output:
+      response_type: "comprehensive"
+      response_style: "professional"
+      response_length: "medium"
+      personalization_level: "high"
+      includes_disclaimer: true
+  
+  - name: "命盤分析回應測試"
+    input:
+      user_question: "請幫我分析一下我的命盤"
+      analysis_results:
+        structure_analysis: "命盤分析結果"
+        rule_application: "規則應用結果"
+        time_analysis: "時間分析結果"
+        pattern_analysis: "格局分析結果"
+      user_profile:
+        age: 28
+        gender: "female"
+        occupation: "教師"
+        background: "對命理學感興趣"
+        experience_level: "初級"
+      response_requirements:
+        response_type: "basic"
+        response_style: "friendly"
+        response_length: "short"
+        personalization_level: "medium"
+    expected_output:
+      response_type: "basic"
+      response_style: "friendly"
+      response_length: "short"
+      personalization_level: "medium"
+      includes_disclaimer: true
+
+# 性能配置
+performance:
+  timeout: "30s"
+  max_retries: 3
+  cache_duration: "2h"
+  parallel_processing: false
+
+# 版本歷史
+version_history:
+  - version: "1.0.0"
+    date: "2025-09-13"
+    changes: "初始版本，包含基本的回應生成功能"
+    author: "BMAD Astrology Framework"

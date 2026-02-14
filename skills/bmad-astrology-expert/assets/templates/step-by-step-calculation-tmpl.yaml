@@ -1,0 +1,507 @@
+# 分步驟計算模板 - 紫微命盤排盤精確計算
+
+template_name: "分步驟計算模板"
+version: "2.1.0"
+description: "將複雜的紫微命盤計算分解為可驗證的步驟，確保計算準確性"
+created_date: "2025-09-14"
+last_updated: "2025-09-14"
+author: "BMAD Astrology Framework Team"
+
+---
+
+## 模板配置
+
+### 基本設定
+```yaml
+template_config:
+  name: "step_by_step_calculation"
+  version: "2.1.0"
+  type: "calculation_template"
+  category: "enhanced_calculation"
+  priority: "high"
+  
+  accuracy_targets:
+    overall_accuracy: "95%"
+    step_validation: "100%"
+    error_detection: "90%"
+    cross_verification: "95%"
+  
+  performance_targets:
+    max_calculation_time: "30秒"
+    max_validation_time: "10秒"
+    max_error_correction_time: "15秒"
+```
+
+### 計算步驟定義
+```yaml
+calculation_steps:
+  step_1:
+    id: "time_conversion"
+    name: "時間換算"
+    description: "將輸入時間轉換為標準格式"
+    priority: "critical"
+    validation_required: true
+    error_correction_enabled: true
+    
+    input_requirements:
+      - "出生日期（公曆）"
+      - "出生時間"
+      - "出生地點"
+      - "性別"
+    
+    output_format:
+      - "農曆日期"
+      - "真太陽時"
+      - "時辰"
+      - "五行局"
+    
+    validation_criteria:
+      - "時間格式正確性"
+      - "農曆轉換準確性"
+      - "真太陽時計算精度"
+      - "時辰判定合理性"
+    
+    error_handling:
+      - "格式錯誤自動修正"
+      - "時間範圍檢查"
+      - "地理位置驗證"
+      - "性別信息確認"
+
+  step_2:
+    id: "ming_gong_calculation"
+    name: "命宮計算"
+    description: "計算命宮和身宮位置"
+    priority: "critical"
+    validation_required: true
+    error_correction_enabled: true
+    
+    input_requirements:
+      - "農曆月份"
+      - "出生時辰"
+      - "性別"
+    
+    output_format:
+      - "命宮位置"
+      - "身宮位置"
+      - "十二宮位順序"
+    
+    validation_criteria:
+      - "命宮位置合理性"
+      - "身宮位置正確性"
+      - "十二宮位完整性"
+      - "陰陽男女順序正確性"
+    
+    error_handling:
+      - "位置計算錯誤重新計算"
+      - "宮位順序驗證"
+      - "陰陽順序檢查"
+
+  step_3:
+    id: "main_stars_placement"
+    name: "主星安放"
+    description: "安放十四主星到正確宮位"
+    priority: "critical"
+    validation_required: true
+    error_correction_enabled: true
+    
+    input_requirements:
+      - "農曆日期"
+      - "五行局"
+      - "命宮位置"
+    
+    output_format:
+      - "紫微星位置"
+      - "天府星位置"
+      - "十四主星分佈"
+      - "主星位置驗證"
+    
+    validation_criteria:
+      - "紫微星計算準確性"
+      - "天府星對宮關係"
+      - "主星分佈合理性"
+      - "星曜位置唯一性"
+    
+    error_handling:
+      - "紫微星位置重新計算"
+      - "主星分佈檢查"
+      - "重複位置修正"
+
+  step_4:
+    id: "auxiliary_stars_placement"
+    name: "輔星安放"
+    description: "安放輔助星曜"
+    priority: "high"
+    validation_required: true
+    error_correction_enabled: true
+    
+    input_requirements:
+      - "農曆月份"
+      - "出生時辰"
+      - "年干"
+      - "年支"
+    
+    output_format:
+      - "左輔右弼位置"
+      - "文昌文曲位置"
+      - "祿存位置"
+      - "四化星位置"
+    
+    validation_criteria:
+      - "輔星位置準確性"
+      - "四化星計算正確性"
+      - "輔星分佈合理性"
+      - "四化星唯一性"
+    
+    error_handling:
+      - "輔星位置重新計算"
+      - "四化星驗證"
+      - "重複位置修正"
+
+  step_5:
+    id: "final_validation"
+    name: "最終驗證"
+    description: "對完整命盤進行最終驗證"
+    priority: "critical"
+    validation_required: true
+    error_correction_enabled: true
+    
+    input_requirements:
+      - "完整命盤數據"
+      - "所有計算結果"
+    
+    output_format:
+      - "驗證報告"
+      - "錯誤列表"
+      - "修正建議"
+      - "置信度評分"
+    
+    validation_criteria:
+      - "命盤完整性"
+      - "計算邏輯一致性"
+      - "星曜分佈合理性"
+      - "整體準確性"
+    
+    error_handling:
+      - "完整性檢查"
+      - "邏輯一致性驗證"
+      - "最終修正建議"
+```
+
+---
+
+## 提示詞模板
+
+### 主要計算提示詞
+```yaml
+main_calculation_prompt: |
+  你是一位專業的紫微斗數命理師，請按照以下步驟精確計算紫微命盤：
+  
+  ## 計算步驟
+  
+  ### 步驟1：時間換算
+  請將以下信息進行精確換算：
+  - 出生日期：{birth_date}
+  - 出生時間：{birth_time}
+  - 出生地點：{birth_location}
+  - 性別：{gender}
+  
+  **計算要求：**
+  1. 將公曆日期轉換為農曆日期
+  2. 根據出生地經度計算真太陽時
+  3. 確定正確的時辰
+  4. 計算五行局
+  
+  **驗證檢查：**
+  - 農曆轉換是否準確？
+  - 真太陽時計算是否正確？
+  - 時辰判定是否合理？
+  - 五行局計算是否正確？
+  
+  ### 步驟2：命宮計算
+  基於步驟1的結果，計算命宮和身宮：
+  
+  **計算要求：**
+  1. 從寅宮起正月，順時針數到出生月
+  2. 從月宮起子時，逆時針數到出生時辰（命宮）
+  3. 從月宮起子時，順時針數到出生時辰（身宮）
+  4. 逆排十二宮位
+  
+  **驗證檢查：**
+  - 命宮位置是否正確？
+  - 身宮位置是否正確？
+  - 十二宮位順序是否完整？
+  - 陰陽男女順序是否正確？
+  
+  ### 步驟3：主星安放
+  安放十四主星到正確宮位：
+  
+  **計算要求：**
+  1. 根據農曆日期和五行局計算紫微星位置
+  2. 根據紫微星位置計算天府星位置
+  3. 按照固定規則安放其他主星
+  4. 驗證主星分佈的合理性
+  
+  **驗證檢查：**
+  - 紫微星位置是否準確？
+  - 天府星是否在對宮？
+  - 主星分佈是否合理？
+  - 是否有重複或遺漏？
+  
+  ### 步驟4：輔星安放
+  安放輔助星曜：
+  
+  **計算要求：**
+  1. 根據月份安放左輔右弼
+  2. 根據時辰安放文昌文曲
+  3. 根據年干安放祿存
+  4. 根據年干計算四化星
+  
+  **驗證檢查：**
+  - 輔星位置是否準確？
+  - 四化星計算是否正確？
+  - 輔星分佈是否合理？
+  - 四化星是否唯一？
+  
+  ### 步驟5：最終驗證
+  對完整命盤進行最終驗證：
+  
+  **驗證要求：**
+  1. 檢查命盤完整性
+  2. 驗證計算邏輯一致性
+  3. 確認星曜分佈合理性
+  4. 評估整體準確性
+  
+  **輸出格式：**
+  - 完整命盤結果
+  - 驗證報告
+  - 錯誤列表（如有）
+  - 修正建議（如有）
+  - 置信度評分（0-100）
+  
+  ## 重要提醒
+  - 每個步驟都必須進行驗證檢查
+  - 發現錯誤時立即修正
+  - 保持計算過程的透明度
+  - 確保結果的準確性和可靠性
+```
+
+### 驗證檢查提示詞
+```yaml
+validation_check_prompt: |
+  請對以下計算結果進行驗證檢查：
+  
+  ## 驗證項目
+  
+  ### 1. 時間換算驗證
+  - 農曆日期：{lunar_date}
+  - 真太陽時：{solar_time}
+  - 時辰：{time_period}
+  - 五行局：{five_elements}
+  
+  **驗證標準：**
+  - 農曆轉換準確性 ≥ 99%
+  - 真太陽時計算精度 ≤ 1分鐘誤差
+  - 時辰判定合理性 100%
+  - 五行局計算正確性 100%
+  
+  ### 2. 命宮計算驗證
+  - 命宮位置：{ming_gong}
+  - 身宮位置：{shen_gong}
+  - 十二宮位：{twelve_palaces}
+  
+  **驗證標準：**
+  - 命宮位置準確性 100%
+  - 身宮位置正確性 100%
+  - 十二宮位完整性 100%
+  - 陰陽順序正確性 100%
+  
+  ### 3. 主星安放驗證
+  - 紫微星位置：{ziwei_position}
+  - 天府星位置：{tianfu_position}
+  - 主星分佈：{main_stars_distribution}
+  
+  **驗證標準：**
+  - 紫微星計算準確性 ≥ 98%
+  - 天府星對宮關係 100%
+  - 主星分佈合理性 ≥ 95%
+  - 星曜位置唯一性 100%
+  
+  ### 4. 輔星安放驗證
+  - 輔星位置：{auxiliary_stars}
+  - 四化星：{four_transformations}
+  
+  **驗證標準：**
+  - 輔星位置準確性 ≥ 95%
+  - 四化星計算正確性 100%
+  - 輔星分佈合理性 ≥ 90%
+  - 四化星唯一性 100%
+  
+  ## 驗證結果輸出
+  
+  請提供以下驗證結果：
+  1. **驗證狀態**：通過/失敗/警告
+  2. **錯誤列表**：具體的錯誤項目
+  3. **修正建議**：針對錯誤的修正方案
+  4. **置信度評分**：0-100分的置信度
+  5. **驗證報告**：詳細的驗證過程和結果
+```
+
+### 錯誤修正提示詞
+```yaml
+error_correction_prompt: |
+  檢測到以下計算錯誤，請進行修正：
+  
+  ## 錯誤信息
+  {error_details}
+  
+  ## 修正要求
+  
+  ### 1. 錯誤分析
+  - 錯誤類型：{error_type}
+  - 錯誤位置：{error_location}
+  - 錯誤原因：{error_cause}
+  - 影響範圍：{impact_scope}
+  
+  ### 2. 修正方案
+  請提供以下修正方案：
+  1. **立即修正**：針對當前錯誤的直接修正
+  2. **預防措施**：防止類似錯誤再次發生
+  3. **驗證方法**：修正後的驗證檢查
+  4. **備用方案**：修正失敗時的備用方案
+  
+  ### 3. 修正執行
+  請按照以下步驟執行修正：
+  1. 分析錯誤的根本原因
+  2. 選擇最適合的修正方法
+  3. 執行修正操作
+  4. 驗證修正結果
+  5. 確認修正的完整性
+  
+  ### 4. 修正驗證
+  修正完成後，請進行以下驗證：
+  - 錯誤是否完全修正？
+  - 是否引入新的錯誤？
+  - 整體計算是否仍然正確？
+  - 置信度是否提升？
+  
+  ## 輸出格式
+  
+  請提供以下修正結果：
+  1. **修正狀態**：成功/失敗/部分成功
+  2. **修正詳情**：具體的修正過程
+  3. **驗證結果**：修正後的驗證報告
+  4. **置信度變化**：修正前後的置信度對比
+  5. **改進建議**：防止類似錯誤的建議
+```
+
+---
+
+## 配置參數
+
+### 計算精度設定
+```yaml
+calculation_precision:
+  time_conversion:
+    lunar_accuracy: "99%"
+    solar_time_precision: "1分鐘"
+    time_period_accuracy: "100%"
+    five_elements_accuracy: "100%"
+  
+  chart_calculation:
+    ming_gong_accuracy: "100%"
+    shen_gong_accuracy: "100%"
+    palace_sequence_accuracy: "100%"
+  
+  star_placement:
+    ziwei_accuracy: "98%"
+    tianfu_accuracy: "100%"
+    main_stars_accuracy: "95%"
+    auxiliary_stars_accuracy: "90%"
+  
+  overall_accuracy:
+    target_accuracy: "95%"
+    minimum_accuracy: "90%"
+    warning_threshold: "85%"
+    error_threshold: "80%"
+```
+
+### 驗證規則設定
+```yaml
+validation_rules:
+  mandatory_checks:
+    - "時間格式驗證"
+    - "農曆轉換驗證"
+    - "真太陽時驗證"
+    - "命宮位置驗證"
+    - "主星分佈驗證"
+    - "四化星驗證"
+  
+  optional_checks:
+    - "歷史時間驗證"
+    - "特殊情況驗證"
+    - "邊界條件驗證"
+    - "性能指標驗證"
+  
+  error_thresholds:
+    critical_errors: 0
+    major_errors: 1
+    minor_errors: 3
+    warnings: 5
+```
+
+### 性能設定
+```yaml
+performance_settings:
+  time_limits:
+    max_calculation_time: "30秒"
+    max_validation_time: "10秒"
+    max_correction_time: "15秒"
+    max_total_time: "60秒"
+  
+  resource_limits:
+    max_memory_usage: "512MB"
+    max_cpu_usage: "80%"
+    max_disk_usage: "100MB"
+  
+  optimization:
+    parallel_processing: true
+    cache_enabled: true
+    batch_processing: true
+    incremental_calculation: true
+```
+
+---
+
+## 使用說明
+
+### 基本使用
+1. 載入模板配置
+2. 輸入必要的計算參數
+3. 執行分步驟計算
+4. 進行驗證檢查
+5. 修正發現的錯誤
+6. 輸出最終結果
+
+### 高級使用
+1. 自定義計算精度
+2. 調整驗證規則
+3. 配置性能參數
+4. 啟用錯誤修正
+5. 設置監控指標
+
+### 最佳實踐
+1. 始終進行驗證檢查
+2. 及時修正發現的錯誤
+3. 保持計算過程的透明度
+4. 記錄所有計算步驟
+5. 定期更新模板配置
+
+---
+
+**模板版本**：2.1.0  
+**最後更新**：2025年9月14日  
+**維護團隊**：BMAD Astrology Framework Team
+
+---
+
+*此模板為紫微命盤排盤提供了精確的分步驟計算方法，確保計算過程的準確性和可靠性。*

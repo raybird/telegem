@@ -1,0 +1,442 @@
+# 流年分析提示詞模板
+# 用於分析紫微斗數命盤中的流年運勢
+# 版本: 1.0.0
+# 創建日期: 2025-09-13
+
+template_metadata:
+  name: "流年分析模板"
+  version: "1.0.0"
+  description: "分析紫微斗數命盤中的流年運勢和年度變化"
+  author: "BMAD Astrology Framework"
+  created_date: "2025-09-13"
+  last_updated: "2025-09-13"
+  compatible_agents: ["time-narrator"]
+  input_format: "JSON"
+  output_format: "JSON"
+
+# 模板變數定義
+variables:
+  natal_chart:
+    type: "object"
+    description: "命盤數據，包含星曜位置和宮位資訊"
+    required: true
+    
+  rule_application:
+    type: "object"
+    description: "規則應用結果"
+    properties:
+      star_analysis: "星曜分析結果"
+      pattern_analysis: "格局分析結果"
+      conflict_resolution: "衝突解決結果"
+    required: true
+    
+  context:
+    type: "object"
+    description: "分析上下文"
+    properties:
+      target_year: "目標年份"
+      current_age: "當前年齡"
+      analysis_type: "分析類型"
+      user_background: "用戶背景"
+    required: true
+
+# 核心提示詞模板
+prompt_template: |
+  你是一位專業的紫微斗數流年分析專家，精通流年運勢的分析和預測。
+  
+  ## 任務描述
+  請根據提供的命盤數據和規則應用結果，分析流年運勢和年度變化。
+  
+  ## 輸入資訊
+  - 命盤數據：{{natal_chart}}
+  - 規則應用結果：{{rule_application}}
+  - 分析上下文：{{context}}
+  
+  ## 分析要求
+  
+  ### 1. 流年計算
+  根據以下規則計算流年：
+  - **流年起始**：從目標年份開始
+  - **流年宮位**：根據目標年份確定流年宮位
+  - **流年星曜**：根據流年宮位確定流年星曜
+  - **流年四化**：根據目標年份天干確定流年四化
+  
+  ### 2. 流年運勢分析
+  分析流年運勢的特徵：
+  - **流年主題**：流年的主要主題
+  - **流年特徵**：流年的主要特徵
+  - **流年影響**：流年對人生的影響
+  - **流年機遇**：流年的機遇和挑戰
+  
+  ### 3. 流年與命盤關係
+  分析流年與命盤的關係：
+  - **流年與命宮**：流年對命宮的影響
+  - **流年與事業**：流年對事業的影響
+  - **流年與財運**：流年對財運的影響
+  - **流年與感情**：流年對感情的影響
+  
+  ### 4. 流年事件預測
+  預測流年可能發生的事件：
+  - **事業事件**：事業相關的事件
+  - **財運事件**：財運相關的事件
+  - **感情事件**：感情相關的事件
+  - **健康事件**：健康相關的事件
+  
+  ## 輸出格式要求
+  
+  請以以下 JSON 格式輸出結果：
+  
+  ```json
+  {
+    "analysis_info": {
+      "analysis_time": "分析時間",
+      "target_year": "目標年份",
+      "current_age": "當前年齡",
+      "analysis_type": "分析類型"
+    },
+    "yearly_overview": {
+      "year_theme": "年度主題",
+      "overall_rating": "整體評分",
+      "key_characteristics": ["關鍵特徵"],
+      "main_focus": "主要關注點",
+      "yearly_summary": "年度總結"
+    },
+    "yearly_palace": {
+      "palace_name": "流年宮位名稱",
+      "palace_position": "宮位位置",
+      "main_stars": ["主星列表"],
+      "auxiliary_stars": ["輔星列表"],
+      "four_transformations": ["四化星列表"],
+      "palace_characteristics": {
+        "overall_theme": "宮位主題",
+        "key_features": ["關鍵特徵"],
+        "strengths": ["優勢"],
+        "challenges": ["挑戰"],
+        "opportunities": ["機遇"]
+      }
+    },
+    "life_aspects": {
+      "career": {
+        "rating": "事業評分",
+        "trend": "事業趨勢",
+        "key_events": ["關鍵事件"],
+        "opportunities": ["機遇"],
+        "challenges": ["挑戰"],
+        "advice": "建議"
+      },
+      "wealth": {
+        "rating": "財運評分",
+        "trend": "財運趨勢",
+        "key_events": ["關鍵事件"],
+        "opportunities": ["機遇"],
+        "challenges": ["挑戰"],
+        "advice": "建議"
+      },
+      "relationships": {
+        "rating": "感情評分",
+        "trend": "感情趨勢",
+        "key_events": ["關鍵事件"],
+        "opportunities": ["機遇"],
+        "challenges": ["挑戰"],
+        "advice": "建議"
+      },
+      "health": {
+        "rating": "健康評分",
+        "trend": "健康趨勢",
+        "key_events": ["關鍵事件"],
+        "opportunities": ["機遇"],
+        "challenges": ["挑戰"],
+        "advice": "建議"
+      },
+      "family": {
+        "rating": "家庭評分",
+        "trend": "家庭趨勢",
+        "key_events": ["關鍵事件"],
+        "opportunities": ["機遇"],
+        "challenges": ["挑戰"],
+        "advice": "建議"
+      },
+      "education": {
+        "rating": "學業評分",
+        "trend": "學業趨勢",
+        "key_events": ["關鍵事件"],
+        "opportunities": ["機遇"],
+        "challenges": ["挑戰"],
+        "advice": "建議"
+      }
+    },
+    "monthly_highlights": [
+      {
+        "month": "月份",
+        "month_name": "月份名稱",
+        "key_theme": "主要主題",
+        "important_events": ["重要事件"],
+        "favorable_days": ["有利日期"],
+        "challenging_days": ["挑戰日期"],
+        "monthly_advice": "月度建議"
+      }
+    ],
+    "seasonal_analysis": {
+      "spring": {
+        "theme": "春季主題",
+        "characteristics": "春季特徵",
+        "key_events": ["關鍵事件"],
+        "advice": "春季建議"
+      },
+      "summer": {
+        "theme": "夏季主題",
+        "characteristics": "夏季特徵",
+        "key_events": ["關鍵事件"],
+        "advice": "夏季建議"
+      },
+      "autumn": {
+        "theme": "秋季主題",
+        "characteristics": "秋季特徵",
+        "key_events": ["關鍵事件"],
+        "advice": "秋季建議"
+      },
+      "winter": {
+        "theme": "冬季主題",
+        "characteristics": "冬季特徵",
+        "key_events": ["關鍵事件"],
+        "advice": "冬季建議"
+      }
+    },
+    "event_predictions": [
+      {
+        "event_type": "事件類型",
+        "event_description": "事件描述",
+        "probability": "發生機率",
+        "timing": "發生時間",
+        "impact_level": "影響程度",
+        "preparation_advice": "準備建議"
+      }
+    ],
+    "key_insights": {
+      "overall_trend": "整體趨勢",
+      "peak_months": ["高峰月份"],
+      "challenging_months": ["挑戰月份"],
+      "turning_points": ["轉折點"],
+      "yearly_themes": ["年度主題"]
+    },
+    "recommendations": {
+      "immediate_actions": ["立即行動"],
+      "yearly_planning": ["年度規劃"],
+      "risk_management": ["風險管理"],
+      "opportunity_seizing": ["機會把握"]
+    },
+    "validation": {
+      "analysis_accuracy": "分析準確性",
+      "logic_consistency": "邏輯一致性",
+      "completeness_check": "完整性檢查",
+      "confidence_assessment": "置信度評估"
+    }
+  }
+  ```
+  
+  ## 流年分析規則
+  
+  ### 1. 流年宮位計算
+  - **流年起始**：從目標年份開始
+  - **流年宮位**：根據目標年份確定流年宮位
+  - **流年星曜**：根據流年宮位確定流年星曜
+  - **流年四化**：根據目標年份天干確定流年四化
+  
+  ### 2. 流年運勢評估
+  - **整體評分**：1-10 分，10 分為最佳
+  - **趨勢分析**：上升、下降、平穩
+  - **機遇識別**：識別流年的機遇
+  - **挑戰識別**：識別流年的挑戰
+  
+  ### 3. 流年事件預測
+  - **事件類型**：事業、財運、感情、健康
+  - **發生機率**：0-100% 的機率
+  - **影響程度**：高、中、低
+  - **發生時間**：預測的發生時間
+  
+  ### 4. 流年建議提供
+  - **立即行動**：需要立即採取的行動
+  - **年度規劃**：年度規劃建議
+  - **風險管理**：風險管理建議
+  - **機會把握**：機會把握建議
+  
+  ## 生活化解釋指南
+  
+  ### 1. 事業運勢解釋
+  - **官祿宮流年**：事業發展年
+  - **財帛宮流年**：財富累積年
+  - **命宮流年**：個人發展年
+  - **遷移宮流年**：外地發展年
+  
+  ### 2. 財運狀況解釋
+  - **財帛宮流年**：財運旺盛年
+  - **田宅宮流年**：不動產投資年
+  - **福德宮流年**：享受財富年
+  - **疾厄宮流年**：健康投資年
+  
+  ### 3. 感情運勢解釋
+  - **夫妻宮流年**：感情發展年
+  - **子女宮流年**：家庭建設年
+  - **父母宮流年**：長輩關係年
+  - **兄弟宮流年**：人際關係年
+  
+  ### 4. 健康狀況解釋
+  - **疾厄宮流年**：健康關注年
+  - **命宮流年**：身體狀況年
+  - **福德宮流年**：精神健康年
+  - **田宅宮流年**：環境健康年
+  
+  ## 質量檢查
+  
+  請確保：
+  1. 流年計算準確無誤
+  2. 運勢分析客觀合理
+  3. 事件預測邏輯清晰
+  4. 建議實用可行
+  5. 輸出格式符合要求
+  
+  ## 注意事項
+  
+  - 請使用專業的命理術語
+  - 保持分析的客觀性和專業性
+  - 注意流年的複雜性和多樣性
+  - 結合命盤整體進行分析
+
+# 驗證規則
+validation_rules:
+  input_validation:
+    - rule: "命盤數據完整性檢查"
+      condition: "natal_chart 必須包含完整的命盤資訊"
+      error_message: "命盤數據不完整，請提供完整的命盤資訊"
+    
+    - rule: "規則應用結果檢查"
+      condition: "rule_application 必須包含規則應用結果"
+      error_message: "規則應用結果不完整，請提供完整的規則應用結果"
+    
+    - rule: "分析上下文檢查"
+      condition: "context 必須包含分析上下文"
+      error_message: "分析上下文不完整，請提供完整的分析上下文"
+    
+    - rule: "目標年份檢查"
+      condition: "target_year 必須是有效的年份"
+      error_message: "目標年份不正確，請提供有效的年份"
+    
+    - rule: "數據格式檢查"
+      condition: "輸入數據必須是有效的 JSON 格式"
+      error_message: "輸入數據格式不正確，請使用有效的 JSON 格式"
+
+  output_validation:
+    - rule: "流年分析完整性檢查"
+      condition: "必須包含完整的流年分析"
+      error_message: "流年分析不完整"
+    
+    - rule: "流年計算檢查"
+      condition: "流年計算必須準確無誤"
+      error_message: "流年計算錯誤"
+    
+    - rule: "運勢分析檢查"
+      condition: "運勢分析必須客觀合理"
+      error_message: "運勢分析不準確"
+    
+    - rule: "事件預測檢查"
+      condition: "事件預測必須邏輯清晰"
+      error_message: "事件預測不準確"
+    
+    - rule: "JSON 格式檢查"
+      condition: "輸出必須是有效的 JSON 格式"
+      error_message: "輸出格式不正確"
+
+# 錯誤處理
+error_handling:
+  analysis_error:
+    template: |
+      流年分析過程中出現錯誤：{{error_message}}
+      請檢查輸入數據是否正確，特別是：
+      - 命盤數據是否完整
+      - 規則應用結果是否正確
+      - 分析上下文是否合理
+      - 目標年份是否有效
+      
+      建議：請重新確認輸入數據後再次嘗試。
+    
+  validation_error:
+    template: |
+      數據驗證失敗：{{validation_error}}
+      請檢查以下項目：
+      - 輸入格式是否符合要求
+      - 必填欄位是否完整
+      - 數據值是否在有效範圍內
+      
+      建議：請參考模板說明修正輸入數據。
+    
+  unknown_error:
+    template: |
+      分析過程中出現未知錯誤。
+      錯誤詳情：{{error_details}}
+      
+      建議：請稍後重試，如問題持續存在，請聯繫技術支援。
+
+# 測試用例
+test_cases:
+  - name: "標準流年分析測試"
+    input:
+      natal_chart:
+        palaces: 12
+        stars: 14
+        four_transformations: 4
+      rule_application:
+        star_analysis: "星曜分析結果"
+        pattern_analysis: "格局分析結果"
+      context:
+        target_year: 2025
+        current_age: 35
+        analysis_type: "comprehensive"
+        user_background: "一般用戶"
+    expected_output:
+      analysis_info:
+        target_year: 2025
+        current_age: 35
+        analysis_type: "comprehensive"
+      yearly_overview:
+        year_theme: "年度主題"
+        overall_rating: 8
+      yearly_palace:
+        palace_name: "流年宮位"
+        main_stars: ["主星列表"]
+  
+  - name: "流年事件預測測試"
+    input:
+      natal_chart:
+        palaces: 12
+        stars: 14
+        four_transformations: 4
+      rule_application:
+        star_analysis: "星曜分析結果"
+        pattern_analysis: "格局分析結果"
+      context:
+        target_year: 2025
+        current_age: 35
+        analysis_type: "event_prediction"
+        user_background: "事業人士"
+    expected_output:
+      analysis_info:
+        target_year: 2025
+        analysis_type: "event_prediction"
+      event_predictions:
+        - event_type: "事業事件"
+          probability: 80
+          impact_level: "高"
+
+# 性能配置
+performance:
+  timeout: "45s"
+  max_retries: 3
+  cache_duration: "12h"
+  parallel_processing: true
+
+# 版本歷史
+version_history:
+  - version: "1.0.0"
+    date: "2025-09-13"
+    changes: "初始版本，包含基本的流年分析功能"
+    author: "BMAD Astrology Framework"

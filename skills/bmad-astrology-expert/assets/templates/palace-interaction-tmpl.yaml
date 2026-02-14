@@ -1,0 +1,263 @@
+# 宮位互動分析提示詞模板
+# 用於結構分析者智能體進行三方四正+對宮互動分析
+# 版本: 1.0.0
+# 創建日期: 2025-09-13
+
+template_metadata:
+  name: "宮位互動分析模板"
+  version: "1.0.0"
+  description: "基於三方四正+對宮互動進行深度宮位分析"
+  author: "BMAD Astrology Framework"
+  created_date: "2025-09-13"
+  last_updated: "2025-09-13"
+  target_agent: "structure-analyst"
+  template_type: "palace_interaction"
+  complexity_level: "advanced"
+
+# 宮位互動分析提示詞模板
+palace_interaction_prompt:
+  system_prompt: |
+    你是專業的紫微斗數結構分析者，專門負責宮位互動分析。你具備深厚的命理學知識和豐富的實戰經驗，能夠準確分析三方四正、對宮、六合等宮位關係，並提供深度的互動影響分析。
+    
+    **你的核心能力：**
+    1. 精確計算三方四正、對宮、六合等宮位關係
+    2. 分析宮位間的互動影響和制約關係
+    3. 評估宮位互動的強度和影響力
+    4. 提供基於宮位互動的運勢預測
+    5. 結合本命盤特點進行個性化分析
+    
+    **分析原則：**
+    - 基於科學的命理計算方法
+    - 提供機率性預測，避免絕對化表述
+    - 結合實際生活情況給出實用建議
+    - 保持客觀中立的分析態度
+    - 重視用戶的隱私和個人選擇
+
+  user_prompt_template: |
+    請為我分析{{target_palace}}的宮位互動關係。
+    
+    **用戶基本資訊：**
+    - 出生日期：{{birth_date}}
+    - 出生時間：{{birth_time}}
+    - 出生地點：{{birth_location}}
+    - 性別：{{gender}}
+    
+    **本命盤資訊：**
+    - 命宮主星：{{life_palace_main_star}}
+    - 各宮位主星：{{all_palace_main_stars}}
+    - 四化配置：{{four_transformations}}
+    
+    **分析要求：**
+    1. 計算{{target_palace}}的三方四正關係
+    2. 分析{{target_palace}}的對宮關係
+    3. 評估宮位互動的強度和影響
+    4. 提供基於互動的運勢預測
+    5. 給出具體的改善建議
+    
+    請按照以下格式提供分析結果：
+
+  analysis_format: |
+    ## 🏛️ {{target_palace}}宮位互動分析
+    
+    ### 📊 三方四正配置
+    **主宮位：** {{target_palace}}
+    **三方宮位1：** {{three_harmony_palace_1}}
+    **三方宮位2：** {{three_harmony_palace_2}}
+    **整體配置：** {{three_harmony_configuration}}
+    
+    ### 🔄 對宮關係分析
+    **對宮位：** {{opposite_palace}}
+    **對立關係：** {{opposition_relationship}}
+    **互補關係：** {{complementary_relationship}}
+    **平衡狀況：** {{balance_status}}
+    
+    ### 🎯 六合關係分析
+    **六合宮位：** {{six_harmony_palace}}
+    **協調關係：** {{harmony_relationship}}
+    **促進作用：** {{promotion_effect}}
+    **協調程度：** {{harmony_level}}
+    
+    ### ⚡ 互動強度評估
+    **整體強度：** {{overall_intensity}}/10
+    **星曜配置強度：** {{star_configuration_intensity}}
+    **四化影響強度：** {{four_transformations_intensity}}
+    **宮位強弱強度：** {{palace_strength_intensity}}
+    **互動關係強度：** {{interaction_relationship_intensity}}
+    
+    ### 🔮 運勢影響分析
+    **整體運勢：** {{overall_fortune}}
+    **各宮位影響：**
+    {% for palace in affected_palaces %}
+    - **{{palace.name}}：** {{palace.influence}}
+    {% endfor %}
+    
+    **平衡狀況：** {{balance_analysis}}
+    **發展趨勢：** {{development_trend}}
+    
+    ### 💡 行動建議
+    **積極行動：**
+    {% for action in positive_actions %}
+    - {{action}}
+    {% endfor %}
+    
+    **注意事項：**
+    {% for warning in warnings %}
+    - {{warning}}
+    {% endfor %}
+    
+    **平衡方法：**
+    {% for method in balance_methods %}
+    - {{method}}
+    {% endfor %}
+    
+    **改善建議：**
+    {% for suggestion in improvement_suggestions %}
+    - {{suggestion}}
+    {% endfor %}
+    
+    ---
+    *本分析基於傳統紫微斗數理論，僅供參考，請結合實際情況理性判斷。*
+
+# 宮位互動計算規則
+interaction_calculation:
+  three_harmony_calculation:
+    name: "三方四正計算"
+    description: "計算三方四正宮位的方法"
+    formula: "三方宮位 = 主宮位 + 4, 主宮位 + 8 (模12)"
+    example: "命宮三方：命宮(1) + 財帛宮(5) + 官祿宮(9)"
+    
+  opposite_palace_calculation:
+    name: "對宮計算"
+    description: "計算對宮的方法"
+    formula: "對宮 = 主宮位 + 6 (模12)"
+    example: "命宮對宮：命宮(1) + 遷移宮(7)"
+    
+  six_harmony_calculation:
+    name: "六合計算"
+    description: "計算六合宮位的方法"
+    formula: "六合宮位 = 主宮位 + 5 (模12)"
+    example: "命宮六合：命宮(1) + 奴僕宮(6)"
+
+# 宮位互動分析標準
+interaction_standards:
+  intensity_levels:
+    - level: "極強"
+      range: "9-10"
+      description: "互動極其強烈，影響力巨大"
+      characteristics: ["星曜廟旺", "四化強烈", "宮位強勢", "互動和諧"]
+      
+    - level: "很強"
+      range: "7-8"
+      description: "互動很強，影響力明顯"
+      characteristics: ["星曜得地", "四化明顯", "宮位良好", "互動正常"]
+      
+    - level: "中等"
+      range: "5-6"
+      description: "互動中等，影響力一般"
+      characteristics: ["星曜平和", "四化一般", "宮位平穩", "互動一般"]
+      
+    - level: "較弱"
+      range: "3-4"
+      description: "互動較弱，影響力有限"
+      characteristics: ["星曜失地", "四化較弱", "宮位較弱", "互動不佳"]
+      
+    - level: "很弱"
+      range: "1-2"
+      description: "互動很弱，影響力微小"
+      characteristics: ["星曜陷地", "四化很弱", "宮位很弱", "互動惡劣"]
+
+  relationship_types:
+    - type: "和諧"
+      description: "宮位間關係和諧，相互促進"
+      characteristics: ["相互支持", "協調發展", "平衡穩定", "積極影響"]
+      
+    - type: "對立"
+      description: "宮位間關係對立，相互制約"
+      characteristics: ["相互制約", "對立衝突", "需要平衡", "挑戰性強"]
+      
+    - type: "互補"
+      description: "宮位間關係互補，相互補充"
+      characteristics: ["相互補充", "取長補短", "協調發展", "平衡穩定"]
+      
+    - type: "衝突"
+      description: "宮位間關係衝突，相互對抗"
+      characteristics: ["相互對抗", "衝突激烈", "需要調和", "挑戰性強"]
+
+# 宮位互動預測規則
+interaction_prediction:
+  prediction_methods:
+    name: "預測方法"
+    description: "基於宮位互動進行運勢預測的方法"
+    methods:
+      - method: "三方四正預測"
+        description: "基於三方四正關係預測運勢發展"
+        accuracy: "75-85%"
+        
+      - method: "對宮預測"
+        description: "基於對宮關係預測運勢變化"
+        accuracy: "70-80%"
+        
+      - method: "六合預測"
+        description: "基於六合關係預測運勢協調"
+        accuracy: "65-75%"
+        
+      - method: "綜合預測"
+        description: "綜合多種關係預測運勢發展"
+        accuracy: "80-90%"
+
+  prediction_categories:
+    name: "預測類別"
+    description: "基於宮位互動的預測類別"
+    categories:
+      - category: "事業預測"
+        description: "基於官祿宮三方四正預測事業發展"
+        
+      - category: "財運預測"
+        description: "基於財帛宮三方四正預測財運變化"
+        
+      - category: "感情預測"
+        description: "基於夫妻宮三方四正預測感情發展"
+        
+      - category: "健康預測"
+        description: "基於疾厄宮三方四正預測健康狀況"
+
+# 宮位互動建議模板
+interaction_advice:
+  positive_actions:
+    name: "積極行動建議"
+    templates:
+      - "加強{{target_palace}}的發展，提升整體運勢"
+      - "利用{{three_harmony_palace_1}}和{{three_harmony_palace_2}}的優勢"
+      - "平衡{{target_palace}}和{{opposite_palace}}的關係"
+      - "發揮{{six_harmony_palace}}的協調作用"
+      
+  warnings:
+    name: "注意事項建議"
+    templates:
+      - "注意{{target_palace}}和{{opposite_palace}}的對立關係"
+      - "避免{{target_palace}}的過度發展"
+      - "謹慎處理{{three_harmony_palace_1}}的影響"
+      - "注意{{six_harmony_palace}}的協調平衡"
+      
+  balance_methods:
+    name: "平衡方法建議"
+    templates:
+      - "通過{{target_palace}}和{{opposite_palace}}的平衡發展"
+      - "利用{{three_harmony_palace_1}}和{{three_harmony_palace_2}}的協調"
+      - "發揮{{six_harmony_palace}}的促進作用"
+      - "調整{{target_palace}}的發展策略"
+      
+  improvement_suggestions:
+    name: "改善建議"
+    templates:
+      - "提升{{target_palace}}的星曜配置"
+      - "加強{{three_harmony_palace_1}}和{{three_harmony_palace_2}}的互動"
+      - "改善{{target_palace}}和{{opposite_palace}}的關係"
+      - "優化{{six_harmony_palace}}的協調作用"
+
+# 版本歷史
+version_history:
+  - version: "1.0.0"
+    date: "2025-09-13"
+    changes: "初始版本，包含完整的宮位互動分析模板"
+    author: "BMAD Astrology Framework"

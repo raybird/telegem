@@ -1,0 +1,198 @@
+template:
+  name: "命盤基礎觸機分析模板"
+  version: "1.0.0"
+  description: "基於用戶命盤的觸機占卜分析"
+  category: "觸機占卜"
+  created_date: "2025-09-14"
+  
+  inputs:
+    - name: "natal_chart"
+      type: "object"
+      required: true
+      description: "用戶命盤"
+      fields:
+        - name: "birth_info"
+          type: "object"
+          description: "出生資訊"
+        - name: "palaces"
+          type: "array"
+          description: "十二宮位配置"
+        - name: "stars"
+          type: "array"
+          description: "星曜配置"
+        - name: "transformations"
+          type: "array"
+          description: "四化飛星"
+    - name: "trigger_method"
+      type: "string"
+      required: true
+      description: "觸機方式 (生肖/時辰)"
+      example: "時辰"
+    - name: "question_time"
+      type: "string"
+      required: true
+      description: "問事時間"
+      example: "2025-09-14 16:49"
+    - name: "question"
+      type: "string"
+      required: true
+      description: "問題內容"
+      example: "事業發展如何"
+    - name: "trigger_info"
+      type: "object"
+      required: false
+      description: "觸機資訊"
+      fields:
+        - name: "zodiac"
+          type: "string"
+          description: "問事者生肖"
+        - name: "hour"
+          type: "string"
+          description: "問事時辰"
+          
+  prompt: |
+    你是一位專業的紫微斗數觸機占卜分析師。請基於以下資訊進行命盤基礎觸機占卜分析：
+    
+    **用戶命盤：** {{natal_chart}}
+    **觸機方式：** {{trigger_method}}
+    **問事時間：** {{question_time}}
+    **問題內容：** {{question}}
+    **觸機資訊：** {{trigger_info}}
+    
+    **觸機計算步驟：**
+    1. 確定觸機宮位 (生肖或時辰對應)
+    2. 以觸機宮位為命宮重新排盤
+    3. 保持原有星曜配置
+    4. 生成觸機命盤
+    
+    **觸機方式說明：**
+    - **生肖觸機**：基於問事者生肖對應地支宮位
+    - **時辰觸機**：基於問事時辰對應地支宮位
+    
+    **地支對應表：**
+    - 子時(23-1點) → 子宮
+    - 丑時(1-3點) → 丑宮
+    - 寅時(3-5點) → 寅宮
+    - 卯時(5-7點) → 卯宮
+    - 辰時(7-9點) → 辰宮
+    - 巳時(9-11點) → 巳宮
+    - 午時(11-13點) → 午宮
+    - 未時(13-15點) → 未宮
+    - 申時(15-17點) → 申宮
+    - 酉時(17-19點) → 酉宮
+    - 戌時(19-21點) → 戌宮
+    - 亥時(21-23點) → 亥宮
+    
+    **生肖對應表：**
+    - 鼠 → 子宮
+    - 牛 → 丑宮
+    - 虎 → 寅宮
+    - 兔 → 卯宮
+    - 龍 → 辰宮
+    - 蛇 → 巳宮
+    - 馬 → 午宮
+    - 羊 → 未宮
+    - 猴 → 申宮
+    - 雞 → 酉宮
+    - 狗 → 戌宮
+    - 豬 → 亥宮
+    
+    **分析重點：**
+    - 觸機宮位的含義和象徵
+    - 重新排盤後的變化趨勢
+    - 問題相關宮位的分析
+    - 個性化建議的提供
+    
+    **觸機盤解讀：**
+    - 以觸機宮位為命宮的重新排盤
+    - 各宮位星曜配置的變化
+    - 四化飛星的重新引動
+    - 宮位之間的互動關係
+    
+    **個性化分析：**
+    - 結合用戶命盤的基礎特質
+    - 分析觸機盤與原命盤的對比
+    - 提供個性化的觸機解讀
+    - 給出具體的行動建議
+    
+    **輸出格式：**
+    1. 觸機盤資訊（觸機宮位、重新排盤）
+    2. 觸機分析（觸機宮位的含義）
+    3. 個性化解讀（結合原命盤的分析）
+    4. 行動建議（具體可行的建議）
+    
+    **免責聲明：**
+    命盤基礎觸機占卜分析結果僅供參考，不構成專業建議。占卜分析具有主觀性和不確定性，請勿用於醫療、法律或重大決策。
+    
+    請提供專業、準確的命盤基礎觸機占卜分析。
+    
+  outputs:
+    - name: "trigger_chart"
+      type: "object"
+      description: "觸機命盤資訊"
+      fields:
+        - name: "trigger_palace"
+          type: "string"
+          description: "觸機宮位"
+        - name: "trigger_method"
+          type: "string"
+          description: "觸機方式"
+        - name: "palaces"
+          type: "array"
+          description: "重新排定的十二宮位"
+        - name: "stars"
+          type: "array"
+          description: "星曜配置"
+        - name: "transformations"
+          type: "array"
+          description: "四化飛星"
+        - name: "comparison"
+          type: "object"
+          description: "與原命盤的對比"
+          
+    - name: "trigger_analysis"
+      type: "string"
+      description: "觸機分析"
+      format: "觸機宮位的含義和象徵"
+      
+    - name: "personalized_interpretation"
+      type: "string"
+      description: "個性化解讀"
+      format: "結合原命盤的個性化分析"
+      
+    - name: "action_advice"
+      type: "string"
+      description: "行動建議"
+      format: "具體可行的行動建議"
+      
+  validation:
+    - rule: "觸機宮位計算必須準確"
+      description: "生肖或時辰對應的宮位必須正確"
+    - rule: "重新排盤必須正確"
+      description: "以觸機宮位為命宮的重新排盤必須正確"
+    - rule: "個性化分析必須合理"
+      description: "結合原命盤的分析必須合理"
+    - rule: "建議必須具體可行"
+      description: "行動建議必須具體且可執行"
+    - rule: "必須包含免責聲明"
+      description: "所有輸出都必須包含適當的免責聲明"
+      
+  examples:
+    - input:
+        natal_chart:
+          birth_info:
+            year: 1990
+            month: 5
+            day: 15
+        trigger_method: "時辰"
+        question_time: "2025-09-14 16:49"
+        question: "事業發展如何"
+        trigger_info:
+          hour: "申時"
+      output:
+        trigger_chart:
+          trigger_palace: "申宮"
+          trigger_method: "時辰"
+        trigger_analysis: "申時觸機，對應申宮，象徵變化和機動性..."
+        personalized_interpretation: "結合您的命盤特質，申時觸機顯示..."
+        action_advice: "在事業發展方面，建議把握變化的機會..."

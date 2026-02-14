@@ -1,0 +1,456 @@
+# 上下文管理提示詞模板
+# 用於管理對話上下文和命盤快取
+# 版本: 1.0.0
+# 創建日期: 2025-09-13
+
+template_metadata:
+  name: "上下文管理模板"
+  version: "1.0.0"
+  description: "管理對話上下文、命盤快取和一致性檢查"
+  author: "BMAD Astrology Framework"
+  created_date: "2025-09-13"
+  last_updated: "2025-09-13"
+  compatible_agents: ["conversation-coordinator"]
+  input_format: "JSON"
+  output_format: "JSON"
+
+# 模板變數定義
+variables:
+  current_context:
+    type: "object"
+    description: "當前對話上下文"
+    properties:
+      user_id: "用戶ID"
+      session_id: "會話ID"
+      conversation_history: "對話歷史"
+      current_analysis: "當前分析結果"
+      user_preferences: "用戶偏好"
+    required: true
+    
+  new_analysis:
+    type: "object"
+    description: "新的分析結果"
+    properties:
+      analysis_type: "分析類型"
+      analysis_results: "分析結果"
+      analysis_timestamp: "分析時間戳"
+      analysis_confidence: "分析置信度"
+    required: true
+    
+  user_profile:
+    type: "object"
+    description: "用戶背景資訊"
+    properties:
+      basic_info: "基本資訊"
+      natal_chart: "命盤數據"
+      analysis_history: "分析歷史"
+      preferences: "偏好設置"
+    required: true
+
+# 核心提示詞模板
+prompt_template: |
+  你是一位專業的對話上下文管理專家，精通對話上下文維護和命盤快取管理。
+  
+  ## 任務描述
+  請根據提供的當前上下文和新分析結果，更新對話上下文並進行一致性檢查。
+  
+  ## 輸入資訊
+  - 當前上下文：{{current_context}}
+  - 新分析結果：{{new_analysis}}
+  - 用戶背景：{{user_profile}}
+  
+  ## 管理要求
+  
+  ### 1. 上下文更新
+  更新對話上下文：
+  - **會話狀態**：更新會話狀態和進度
+  - **對話歷史**：添加新的對話記錄
+  - **分析結果**：整合新的分析結果
+  - **用戶偏好**：更新用戶偏好設置
+  
+  ### 2. 命盤快取管理
+  管理命盤快取：
+  - **快取更新**：更新命盤快取數據
+  - **快取驗證**：驗證快取數據的完整性
+  - **快取清理**：清理過期的快取數據
+  - **快取優化**：優化快取結構和性能
+  
+  ### 3. 一致性檢查
+  進行一致性檢查：
+  - **數據一致性**：檢查數據的一致性
+  - **邏輯一致性**：檢查邏輯的一致性
+  - **時間一致性**：檢查時間的一致性
+  - **上下文一致性**：檢查上下文的一致性
+  
+  ### 4. 上下文恢復
+  提供上下文恢復功能：
+  - **會話恢復**：恢復中斷的會話
+  - **狀態恢復**：恢復會話狀態
+  - **數據恢復**：恢復丟失的數據
+  - **偏好恢復**：恢復用戶偏好
+  
+  ## 輸出格式要求
+  
+  請以以下 JSON 格式輸出結果：
+  
+  ```json
+  {
+    "context_update": {
+      "update_time": "更新時間",
+      "update_type": "更新類型",
+      "update_status": "更新狀態",
+      "update_summary": "更新摘要"
+    },
+    "updated_context": {
+      "user_id": "用戶ID",
+      "session_id": "會話ID",
+      "conversation_history": [
+        {
+          "timestamp": "時間戳",
+          "question": "問題",
+          "answer": "回答",
+          "analysis_type": "分析類型",
+          "confidence": "置信度"
+        }
+      ],
+      "current_analysis": {
+        "analysis_type": "分析類型",
+        "analysis_results": "分析結果",
+        "analysis_timestamp": "分析時間戳",
+        "analysis_confidence": "分析置信度"
+      },
+      "user_preferences": {
+        "language": "語言偏好",
+        "style": "風格偏好",
+        "detail_level": "詳細程度偏好",
+        "notification": "通知偏好"
+      },
+      "session_state": {
+        "current_phase": "當前階段",
+        "progress": "進度",
+        "next_actions": ["下一步行動"],
+        "session_quality": "會話質量"
+      }
+    },
+    "cache_management": {
+      "cache_status": "快取狀態",
+      "cache_updates": [
+        {
+          "cache_key": "快取鍵",
+          "cache_type": "快取類型",
+          "update_action": "更新動作",
+          "update_timestamp": "更新時間戳"
+        }
+      ],
+      "cache_validation": {
+        "validation_status": "驗證狀態",
+        "validation_results": "驗證結果",
+        "validation_errors": ["驗證錯誤"],
+        "validation_warnings": ["驗證警告"]
+      },
+      "cache_optimization": {
+        "optimization_status": "優化狀態",
+        "optimization_results": "優化結果",
+        "performance_metrics": "性能指標"
+      }
+    },
+    "consistency_check": {
+      "check_status": "檢查狀態",
+      "data_consistency": {
+        "status": "數據一致性狀態",
+        "issues": ["數據一致性問題"],
+        "resolutions": ["解決方案"]
+      },
+      "logic_consistency": {
+        "status": "邏輯一致性狀態",
+        "issues": ["邏輯一致性問題"],
+        "resolutions": ["解決方案"]
+      },
+      "time_consistency": {
+        "status": "時間一致性狀態",
+        "issues": ["時間一致性問題"],
+        "resolutions": ["解決方案"]
+      },
+      "context_consistency": {
+        "status": "上下文一致性狀態",
+        "issues": ["上下文一致性問題"],
+        "resolutions": ["解決方案"]
+      }
+    },
+    "context_recovery": {
+      "recovery_status": "恢復狀態",
+      "recovery_actions": [
+        {
+          "action_type": "恢復動作類型",
+          "action_description": "恢復動作描述",
+          "action_status": "恢復動作狀態",
+          "action_result": "恢復動作結果"
+        }
+      ],
+      "recovery_quality": "恢復質量",
+      "recovery_recommendations": ["恢復建議"]
+    },
+    "quality_assessment": {
+      "overall_quality": "整體質量",
+      "context_quality": "上下文質量",
+      "cache_quality": "快取質量",
+      "consistency_quality": "一致性質量",
+      "recovery_quality": "恢復質量",
+      "quality_issues": ["質量問題"],
+      "quality_improvements": ["質量改進建議"]
+    },
+    "next_actions": {
+      "immediate_actions": ["立即行動"],
+      "scheduled_actions": ["計劃行動"],
+      "conditional_actions": ["條件行動"],
+      "recommended_actions": ["建議行動"]
+    },
+    "validation": {
+      "context_validation": "上下文驗證",
+      "cache_validation": "快取驗證",
+      "consistency_validation": "一致性驗證",
+      "recovery_validation": "恢復驗證",
+      "overall_validation": "整體驗證"
+    }
+  }
+  ```
+  
+  ## 上下文管理規則
+  
+  ### 1. 上下文更新規則
+  - **會話狀態更新**：根據新分析結果更新會話狀態
+  - **對話歷史更新**：添加新的對話記錄到歷史中
+  - **分析結果整合**：將新分析結果整合到上下文中
+  - **用戶偏好更新**：根據用戶行為更新偏好設置
+  
+  ### 2. 命盤快取管理規則
+  - **快取更新規則**：定期更新命盤快取數據
+  - **快取驗證規則**：驗證快取數據的完整性和準確性
+  - **快取清理規則**：清理過期和無用的快取數據
+  - **快取優化規則**：優化快取結構和性能
+  
+  ### 3. 一致性檢查規則
+  - **數據一致性規則**：檢查數據的一致性和完整性
+  - **邏輯一致性規則**：檢查邏輯的一致性和合理性
+  - **時間一致性規則**：檢查時間的一致性和順序性
+  - **上下文一致性規則**：檢查上下文的一致性和連貫性
+  
+  ### 4. 上下文恢復規則
+  - **會話恢復規則**：恢復中斷的會話和狀態
+  - **數據恢復規則**：恢復丟失的數據和資訊
+  - **偏好恢復規則**：恢復用戶偏好和設置
+  - **狀態恢復規則**：恢復會話狀態和進度
+  
+  ## 快取管理策略
+  
+  ### 1. 快取更新策略
+  - **即時更新**：重要數據即時更新
+  - **批量更新**：非重要數據批量更新
+  - **增量更新**：只更新變化的數據
+  - **全量更新**：定期全量更新
+  
+  ### 2. 快取驗證策略
+  - **完整性驗證**：檢查數據的完整性
+  - **準確性驗證**：檢查數據的準確性
+  - **一致性驗證**：檢查數據的一致性
+  - **時效性驗證**：檢查數據的時效性
+  
+  ### 3. 快取清理策略
+  - **時間清理**：清理過期的數據
+  - **空間清理**：清理無用的數據
+  - **頻率清理**：清理低頻使用的數據
+  - **質量清理**：清理低質量的數據
+  
+  ### 4. 快取優化策略
+  - **結構優化**：優化快取數據結構
+  - **性能優化**：優化快取訪問性能
+  - **空間優化**：優化快取空間使用
+  - **時間優化**：優化快取時間效率
+  
+  ## 一致性檢查方法
+  
+  ### 1. 數據一致性檢查
+  - **格式檢查**：檢查數據格式的一致性
+  - **內容檢查**：檢查數據內容的一致性
+  - **關係檢查**：檢查數據關係的一致性
+  - **完整性檢查**：檢查數據的完整性
+  
+  ### 2. 邏輯一致性檢查
+  - **規則檢查**：檢查邏輯規則的一致性
+  - **推理檢查**：檢查邏輯推理的一致性
+  - **結論檢查**：檢查邏輯結論的一致性
+  - **過程檢查**：檢查邏輯過程的一致性
+  
+  ### 3. 時間一致性檢查
+  - **順序檢查**：檢查時間順序的一致性
+  - **同步檢查**：檢查時間同步的一致性
+  - **更新檢查**：檢查時間更新的一致性
+  - **版本檢查**：檢查時間版本的一致性
+  
+  ### 4. 上下文一致性檢查
+  - **狀態檢查**：檢查上下文狀態的一致性
+  - **歷史檢查**：檢查上下文歷史的一致性
+  - **偏好檢查**：檢查上下文偏好的一致性
+  - **會話檢查**：檢查上下文會話的一致性
+  
+  ## 質量檢查
+  
+  請確保：
+  1. 上下文更新準確完整
+  2. 快取管理有效高效
+  3. 一致性檢查全面深入
+  4. 恢復功能可靠穩定
+  5. 質量評估客觀準確
+  
+  ## 注意事項
+  
+  - 請使用專業的技術術語
+  - 保持管理的客觀性和專業性
+  - 注意上下文的複雜性和多樣性
+  - 確保一致性和完整性
+
+# 驗證規則
+validation_rules:
+  input_validation:
+    - rule: "當前上下文檢查"
+      condition: "current_context 必須包含當前對話上下文"
+      error_message: "當前上下文不完整，請提供完整的當前對話上下文"
+    
+    - rule: "新分析結果檢查"
+      condition: "new_analysis 必須包含新的分析結果"
+      error_message: "新分析結果不完整，請提供完整的新分析結果"
+    
+    - rule: "用戶背景檢查"
+      condition: "user_profile 必須包含用戶背景資訊"
+      error_message: "用戶背景資訊不完整，請提供完整的用戶背景資訊"
+    
+    - rule: "數據格式檢查"
+      condition: "輸入數據必須是有效的 JSON 格式"
+      error_message: "輸入數據格式不正確，請使用有效的 JSON 格式"
+
+  output_validation:
+    - rule: "上下文更新完整性檢查"
+      condition: "必須包含完整的上下文更新"
+      error_message: "上下文更新不完整"
+    
+    - rule: "快取管理檢查"
+      condition: "快取管理必須有效"
+      error_message: "快取管理無效"
+    
+    - rule: "一致性檢查檢查"
+      condition: "一致性檢查必須全面"
+      error_message: "一致性檢查不全面"
+    
+    - rule: "JSON 格式檢查"
+      condition: "輸出必須是有效的 JSON 格式"
+      error_message: "輸出格式不正確"
+
+# 錯誤處理
+error_handling:
+  management_error:
+    template: |
+      上下文管理過程中出現錯誤：{{error_message}}
+      請檢查輸入數據是否正確，特別是：
+      - 當前上下文是否完整
+      - 新分析結果是否正確
+      - 用戶背景是否完整
+      
+      建議：請重新確認輸入數據後再次嘗試。
+    
+  validation_error:
+    template: |
+      數據驗證失敗：{{validation_error}}
+      請檢查以下項目：
+      - 輸入格式是否符合要求
+      - 必填欄位是否完整
+      - 數據值是否在有效範圍內
+      
+      建議：請參考模板說明修正輸入數據。
+    
+  unknown_error:
+    template: |
+      管理過程中出現未知錯誤。
+      錯誤詳情：{{error_details}}
+      
+      建議：請稍後重試，如問題持續存在，請聯繫技術支援。
+
+# 測試用例
+test_cases:
+  - name: "標準上下文更新測試"
+    input:
+      current_context:
+        user_id: "user_001"
+        session_id: "session_001"
+        conversation_history: []
+        current_analysis: null
+        user_preferences: {}
+      new_analysis:
+        analysis_type: "命盤分析"
+        analysis_results: "命盤分析結果"
+        analysis_timestamp: "2025-09-13T16:00:00Z"
+        analysis_confidence: 0.9
+      user_profile:
+        basic_info: "基本資訊"
+        natal_chart: "命盤數據"
+        analysis_history: []
+        preferences: {}
+    expected_output:
+      context_update:
+        update_type: "analysis_update"
+        update_status: "success"
+      updated_context:
+        user_id: "user_001"
+        session_id: "session_001"
+        conversation_history: 1
+        current_analysis:
+          analysis_type: "命盤分析"
+      cache_management:
+        cache_status: "updated"
+      consistency_check:
+        check_status: "passed"
+  
+  - name: "上下文恢復測試"
+    input:
+      current_context:
+        user_id: "user_002"
+        session_id: "session_002"
+        conversation_history: []
+        current_analysis: null
+        user_preferences: {}
+      new_analysis:
+        analysis_type: "會話恢復"
+        analysis_results: "會話恢復結果"
+        analysis_timestamp: "2025-09-13T16:00:00Z"
+        analysis_confidence: 0.8
+      user_profile:
+        basic_info: "基本資訊"
+        natal_chart: "命盤數據"
+        analysis_history: ["歷史分析1", "歷史分析2"]
+        preferences: {"language": "zh-TW"}
+    expected_output:
+      context_update:
+        update_type: "recovery"
+        update_status: "success"
+      updated_context:
+        user_id: "user_002"
+        session_id: "session_002"
+        conversation_history: 2
+      context_recovery:
+        recovery_status: "success"
+        recovery_actions: 1
+      quality_assessment:
+        overall_quality: "good"
+
+# 性能配置
+performance:
+  timeout: "20s"
+  max_retries: 3
+  cache_duration: "1h"
+  parallel_processing: true
+
+# 版本歷史
+version_history:
+  - version: "1.0.0"
+    date: "2025-09-13"
+    changes: "初始版本，包含基本的上下文管理功能"
+    author: "BMAD Astrology Framework"

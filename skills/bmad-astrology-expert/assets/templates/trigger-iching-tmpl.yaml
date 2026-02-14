@@ -1,0 +1,238 @@
+template:
+  name: "觸機易經占卜分析模板"
+  version: "1.1.0"
+  description: "基於觸機盤的易經64卦占卜分析（混合模式：現代解讀+傳統內容）"
+  category: "易經占卜"
+  created_date: "2025-09-14"
+  updated_date: "2025-09-14"
+  
+  inputs:
+    - name: "trigger_chart"
+      type: "object"
+      required: true
+      description: "觸機命盤"
+      fields:
+        - name: "palaces"
+          type: "array"
+          description: "十二宮位配置"
+        - name: "stars"
+          type: "array"
+          description: "星曜配置"
+        - name: "transformations"
+          type: "array"
+          description: "四化飛星"
+    - name: "question_time"
+      type: "string"
+      required: true
+      description: "問事時間"
+      example: "2025-09-14 16:49"
+    - name: "question"
+      type: "string"
+      required: true
+      description: "問題內容"
+      example: "感情發展如何"
+    - name: "question_type"
+      type: "string"
+      required: false
+      description: "問題類型"
+      example: "感情"
+      
+  prompt: |
+    你是一位專業的易經占卜分析師，精通64卦和後天八卦。請基於以下資訊進行觸機易經占卜分析：
+    
+    **觸機命盤：** {{trigger_chart}}
+    **問事時間：** {{question_time}}
+    **問題內容：** {{question}}
+    **問題類型：** {{question_type}}
+    
+    **易經占卜計算步驟：**
+    1. 基於觸機盤計算上卦和下卦
+    2. 結合問事時間計算變爻
+    3. 生成本卦和變卦
+    4. 分析卦象含義
+    
+    **觸機盤到易經卦象轉換：**
+    - 上卦：基於觸機盤的上半部分計算
+    - 下卦：基於觸機盤的下半部分計算
+    - 變爻：基於問事時間的時辰計算
+    
+    **宮位與八卦對應：**
+    - 命宮 → 乾卦（天）
+    - 兄弟宮 → 坤卦（地）
+    - 夫妻宮 → 離卦（火）
+    - 子女宮 → 震卦（雷）
+    - 財帛宮 → 巽卦（風）
+    - 疾厄宮 → 坎卦（水）
+    - 遷移宮 → 艮卦（山）
+    - 奴僕宮 → 兌卦（澤）
+    - 官祿宮 → 乾卦（天）
+    - 田宅宮 → 坤卦（地）
+    - 福德宮 → 離卦（火）
+    - 父母宮 → 震卦（雷）
+    
+    **變爻計算：**
+    - 基於問事時間的時辰確定變爻位置
+    - 子時(1) → 初爻，丑時(2) → 二爻，依此類推
+    - 超過6則取餘數
+    
+    **分析重點：**
+    - 本卦的含義和啟示
+    - 變卦的發展趨勢
+    - 變爻的具體指導
+    - 與問題相關的卦象解讀
+    
+    **混合模式分析要求：**
+    - 結合數據庫中的現代解讀和傳統易經內容
+    - 動態補充傳統卦辭、爻辭、彖傳、象傳
+    - 提供完整的易經智慧指導
+    - 平衡傳統權威性和現代實用性
+    
+    **傳統內容補充：**
+    - 卦辭：每卦的傳統卦辭
+    - 爻辭：相關爻位的傳統爻辭
+    - 彖傳：傳統的彖傳解釋
+    - 象傳：傳統的象傳解釋
+    - 文言傳：對乾坤二卦的詳細解釋（如適用）
+    
+    **易經智慧應用：**
+    - 結合易經的哲學思想
+    - 提供人生指導和建議
+    - 分析時機和趨勢
+    - 給出平衡和調和的建議
+    
+    **輸出格式：**
+    1. 卦象資訊（本卦、變卦、變爻）
+    2. 傳統內容（卦辭、爻辭、彖傳、象傳）
+    3. 現代解讀（基於數據庫的現代化解讀）
+    4. 易經智慧指導（結合傳統和現代的智慧）
+    5. 行動建議（具體可行的建議）
+    
+    **免責聲明：**
+    易經占卜分析結果僅供參考，不構成專業建議。占卜分析具有主觀性和不確定性，請勿用於醫療、法律或重大決策。
+    
+    請提供專業、準確的易經占卜分析。
+    
+  outputs:
+    - name: "hexagram_info"
+      type: "object"
+      description: "卦象資訊"
+      fields:
+        - name: "original_hexagram"
+          type: "object"
+          description: "本卦"
+          fields:
+            - name: "number"
+              type: "integer"
+              description: "卦序"
+            - name: "name"
+              type: "string"
+              description: "卦名"
+            - name: "upper_trigram"
+              type: "string"
+              description: "上卦"
+            - name: "lower_trigram"
+              type: "string"
+              description: "下卦"
+            - name: "symbol"
+              type: "string"
+              description: "卦象符號"
+        - name: "changing_hexagram"
+          type: "object"
+          description: "變卦"
+          fields:
+            - name: "number"
+              type: "integer"
+              description: "卦序"
+            - name: "name"
+              type: "string"
+              description: "卦名"
+            - name: "upper_trigram"
+              type: "string"
+              description: "上卦"
+            - name: "lower_trigram"
+              type: "string"
+              description: "下卦"
+            - name: "symbol"
+              type: "string"
+              description: "卦象符號"
+        - name: "changing_lines"
+          type: "array"
+          description: "變爻"
+          items:
+            type: "object"
+            fields:
+              - name: "position"
+                type: "integer"
+                description: "爻位"
+              - name: "type"
+                type: "string"
+                description: "爻型"
+              - name: "meaning"
+                type: "string"
+                description: "含義"
+              
+    - name: "traditional_content"
+      type: "object"
+      description: "傳統易經內容"
+      fields:
+        - name: "hexagram_text"
+          type: "string"
+          description: "卦辭"
+        - name: "line_texts"
+          type: "array"
+          description: "相關爻辭"
+        - name: "tuan_zhuan"
+          type: "string"
+          description: "彖傳"
+        - name: "xiang_zhuan"
+          type: "string"
+          description: "象傳"
+        - name: "wenyan_zhuan"
+          type: "string"
+          description: "文言傳（如適用）"
+          
+    - name: "modern_interpretation"
+      type: "string"
+      description: "現代解讀"
+      format: "基於數據庫的現代化解讀"
+      
+    - name: "iching_wisdom"
+      type: "string"
+      description: "易經智慧指導"
+      format: "結合傳統和現代的智慧指導"
+      
+    - name: "action_advice"
+      type: "string"
+      description: "行動建議"
+      format: "具體可行的行動建議"
+      
+  validation:
+    - rule: "卦象計算必須準確"
+      description: "本卦和變卦的計算必須正確"
+    - rule: "變爻計算必須合理"
+      description: "變爻的計算必須基於問事時間"
+    - rule: "解讀必須深刻"
+      description: "卦象解讀必須體現易經智慧"
+    - rule: "建議必須具體可行"
+      description: "行動建議必須具體且可執行"
+    - rule: "必須包含免責聲明"
+      description: "所有輸出都必須包含適當的免責聲明"
+      
+  examples:
+    - input:
+        trigger_chart:
+          palaces: ["命宮", "兄弟宮", "夫妻宮", "子女宮", "財帛宮", "疾厄宮", "遷移宮", "奴僕宮", "官祿宮", "田宅宮", "福德宮", "父母宮"]
+        question_time: "2025-09-14 16:49"
+        question: "感情發展如何"
+        question_type: "感情"
+      output:
+        hexagram_info:
+          original_hexagram:
+            number: 1
+            name: "乾卦"
+            upper_trigram: "乾"
+            lower_trigram: "乾"
+            symbol: "☰☰"
+        hexagram_interpretation: "乾卦象徵創造力和領導能力，在感情方面..."
+        iching_wisdom: "易經告訴我們，感情需要主動創造和引導..."
+        action_advice: "建議在感情方面主動表達心意，展現領導魅力..."

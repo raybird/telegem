@@ -1,0 +1,181 @@
+# 主星安星鎖步模板
+# 基於主星安星表的鎖步計算流程
+# 版本: 1.0.0
+
+template_metadata:
+  name: "主星安星鎖步模板"
+  version: "1.0.0"
+  description: "根據紫微星和天府星位置確定其他12顆主星位置的鎖步計算流程"
+  source: "BMAD Astrology Framework"
+  compatible_agent: "chart-calculator"
+  locked_step: true
+  deterministic: true
+
+# 鎖步流程
+locked_step_process:
+  step_1:
+    name: "確認輸入參數"
+    description: "驗證紫微星和天府星地支位置的有效性"
+    action: "validate_input"
+    required: true
+    validation_rules:
+      - "紫微星地支必須是十二地支之一"
+      - "天府星地支必須是十二地支之一"
+    
+  step_2:
+    name: "查表定位"
+    description: "根據紫微星和天府星地支位置查找對應的主星配置"
+    action: "lookup_table"
+    required: true
+    lookup_format: "紫微星地支_天府星地支"
+    table_reference: "major-stars-placement-table.yaml"
+    
+  step_3:
+    name: "返回結果"
+    description: "返回12顆主星的地支位置"
+    action: "return_result"
+    required: true
+    output_format:
+      major_stars: "object"
+
+# 提示詞模板
+prompt_template: |
+  你是紫微斗數排盤計算專家，必須嚴格按照鎖步流程進行主星安星計算。
+  
+  輸入參數：
+  - 紫微星地支位置：{{purple_star_branch}}
+  - 天府星地支位置：{{tianfu_star_branch}}
+  
+  鎖步流程：
+  1. 確認輸入參數：驗證紫微星和天府星地支（子-亥）的有效性
+  2. 查表定位：使用格式 '{{purple_star_branch}}_{{tianfu_star_branch}}' 查找對應條目
+  3. 返回結果：返回12顆主星的地支位置
+  
+  重要要求：
+  - 禁止自由推理
+  - 只能查表
+  - 必須按照鎖步流程執行
+  - 確保結果的一致性
+  
+  查表數據來源：major-stars-placement-table.yaml
+  
+  請按照鎖步流程執行計算，並返回結果。
+
+# 變數定義
+variables:
+  - name: "purple_star_branch"
+    type: "string"
+    description: "紫微星地支位置（子-亥）"
+    required: true
+    validation: "in(['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'])"
+  - name: "tianfu_star_branch"
+    type: "string"
+    description: "天府星地支位置（子-亥）"
+    required: true
+    validation: "in(['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'])"
+
+# 輸出格式
+output_format:
+  type: "object"
+  properties:
+    tianji_star:
+      type: "string"
+      description: "天機星地支位置"
+    taiyang_star:
+      type: "string"
+      description: "太陽星地支位置"
+    wuqu_star:
+      type: "string"
+      description: "武曲星地支位置"
+    tiantong_star:
+      type: "string"
+      description: "天同星地支位置"
+    lianzhen_star:
+      type: "string"
+      description: "廉貞星地支位置"
+    tianfu_star:
+      type: "string"
+      description: "天府星地支位置"
+    taiyin_star:
+      type: "string"
+      description: "太陰星地支位置"
+    tanlang_star:
+      type: "string"
+      description: "貪狼星地支位置"
+    jumen_star:
+      type: "string"
+      description: "巨門星地支位置"
+    tianliang_star:
+      type: "string"
+      description: "天梁星地支位置"
+    qisha_star:
+      type: "string"
+      description: "七殺星地支位置"
+    pojun_star:
+      type: "string"
+      description: "破軍星地支位置"
+  required: ["tianji_star", "taiyang_star", "wuqu_star", "tiantong_star", "lianzhen_star", "tianfu_star", "taiyin_star", "tanlang_star", "jumen_star", "tianliang_star", "qisha_star", "pojun_star"]
+
+# 錯誤處理
+error_handling:
+  invalid_purple_branch:
+    message: "紫微星地支必須是十二地支之一"
+    action: "request_correction"
+  invalid_tianfu_branch:
+    message: "天府星地支必須是十二地支之一"
+    action: "request_correction"
+  lookup_failed:
+    message: "查表失敗，請檢查輸入參數"
+    action: "retry_lookup"
+
+# 驗證規則
+validation_rules:
+  - rule: "輸入參數必須在有效範圍內"
+  - rule: "查表結果必須存在"
+  - rule: "返回的地支必須是有效的十二地支"
+  - rule: "12顆主星位置必須完整"
+
+# 使用範例
+usage_examples:
+  - input:
+      purple_star_branch: "子"
+      tianfu_star_branch: "辰"
+    output:
+      tianji_star: "丑"
+      taiyang_star: "寅"
+      wuqu_star: "卯"
+      tiantong_star: "巳"
+      lianzhen_star: "午"
+      tianfu_star: "辰"
+      taiyin_star: "未"
+      tanlang_star: "申"
+      jumen_star: "酉"
+      tianliang_star: "戌"
+      qisha_star: "亥"
+      pojun_star: "子"
+    description: "紫微星在子，天府星在辰，其他主星按規則排列"
+  
+  - input:
+      purple_star_branch: "午"
+      tianfu_star_branch: "戌"
+    output:
+      tianji_star: "未"
+      taiyang_star: "申"
+      wuqu_star: "酉"
+      tiantong_star: "亥"
+      lianzhen_star: "子"
+      tianfu_star: "戌"
+      taiyin_star: "丑"
+      tanlang_star: "寅"
+      jumen_star: "卯"
+      tianliang_star: "辰"
+      qisha_star: "巳"
+      pojun_star: "午"
+    description: "紫微星在午，天府星在戌，其他主星按規則排列"
+
+# 版本歷史
+version_history:
+  - version: "1.0.0"
+    date: "2025-09-24"
+    changes: "初始版本創建"
+    author: "BMAD Astrology Framework"

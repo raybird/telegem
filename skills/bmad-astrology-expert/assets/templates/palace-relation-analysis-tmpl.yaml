@@ -1,0 +1,331 @@
+# 宮位關係分析提示詞模板
+# 用於分析紫微斗數命盤中宮位之間的關係
+# 版本: 1.0.0
+# 創建日期: 2025-09-13
+
+template_metadata:
+  name: "宮位關係分析模板"
+  version: "1.0.0"
+  description: "分析紫微斗數命盤中十二宮位之間的各種關係"
+  author: "BMAD Astrology Framework"
+  created_date: "2025-09-13"
+  last_updated: "2025-09-13"
+  compatible_agents: ["structure-analyst"]
+  input_format: "JSON"
+  output_format: "JSON"
+
+# 模板變數定義
+variables:
+  natal_chart:
+    type: "object"
+    description: "命盤數據，包含星曜位置和宮位資訊"
+    required: true
+    
+  palace_positions:
+    type: "array"
+    description: "十二宮位的位置配置"
+    items:
+      type: "object"
+      properties:
+        id: "宮位名稱"
+        position: "宮位序號"
+        heavenly_stem: "天干"
+        earthly_branch: "地支"
+    required: true
+
+# 核心提示詞模板
+prompt_template: |
+  你是一位專業的紫微斗數命理師，精通宮位關係分析。
+  
+  ## 任務描述
+  請根據提供的命盤數據，分析十二宮位之間的各種關係。
+  
+  ## 輸入資訊
+  - 命盤數據：{{natal_chart}}
+  - 宮位位置：{{palace_positions}}
+  
+  ## 分析要求
+  
+  ### 1. 三合關係分析
+  分析以下三合組合：
+  - 命宮、官祿宮、財帛宮（事業三合）
+  - 兄弟宮、疾厄宮、田宅宮（健康三合）
+  - 夫妻宮、子女宮、父母宮（家庭三合）
+  - 福德宮、遷移宮、奴僕宮（人際三合）
+  
+  ### 2. 對沖關係分析
+  分析以下對沖組合：
+  - 命宮 ↔ 遷移宮
+  - 兄弟宮 ↔ 奴僕宮
+  - 夫妻宮 ↔ 官祿宮
+  - 子女宮 ↔ 田宅宮
+  - 財帛宮 ↔ 福德宮
+  - 疾厄宮 ↔ 父母宮
+  
+  ### 3. 六合關係分析
+  分析以下六合組合：
+  - 命宮 ↔ 疾厄宮
+  - 兄弟宮 ↔ 夫妻宮
+  - 子女宮 ↔ 財帛宮
+  - 田宅宮 ↔ 福德宮
+  - 官祿宮 ↔ 遷移宮
+  - 奴僕宮 ↔ 父母宮
+  
+  ### 4. 刑剋關係分析
+  分析以下刑剋組合：
+  - 三刑：寅巳申、丑戌未、子卯、辰午酉亥
+  - 六害：子未、丑午、寅巳、卯辰、申亥、酉戌
+  - 自刑：辰辰、午午、酉酉、亥亥
+  
+  ### 5. 宮位強弱評估
+  根據以下因素評估各宮位強弱：
+  - 主星廟旺陷狀態
+  - 輔星配置情況
+  - 四化星影響
+  - 宮位關係影響
+  
+  ## 輸出格式要求
+  
+  請以以下 JSON 格式輸出結果：
+  
+  ```json
+  {
+    "analysis_info": {
+      "analysis_time": "分析時間",
+      "total_palaces": 12,
+      "analysis_method": "傳統紫微斗數宮位關係分析"
+    },
+    "triangular_relations": [
+      {
+        "group_name": "三合組合名稱",
+        "palaces": ["宮位1", "宮位2", "宮位3"],
+        "strength": "強弱程度",
+        "characteristics": "組合特徵",
+        "influence": "影響說明"
+      }
+    ],
+    "opposition_relations": [
+      {
+        "palace1": "宮位1",
+        "palace2": "宮位2",
+        "relationship": "對沖關係",
+        "strength": "對沖強度",
+        "characteristics": "對沖特徵",
+        "influence": "影響說明"
+      }
+    ],
+    "harmony_relations": [
+      {
+        "palace1": "宮位1",
+        "palace2": "宮位2",
+        "relationship": "六合關係",
+        "strength": "和諧程度",
+        "characteristics": "和諧特徵",
+        "influence": "影響說明"
+      }
+    ],
+    "conflict_relations": [
+      {
+        "type": "刑剋類型",
+        "palaces": ["相關宮位"],
+        "severity": "嚴重程度",
+        "characteristics": "刑剋特徵",
+        "influence": "影響說明"
+      }
+    ],
+    "palace_strength": [
+      {
+        "palace": "宮位名稱",
+        "strength_level": "強弱等級",
+        "main_factors": ["主要影響因素"],
+        "secondary_factors": ["次要影響因素"],
+        "overall_assessment": "整體評估"
+      }
+    ],
+    "special_patterns": [
+      {
+        "pattern_name": "特殊格局名稱",
+        "involved_palaces": ["相關宮位"],
+        "pattern_type": "格局類型",
+        "characteristics": "格局特徵",
+        "significance": "重要程度"
+      }
+    ],
+    "summary": {
+      "strongest_palaces": ["最強宮位"],
+      "weakest_palaces": ["最弱宮位"],
+      "key_relationships": ["關鍵關係"],
+      "overall_balance": "整體平衡度",
+      "recommendations": ["建議事項"]
+    }
+  }
+  ```
+  
+  ## 分析規則
+  
+  ### 1. 三合關係判斷
+  - 三合宮位之間相互支援，形成穩定的三角形結構
+  - 強度評估：強、中、弱三個等級
+  - 特徵分析：根據星曜配置和廟旺陷狀態判斷
+  
+  ### 2. 對沖關係判斷
+  - 對沖宮位之間相互制約，形成動態平衡
+  - 強度評估：根據星曜強弱和四化影響判斷
+  - 特徵分析：對沖可能帶來衝突或互補
+  
+  ### 3. 六合關係判斷
+  - 六合宮位之間相互和諧，形成良性互動
+  - 強度評估：根據星曜配置和宮位強弱判斷
+  - 特徵分析：六合帶來協調和支援
+  
+  ### 4. 刑剋關係判斷
+  - 刑剋關係帶來挑戰和考驗
+  - 嚴重程度：輕、中、重三個等級
+  - 特徵分析：刑剋可能帶來阻礙或成長機會
+  
+  ### 5. 宮位強弱評估標準
+  - 主星廟旺陷：廟 > 旺 > 利 > 得地 > 不得地 > 陷
+  - 輔星配置：吉星多為強，煞星多為弱
+  - 四化影響：化祿、化權、化科為吉，化忌為凶
+  - 宮位關係：受三合、六合支援為強，受刑剋為弱
+  
+  ## 特殊格局識別
+  
+  ### 1. 君臣慶會格
+  - 紫微、天府同宮或會照
+  - 有左輔、右弼、文昌、文曲等吉星
+  - 特徵：領導能力強，事業有成
+  
+  ### 2. 紫府同宮格
+  - 紫微、天府同宮
+  - 特徵：性格穩重，管理能力強
+  
+  ### 3. 日月並明格
+  - 太陽、太陰在對宮或三合
+  - 特徵：智慧過人，名聲顯赫
+  
+  ### 4. 機月同梁格
+  - 天機、太陰、天同、天梁會照
+  - 特徵：適合公職，穩定發展
+  
+  ## 質量檢查
+  
+  請確保：
+  1. 所有宮位關係分析完整
+  2. 強弱評估客觀準確
+  3. 特殊格局識別正確
+  4. 輸出格式符合要求
+  5. 分析邏輯清晰合理
+  
+  ## 注意事項
+  
+  - 請使用傳統紫微斗數理論
+  - 保持分析的客觀性和專業性
+  - 注意宮位關係的複雜性
+  - 結合星曜配置進行綜合分析
+
+# 驗證規則
+validation_rules:
+  input_validation:
+    - rule: "命盤數據完整性檢查"
+      condition: "natal_chart 必須包含完整的命盤資訊"
+      error_message: "命盤數據不完整，請提供完整的命盤資訊"
+    
+    - rule: "宮位位置檢查"
+      condition: "palace_positions 必須包含所有 12 個宮位"
+      error_message: "宮位位置數據不完整，請提供所有 12 個宮位資訊"
+    
+    - rule: "數據格式檢查"
+      condition: "輸入數據必須是有效的 JSON 格式"
+      error_message: "輸入數據格式不正確，請使用有效的 JSON 格式"
+
+  output_validation:
+    - rule: "關係分析完整性檢查"
+      condition: "必須包含三合、對沖、六合、刑剋四種關係分析"
+      error_message: "宮位關係分析不完整"
+    
+    - rule: "宮位強弱評估檢查"
+      condition: "必須包含所有 12 個宮位的強弱評估"
+      error_message: "宮位強弱評估不完整"
+    
+    - rule: "特殊格局檢查"
+      condition: "必須識別出命盤中的特殊格局"
+      error_message: "特殊格局識別不完整"
+    
+    - rule: "JSON 格式檢查"
+      condition: "輸出必須是有效的 JSON 格式"
+      error_message: "輸出格式不正確"
+
+# 錯誤處理
+error_handling:
+  analysis_error:
+    template: |
+      宮位關係分析過程中出現錯誤：{{error_message}}
+      請檢查輸入數據是否正確，特別是：
+      - 命盤數據是否完整
+      - 宮位位置是否正確
+      - 星曜配置是否合理
+      
+      建議：請重新確認命盤數據後再次嘗試。
+    
+  validation_error:
+    template: |
+      數據驗證失敗：{{validation_error}}
+      請檢查以下項目：
+      - 輸入格式是否符合要求
+      - 必填欄位是否完整
+      - 數據值是否在有效範圍內
+      
+      建議：請參考模板說明修正輸入數據。
+    
+  unknown_error:
+    template: |
+      分析過程中出現未知錯誤。
+      錯誤詳情：{{error_details}}
+      
+      建議：請稍後重試，如問題持續存在，請聯繫技術支援。
+
+# 測試用例
+test_cases:
+  - name: "標準測試案例"
+    input:
+      natal_chart:
+        palaces: 12
+        stars: 14
+        four_transformations: 4
+      palace_positions:
+        - {id: "命宮", position: 1, heavenly_stem: "甲", earthly_branch: "子"}
+        - {id: "兄弟宮", position: 2, heavenly_stem: "乙", earthly_branch: "丑"}
+        # ... 其他宮位
+    expected_output:
+      analysis_info:
+        total_palaces: 12
+      triangular_relations_count: 4
+      opposition_relations_count: 6
+      harmony_relations_count: 6
+      palace_strength_count: 12
+  
+  - name: "特殊格局測試案例"
+    input:
+      natal_chart:
+        special_patterns: ["君臣慶會格", "紫府同宮格"]
+      palace_positions:
+        # 特殊格局的宮位配置
+    expected_output:
+      special_patterns:
+        - pattern_name: "君臣慶會格"
+        - pattern_name: "紫府同宮格"
+
+# 性能配置
+performance:
+  timeout: "25s"
+  max_retries: 3
+  cache_duration: "12h"
+  parallel_processing: true
+
+# 版本歷史
+version_history:
+  - version: "1.0.0"
+    date: "2025-09-13"
+    changes: "初始版本，包含基本的宮位關係分析功能"
+    author: "BMAD Astrology Framework"

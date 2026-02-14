@@ -1,0 +1,397 @@
+# 四化飛星計算提示詞模板
+# 用於計算紫微斗數命盤中的四化飛星
+# 版本: 1.0.0
+# 創建日期: 2025-09-13
+
+template_metadata:
+  name: "四化飛星計算模板"
+  version: "1.0.0"
+  description: "根據出生年份天干計算紫微斗數命盤中的四化飛星"
+  author: "BMAD Astrology Framework"
+  created_date: "2025-09-13"
+  last_updated: "2025-09-13"
+  compatible_agents: ["structure-analyst"]
+  input_format: "YAML"
+  output_format: "JSON"
+
+# 模板變數定義
+variables:
+  birth_year:
+    type: "integer"
+    description: "出生年份"
+    example: 1990
+    required: true
+    
+  birth_month:
+    type: "integer"
+    description: "出生月份"
+    example: 5
+    required: true
+    
+  birth_day:
+    type: "integer"
+    description: "出生日期"
+    example: 15
+    required: true
+
+# 核心提示詞模板
+prompt_template: |
+  你是一位專業的紫微斗數命理師，精通四化飛星計算。
+  
+  ## 任務描述
+  請根據提供的出生資訊，計算紫微斗數命盤中的四化飛星。
+  
+  ## 輸入資訊
+  - 出生年份：{{birth_year}}
+  - 出生月份：{{birth_month}}
+  - 出生日期：{{birth_day}}
+  - 出生時間：{{birth_time}}
+  - 出生地點：{{birth_location.city}}, {{birth_location.country}}
+  - 經緯度：{{birth_location.latitude}}, {{birth_location.longitude}}
+  
+  ## 計算要求
+  
+  ### 1. 真太陽時校正
+  - 根據出生地點經度計算真太陽時
+  - 公式：真太陽時 = 當地時間 + (經度 - 標準經度) × 4分鐘
+  - 標準經度：東經120度（台灣標準時間）
+  
+  ### 2. 四柱八字計算
+  - 計算完整的四柱八字（年柱、月柱、日柱、時柱）
+  - 根據年柱天干確定四化星
+  
+  ### 3. 年干確定
+  - 根據四柱八字中的年柱天干
+  - 天干循環：甲、乙、丙、丁、戊、己、庚、辛、壬、癸
+  
+  ### 4. 四化星計算
+  根據天干確定四化星：
+  
+  #### 甲年（甲子、甲戌、甲申、甲午、甲辰、甲寅）
+  - 化祿：廉貞
+  - 化權：破軍
+  - 化科：武曲
+  - 化忌：太陽
+  
+  #### 乙年（乙丑、乙亥、乙酉、乙未、乙巳、乙卯）
+  - 化祿：天機
+  - 化權：天梁
+  - 化科：紫微
+  - 化忌：太陰
+  
+  #### 丙年（丙寅、丙子、丙戌、丙申、丙午、丙辰）
+  - 化祿：天同
+  - 化權：天機
+  - 化科：文昌
+  - 化忌：廉貞
+  
+  #### 丁年（丁卯、丁丑、丁亥、丁酉、丁未、丁巳）
+  - 化祿：太陰
+  - 化權：天同
+  - 化科：天機
+  - 化忌：巨門
+  
+  #### 戊年（戊辰、戊寅、戊子、戊戌、戊申、戊午）
+  - 化祿：貪狼
+  - 化權：太陰
+  - 化科：右弼
+  - 化忌：天機
+  
+  #### 己年（己巳、己卯、己丑、己亥、己酉、己未）
+  - 化祿：武曲
+  - 化權：貪狼
+  - 化科：天梁
+  - 化忌：文曲
+  
+  #### 庚年（庚午、庚辰、庚寅、庚子、庚戌、庚申）
+  - 化祿：太陽
+  - 化權：武曲
+  - 化科：太陰
+  - 化忌：天同
+  
+  #### 辛年（辛未、辛巳、辛卯、辛丑、辛亥、辛酉）
+  - 化祿：巨門
+  - 化權：太陽
+  - 化科：文曲
+  - 化忌：文昌
+  
+  #### 壬年（壬申、壬午、壬辰、壬寅、壬子、壬戌）
+  - 化祿：天梁
+  - 化權：紫微
+  - 化科：左輔
+  - 化忌：武曲
+  
+  #### 癸年（癸酉、癸未、癸巳、癸卯、癸丑、癸亥）
+  - 化祿：破軍
+  - 化權：巨門
+  - 化科：太陰
+  - 化忌：貪狼
+  
+  ### 3. 四化星落宮計算
+  - 根據四化星在命盤中的位置確定落宮
+  - 分析四化星對各宮位的影響
+  - 評估四化星的強弱程度
+  
+  ### 4. 四化星影響分析
+  - 化祿：主財運、機遇、貴人
+  - 化權：主權力、地位、領導
+  - 化科：主名聲、學業、考試
+  - 化忌：主阻礙、困難、挑戰
+  
+  ## 輸出格式要求
+  
+  請以以下 JSON 格式輸出結果：
+  
+  ```json
+  {
+    "calculation_info": {
+      "birth_year": "出生年份",
+      "heavenly_stem": "天干",
+      "earthly_branch": "地支",
+      "year_type": "年份類型",
+      "calculation_time": "計算時間"
+    },
+    "four_transformations": {
+      "hua_lu": {
+        "star": "化祿星名稱",
+        "palace": "落宮位置",
+        "strength": "強弱程度",
+        "influence": "影響說明",
+        "characteristics": "特徵描述"
+      },
+      "hua_quan": {
+        "star": "化權星名稱",
+        "palace": "落宮位置",
+        "strength": "強弱程度",
+        "influence": "影響說明",
+        "characteristics": "特徵描述"
+      },
+      "hua_ke": {
+        "star": "化科星名稱",
+        "palace": "落宮位置",
+        "strength": "強弱程度",
+        "influence": "影響說明",
+        "characteristics": "特徵描述"
+      },
+      "hua_ji": {
+        "star": "化忌星名稱",
+        "palace": "落宮位置",
+        "strength": "強弱程度",
+        "influence": "影響說明",
+        "characteristics": "特徵描述"
+      }
+    },
+    "palace_influences": [
+      {
+        "palace": "宮位名稱",
+        "hua_lu_effect": "化祿影響",
+        "hua_quan_effect": "化權影響",
+        "hua_ke_effect": "化科影響",
+        "hua_ji_effect": "化忌影響",
+        "overall_effect": "整體影響"
+      }
+    ],
+    "special_patterns": [
+      {
+        "pattern_name": "特殊格局名稱",
+        "involved_stars": ["相關星曜"],
+        "pattern_type": "格局類型",
+        "significance": "重要程度",
+        "description": "格局描述"
+      }
+    ],
+    "life_guidance": {
+      "strengths": ["優勢領域"],
+      "challenges": ["挑戰領域"],
+      "opportunities": ["機遇領域"],
+      "recommendations": ["建議事項"]
+    },
+    "validation": {
+      "calculation_accuracy": "計算準確性",
+      "logic_consistency": "邏輯一致性",
+      "completeness": "完整性檢查"
+    }
+  }
+  ```
+  
+  ## 計算規則
+  
+  ### 1. 天干計算規則
+  - 年份天干 = (年份 - 4) % 10
+  - 天干對應：0=甲, 1=乙, 2=丙, 3=丁, 4=戊, 5=己, 6=庚, 7=辛, 8=壬, 9=癸
+  
+  ### 2. 四化星確定規則
+  - 嚴格按照天干對應的四化星表確定
+  - 不可隨意更改或調整
+  - 必須保持傳統理論的一致性
+  
+  ### 3. 落宮計算規則
+  - 根據四化星在命盤中的實際位置確定落宮
+  - 考慮星曜的廟旺陷狀態
+  - 分析與其他星曜的會照關係
+  
+  ### 4. 影響評估規則
+  - 化祿：正面影響，帶來機遇和財運
+  - 化權：權力影響，提升地位和領導力
+  - 化科：名聲影響，有利學業和考試
+  - 化忌：負面影響，帶來阻礙和挑戰
+  
+  ## 特殊格局識別
+  
+  ### 1. 四化同宮格
+  - 四化星中有多顆同宮
+  - 特徵：該宮位影響力特別強
+  
+  ### 2. 四化會照格
+  - 四化星形成會照關係
+  - 特徵：相互影響，形成特殊格局
+  
+  ### 3. 四化對沖格
+  - 四化星形成對沖關係
+  - 特徵：對沖帶來動態平衡
+  
+  ### 4. 四化三合格
+  - 四化星形成三合關係
+  - 特徵：三合帶來穩定支援
+  
+  ## 質量檢查
+  
+  請確保：
+  1. 天干計算準確無誤
+  2. 四化星確定正確
+  3. 落宮位置計算準確
+  4. 影響分析客觀合理
+  5. 輸出格式符合要求
+  
+  ## 注意事項
+  
+  - 請使用傳統紫微斗數四化理論
+  - 保持計算的準確性和一致性
+  - 注意四化星的複雜影響
+  - 結合命盤整體進行分析
+
+# 驗證規則
+validation_rules:
+  input_validation:
+    - rule: "年份範圍檢查"
+      condition: "birth_year 必須在合理範圍內（1900-2100）"
+      error_message: "出生年份超出有效範圍，請輸入 1900-2100 之間的年份"
+    
+    - rule: "月份範圍檢查"
+      condition: "birth_month 必須在 1-12 之間"
+      error_message: "出生月份不正確，請輸入 1-12 之間的月份"
+    
+    - rule: "日期範圍檢查"
+      condition: "birth_day 必須在 1-31 之間"
+      error_message: "出生日期不正確，請輸入 1-31 之間的日期"
+    
+    - rule: "日期有效性檢查"
+      condition: "出生日期必須是有效的日期"
+      error_message: "出生日期無效，請檢查年月日的組合"
+
+  output_validation:
+    - rule: "四化星完整性檢查"
+      condition: "必須包含化祿、化權、化科、化忌四顆星"
+      error_message: "四化星計算不完整"
+    
+    - rule: "天干計算檢查"
+      condition: "天干計算必須正確"
+      error_message: "天干計算錯誤"
+    
+    - rule: "落宮位置檢查"
+      condition: "四化星落宮位置必須合理"
+      error_message: "四化星落宮位置計算錯誤"
+    
+    - rule: "JSON 格式檢查"
+      condition: "輸出必須是有效的 JSON 格式"
+      error_message: "輸出格式不正確"
+
+# 錯誤處理
+error_handling:
+  calculation_error:
+    template: |
+      四化飛星計算過程中出現錯誤：{{error_message}}
+      請檢查輸入數據是否正確，特別是：
+      - 出生年份是否有效
+      - 出生月份是否在合理範圍內
+      - 出生日期是否有效
+      
+      建議：請重新確認出生資訊後再次嘗試。
+    
+  validation_error:
+    template: |
+      數據驗證失敗：{{validation_error}}
+      請檢查以下項目：
+      - 輸入格式是否符合要求
+      - 必填欄位是否完整
+      - 數據值是否在有效範圍內
+      
+      建議：請參考模板說明修正輸入數據。
+    
+  unknown_error:
+    template: |
+      計算過程中出現未知錯誤。
+      錯誤詳情：{{error_details}}
+      
+      建議：請稍後重試，如問題持續存在，請聯繫技術支援。
+
+# 測試用例
+test_cases:
+  - name: "甲年測試案例"
+    input:
+      birth_year: 1990
+      birth_month: 5
+      birth_day: 15
+    expected_output:
+      calculation_info:
+        heavenly_stem: "甲"
+        year_type: "甲年"
+      four_transformations:
+        hua_lu: "廉貞"
+        hua_quan: "破軍"
+        hua_ke: "武曲"
+        hua_ji: "太陽"
+  
+  - name: "乙年測試案例"
+    input:
+      birth_year: 1991
+      birth_month: 3
+      birth_day: 20
+    expected_output:
+      calculation_info:
+        heavenly_stem: "乙"
+        year_type: "乙年"
+      four_transformations:
+        hua_lu: "天機"
+        hua_quan: "天梁"
+        hua_ke: "紫微"
+        hua_ji: "太陰"
+  
+  - name: "邊界測試案例"
+    input:
+      birth_year: 2000
+      birth_month: 12
+      birth_day: 31
+    expected_output:
+      calculation_info:
+        heavenly_stem: "庚"
+        year_type: "庚年"
+      four_transformations:
+        hua_lu: "太陽"
+        hua_quan: "武曲"
+        hua_ke: "太陰"
+        hua_ji: "天同"
+
+# 性能配置
+performance:
+  timeout: "20s"
+  max_retries: 3
+  cache_duration: "24h"
+  parallel_processing: false
+
+# 版本歷史
+version_history:
+  - version: "1.0.0"
+    date: "2025-09-13"
+    changes: "初始版本，包含基本的四化飛星計算功能"
+    author: "BMAD Astrology Framework"
