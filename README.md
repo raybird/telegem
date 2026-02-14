@@ -99,6 +99,9 @@ Memoria 同步可用環境變數調整：
 - `MEMORIA_HOME`（預設 `/app/workspace/Memoria`）
 - `MEMORIA_CLI_PATH`（預設 `$MEMORIA_HOME/cli`）
 - `MEMORIA_SYNC_TIMEOUT_MS`（預設 `20000`）
+- `MEMORIA_HOOK_QUEUE_FILE`（預設 `/app/data/memoria-hook-queue.jsonl`）
+- `MEMORIA_HOOK_FLUSH_SIGNAL`（預設 `/app/data/memoria-hook-flush.signal`）
+- `MEMORIA_HOOK_QUEUE_POLL_MS`（預設 `5000`）
 
 ---
 

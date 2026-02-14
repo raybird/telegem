@@ -71,6 +71,9 @@ MEMORIA_SYNC_ENABLED=auto
 MEMORIA_HOME=/app/workspace/Memoria
 MEMORIA_CLI_PATH=/app/workspace/Memoria/cli
 MEMORIA_SYNC_TIMEOUT_MS=20000
+MEMORIA_HOOK_QUEUE_FILE=/app/data/memoria-hook-queue.jsonl
+MEMORIA_HOOK_FLUSH_SIGNAL=/app/data/memoria-hook-flush.signal
+MEMORIA_HOOK_QUEUE_POLL_MS=5000
 ```
 
 說明：
@@ -79,3 +82,5 @@ MEMORIA_SYNC_TIMEOUT_MS=20000
 - `MEMORIA_SYNC_ENABLED=on`：強制啟用（即使 CLI 缺失也會持續嘗試）
 - `MEMORIA_SYNC_ENABLED=off`：完全停用同步
 - 同步失敗只記錄 warning，不會中斷主對話流程
+- Gemini `AfterAgent` hook 會把本輪結果先落盤到 queue，再由背景同步器處理
+- `SessionEnd` hook 會寫入 flush 訊號，加速關閉前的最後一輪 queue 處理

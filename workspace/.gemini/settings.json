@@ -2,10 +2,7 @@
   "mcpServers": {
     "mcp-memory-libsql": {
       "command": "npx",
-      "args": [
-        "-y",
-        "mcp-memory-libsql"
-      ],
+      "args": ["-y", "mcp-memory-libsql"],
       "env": {
         "LIBSQL_URL": "file:../data/memory.db"
       }
@@ -25,6 +22,34 @@
             "command": "$GEMINI_PROJECT_DIR/workspace/.gemini/hooks/retrieve-memory.sh",
             "timeout": 3000,
             "description": "自動從 MCP Memory 檢索相關記憶並注入 Prompt"
+          }
+        ]
+      }
+    ],
+    "AfterAgent": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "name": "memoria-after-agent-queue",
+            "type": "command",
+            "command": "$GEMINI_PROJECT_DIR/workspace/.gemini/hooks/queue-memoria-after-agent.sh",
+            "timeout": 2000,
+            "description": "Append completed turn to Memoria queue"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "exit",
+        "hooks": [
+          {
+            "name": "memoria-session-end-flush",
+            "type": "command",
+            "command": "$GEMINI_PROJECT_DIR/workspace/.gemini/hooks/memoria-session-end-flush.sh",
+            "timeout": 1000,
+            "description": "Signal Memoria queue flush on session end"
           }
         ]
       }

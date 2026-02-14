@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { spawn } from 'child_process';
@@ -18,6 +18,15 @@ type MemoriaSyncOptions = {
   projectDir?: string;
   mode?: MemoriaSyncMode;
   timeoutMs?: number;
+};
+
+type HookQueuedTurn = {
+  userId?: string;
+  userMessage?: string;
+  modelMessage?: string;
+  platform?: string;
+  isPassthroughCommand?: boolean;
+  forceNewSession?: boolean;
 };
 
 type SessionEvent = {
@@ -40,6 +49,13 @@ function parseMode(raw: string | undefined): MemoriaSyncMode {
 }
 
 function parseTimeout(raw: string | undefined, fallback: number): number {
+  if (!raw) return fallback;
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed < 1000) return fallback;
+  return parsed;
+}
+
+function parsePollMs(raw: string | undefined, fallback: number): number {
   if (!raw) return fallback;
   const parsed = Number.parseInt(raw, 10);
   if (!Number.isFinite(parsed) || parsed < 1000) return fallback;
@@ -175,8 +191,13 @@ export class MemoriaSyncBridge {
   private readonly memoriaHome: string;
   private readonly cliPath: string;
   private readonly tempDir: string;
+  private readonly hookQueueFile: string;
+  private readonly hookFlushSignalFile: string;
+  private readonly hookQueuePollMs: number;
   private queue: Promise<void>;
   private disabled: boolean;
+  private hookPollTimer: NodeJS.Timeout | null;
+  private recentTurnHashes: Map<string, number>;
 
   constructor(options: MemoriaSyncOptions = {}) {
     this.mode = options.mode || parseMode(process.env.MEMORIA_SYNC_ENABLED);
@@ -192,8 +213,19 @@ export class MemoriaSyncBridge {
       process.env.MEMORIA_SYNC_TEMP_DIR ||
         path.join(this.projectDir, 'workspace', 'temp', 'memoria-sync')
     );
+    this.hookQueueFile = path.resolve(
+      process.env.MEMORIA_HOOK_QUEUE_FILE ||
+        path.join(this.projectDir, 'data', 'memoria-hook-queue.jsonl')
+    );
+    this.hookFlushSignalFile = path.resolve(
+      process.env.MEMORIA_HOOK_FLUSH_SIGNAL ||
+        path.join(this.projectDir, 'data', 'memoria-hook-flush.signal')
+    );
+    this.hookQueuePollMs = parsePollMs(process.env.MEMORIA_HOOK_QUEUE_POLL_MS, 5000);
     this.queue = Promise.resolve();
     this.disabled = false;
+    this.hookPollTimer = null;
+    this.recentTurnHashes = new Map();
 
     if (this.mode === 'off') {
       console.log('[MemoriaSync] Disabled by MEMORIA_SYNC_ENABLED.');
@@ -214,7 +246,9 @@ export class MemoriaSyncBridge {
 
     try {
       ensureDir(this.tempDir);
+      ensureDir(path.dirname(this.hookQueueFile));
       console.log(`[MemoriaSync] Enabled. memoriaHome=${this.memoriaHome}`);
+      this.startHookQueuePolling();
     } catch (error) {
       console.warn('[MemoriaSync] Failed to prepare temp dir, disabling:', error);
       this.disabled = true;
@@ -222,7 +256,19 @@ export class MemoriaSyncBridge {
   }
 
   enqueueTurn(turn: MemoriaSyncTurn): void {
+    this.enqueueSyncTurn(turn, 'pipeline');
+  }
+
+  private enqueueSyncTurn(turn: MemoriaSyncTurn, source: 'pipeline' | 'hook'): void {
     if (this.disabled) {
+      return;
+    }
+
+    if (!turn.userMessage.trim() || !turn.modelMessage.trim()) {
+      return;
+    }
+
+    if (this.isDuplicateTurn(turn)) {
       return;
     }
 
@@ -234,7 +280,7 @@ export class MemoriaSyncBridge {
           id: sessionId,
           timestamp: new Date(timestamp).toISOString(),
           project: 'TeleNexus',
-          summary: `user=${turn.userId} platform=${turn.platform || 'telegram'} passthrough=${turn.isPassthroughCommand}`,
+          summary: `user=${turn.userId} platform=${turn.platform || 'telegram'} source=${source} passthrough=${turn.isPassthroughCommand}`,
           events: buildEvents(turn)
         };
 
@@ -254,6 +300,107 @@ export class MemoriaSyncBridge {
       })
       .catch((error) => {
         console.warn('[MemoriaSync] Sync failed:', error);
+      });
+  }
+
+  private makeTurnHash(turn: MemoriaSyncTurn): string {
+    const normalized = `${turn.userMessage.trim()}\n---\n${turn.modelMessage.trim()}`;
+    return createHash('sha256').update(normalized).digest('hex');
+  }
+
+  private isDuplicateTurn(turn: MemoriaSyncTurn): boolean {
+    const now = Date.now();
+    const ttlMs = 10 * 60 * 1000;
+    const hash = this.makeTurnHash(turn);
+
+    for (const [key, ts] of this.recentTurnHashes.entries()) {
+      if (now - ts > ttlMs) {
+        this.recentTurnHashes.delete(key);
+      }
+    }
+
+    if (this.recentTurnHashes.has(hash)) {
+      return true;
+    }
+
+    this.recentTurnHashes.set(hash, now);
+    return false;
+  }
+
+  private startHookQueuePolling(): void {
+    this.drainHookQueue();
+    this.hookPollTimer = setInterval(() => {
+      this.drainHookQueue();
+    }, this.hookQueuePollMs);
+    this.hookPollTimer.unref();
+  }
+
+  private drainHookQueue(): void {
+    if (this.disabled) {
+      return;
+    }
+
+    this.queue = this.queue
+      .then(() => {
+        const flushRequested = fs.existsSync(this.hookFlushSignalFile);
+        if (flushRequested) {
+          try {
+            fs.unlinkSync(this.hookFlushSignalFile);
+          } catch {
+            // ignore signal cleanup errors
+          }
+        }
+
+        if (!fs.existsSync(this.hookQueueFile)) {
+          return;
+        }
+
+        const stat = fs.statSync(this.hookQueueFile);
+        if (stat.size <= 0) {
+          return;
+        }
+
+        const processingPath = `${this.hookQueueFile}.${Date.now()}.processing`;
+        fs.renameSync(this.hookQueueFile, processingPath);
+        const raw = fs.readFileSync(processingPath, 'utf8');
+        fs.unlinkSync(processingPath);
+
+        const lines = raw
+          .split('\n')
+          .map((line) => line.trim())
+          .filter((line) => line.length > 0);
+
+        let imported = 0;
+        for (const line of lines) {
+          try {
+            const parsed = JSON.parse(line) as HookQueuedTurn;
+            const userMessage = typeof parsed.userMessage === 'string' ? parsed.userMessage : '';
+            const modelMessage = typeof parsed.modelMessage === 'string' ? parsed.modelMessage : '';
+            if (!userMessage || !modelMessage) {
+              continue;
+            }
+
+            const turn: MemoriaSyncTurn = {
+              userId: typeof parsed.userId === 'string' ? parsed.userId : 'gemini-hook',
+              userMessage,
+              modelMessage,
+              platform: typeof parsed.platform === 'string' ? parsed.platform : 'gemini-hook',
+              isPassthroughCommand: parsed.isPassthroughCommand === true,
+              forceNewSession: parsed.forceNewSession === true
+            };
+            this.enqueueSyncTurn(turn, 'hook');
+            imported += 1;
+          } catch (error) {
+            console.warn('[MemoriaSync] Invalid hook queue line skipped:', error);
+          }
+        }
+
+        if (flushRequested || imported > 0) {
+          console.log(`[MemoriaSync] Hook queue imported: ${imported}`);
+        }
+      })
+      .catch((error) => {
+        console.warn('[MemoriaSync] Hook queue drain failed:', error);
       });
   }
 }
