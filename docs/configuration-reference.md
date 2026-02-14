@@ -39,6 +39,7 @@ passthrough_commands:
 - 若未設定，系統預設使用上述三個指令
 - 命中白名單時，主程式會將原始指令直接送給底層 CLI
 - passthrough 流程不會額外套 TeleNexus 摘要/上下文包裝
+- Gemini 的 passthrough 請求會略過記憶檢索 hook，避免控制指令被記憶內容干擾
 
 ## Runner Session Context（重要）
 
@@ -56,5 +57,5 @@ docker compose exec agent-runner sh -lc "cd /app/workspace && opencode run -c"
 補充：
 
 - 一般使用不需要手動進容器
-- `/new` 會強制新 session
+- `/new` 會讓下一則一般對話訊息強制使用新 session
 - 在 `telenexus` 容器手動執行 CLI，可能與 runner 實際脈絡不一致
