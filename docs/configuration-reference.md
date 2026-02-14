@@ -59,3 +59,23 @@ docker compose exec agent-runner sh -lc "cd /app/workspace && opencode run -c"
 - 一般使用不需要手動進容器
 - `/new` 會讓下一則一般對話訊息強制使用新 session
 - 在 `telenexus` 容器手動執行 CLI，可能與 runner 實際脈絡不一致
+
+## Memoria 自動同步
+
+TeleNexus 會在每次成功對話後，背景嘗試呼叫 Memoria CLI 做增量同步。
+
+可調整環境變數：
+
+```env
+MEMORIA_SYNC_ENABLED=auto
+MEMORIA_HOME=/app/workspace/Memoria
+MEMORIA_CLI_PATH=/app/workspace/Memoria/cli
+MEMORIA_SYNC_TIMEOUT_MS=20000
+```
+
+說明：
+
+- `MEMORIA_SYNC_ENABLED=auto`：只有在 CLI 存在時才啟用；找不到會自動停用
+- `MEMORIA_SYNC_ENABLED=on`：強制啟用（即使 CLI 缺失也會持續嘗試）
+- `MEMORIA_SYNC_ENABLED=off`：完全停用同步
+- 同步失敗只記錄 warning，不會中斷主對話流程

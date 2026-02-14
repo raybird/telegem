@@ -1,6 +1,7 @@
 import type { Connector, UnifiedMessage } from '../types/index.js';
 import type { AIAgent } from './agent.js';
 import type { CommandRouter } from './command-router.js';
+import type { MemoriaSyncTurn } from './memoria-sync.js';
 import type { MemoryManager } from './memory.js';
 import type { Scheduler } from './scheduler.js';
 
@@ -17,6 +18,7 @@ type MessagePipelineOptions = {
   chatRunnerOnlyUsers: Set<string>;
   shouldSummarize: (content: string) => boolean;
   buildPrompt: (userMessage: string) => string;
+  enqueueMemoriaSync?: (turn: MemoriaSyncTurn) => void;
   recordRuntimeIssue: (scope: string, error: unknown) => void;
   writeContextSnapshots: () => void;
 };
@@ -141,6 +143,15 @@ export function createMessagePipeline(options: MessagePipelineOptions) {
         }
 
         options.memory.addMessage(userId, 'model', response, responseSummary);
+
+        options.enqueueMemoriaSync?.({
+          userId,
+          userMessage: msg.content,
+          modelMessage: response,
+          platform: msg.sender.platform,
+          isPassthroughCommand,
+          forceNewSession
+        });
       }
 
       if (thinkingInterval) {

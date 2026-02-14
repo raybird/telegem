@@ -6,6 +6,7 @@ import { TelegramConnector } from './connectors/telegram.js';
 import { CommandRouter } from './core/command-router.js';
 import { DynamicAIAgent } from './core/agent.js';
 import { MemoryManager } from './core/memory.js';
+import { MemoriaSyncBridge } from './core/memoria-sync.js';
 import { createMessagePipeline } from './core/message-pipeline.js';
 import { Scheduler } from './core/scheduler.js';
 import { startWebServer } from './web/server.js';
@@ -487,6 +488,7 @@ async function bootstrap() {
     console.log(`[System] Chat runner whitelist: ${Array.from(chatRunnerOnlyUsers).join(', ')}`);
   }
   const memory = new MemoryManager();
+  const memoriaSync = new MemoriaSyncBridge();
   const scheduler = new Scheduler(memory, schedulerAgent, telegram);
   const commandRouter = new CommandRouter();
   let contextRefreshTimer: NodeJS.Timeout | null = null;
@@ -513,6 +515,9 @@ async function bootstrap() {
     buildPrompt: (userMessage: string) => {
       const promptConfig = loadChatPromptConfig();
       return buildChatPrompt(promptConfig, userMessage);
+    },
+    enqueueMemoriaSync: (turn) => {
+      memoriaSync.enqueueTurn(turn);
     },
     recordRuntimeIssue,
     writeContextSnapshots: () => {
@@ -548,6 +553,9 @@ async function bootstrap() {
     buildPrompt: (userMessage: string) => {
       const promptConfig = loadChatPromptConfig();
       return buildChatPrompt(promptConfig, userMessage);
+    },
+    enqueueMemoriaSync: (turn) => {
+      memoriaSync.enqueueTurn(turn);
     },
     recordRuntimeIssue,
     writeContextSnapshots: () => {

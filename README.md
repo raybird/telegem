@@ -90,7 +90,15 @@ docker compose exec agent-runner sh -lc "cd /app/workspace && opencode run -c"
 
 - `/new` 會讓下一則一般對話訊息強制使用新 session（不接續）
 - passthrough 指令（如 `/compress`）在 Gemini 路徑會略過記憶檢索 hook，避免控制指令被長期記憶干擾
+- 預設啟用 Memoria 自動同步（auto 模式）：每次成功對話會背景呼叫 `workspace/Memoria/cli sync`
 - 在 `telenexus` 容器手動跑 CLI，可能與 runner 的實際執行脈絡不同
+
+Memoria 同步可用環境變數調整：
+
+- `MEMORIA_SYNC_ENABLED=auto|on|off`（預設 `auto`）
+- `MEMORIA_HOME`（預設 `/app/workspace/Memoria`）
+- `MEMORIA_CLI_PATH`（預設 `$MEMORIA_HOME/cli`）
+- `MEMORIA_SYNC_TIMEOUT_MS`（預設 `20000`）
 
 ---
 

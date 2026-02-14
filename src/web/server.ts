@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import { createMessagePipeline } from '../core/message-pipeline.js';
 import type { AIAgent } from '../core/agent.js';
 import type { CommandRouter } from '../core/command-router.js';
+import type { MemoriaSyncTurn } from '../core/memoria-sync.js';
 import type { MemoryManager } from '../core/memory.js';
 import type { Scheduler } from '../core/scheduler.js';
 import type { Connector, UnifiedMessage } from '../types/index.js';
@@ -29,6 +30,7 @@ type WebServerOptions = {
   chatRunnerOnlyUsers: Set<string>;
   shouldSummarize: (content: string) => boolean;
   buildPrompt: (userMessage: string) => string;
+  enqueueMemoriaSync?: (turn: MemoriaSyncTurn) => void;
   recordRuntimeIssue: (scope: string, error: unknown) => void;
   writeContextSnapshots: () => void;
 };
@@ -1384,6 +1386,7 @@ export function startWebServer(options: WebServerOptions): WebServerHandle {
     chatRunnerOnlyUsers: options.chatRunnerOnlyUsers,
     shouldSummarize: options.shouldSummarize,
     buildPrompt: options.buildPrompt,
+    ...(options.enqueueMemoriaSync ? { enqueueMemoriaSync: options.enqueueMemoriaSync } : {}),
     recordRuntimeIssue: options.recordRuntimeIssue,
     writeContextSnapshots: options.writeContextSnapshots
   });
