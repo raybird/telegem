@@ -89,6 +89,21 @@ export class GeminiAgent implements AIAgent {
     return cleaned.trim();
   }
 
+  private recoverOutputFromError(error: any): string | null {
+    const raw = typeof error?.stdout === 'string' ? error.stdout : '';
+    const cleaned = this.cleanOutput(raw);
+    if (!cleaned) {
+      return null;
+    }
+
+    // 僅有極短「準備執行」敘述時，視為不可用片段
+    if (cleaned.length < 60 && /^(我將|我會|I'll|I will)/i.test(cleaned)) {
+      return null;
+    }
+
+    return cleaned;
+  }
+
   /**
    * 生成結構化摘要
    * 格式固定為 Goal/Decision/Todo/Facts 欄位
@@ -125,6 +140,10 @@ ${text}
       return cleaned || '(摘要失敗)';
     } catch (error: any) {
       console.error('[Gemini] Summarization failed:', error);
+      const recovered = this.recoverOutputFromError(error);
+      if (recovered) {
+        return recovered.length > 280 ? recovered.substring(0, 280) + '...' : recovered;
+      }
       // Fallback: 截斷原文
       return text.substring(0, 200) + '...';
     }
@@ -215,6 +234,11 @@ ${text}
       return cleaned || 'Gemini 執行完成，但沒有返回任何文字內容。';
     } catch (error: any) {
       console.error('[Gemini] Execution failed:', error);
+      const recovered = this.recoverOutputFromError(error);
+      if (recovered) {
+        console.warn('[Gemini] Returning recovered stdout despite non-zero exit/signal.');
+        return recovered;
+      }
       if (error.code === 'ETIMEDOUT' || error.signal === 'SIGTERM') {
         return '✨ 5分鐘內未完成';
       }

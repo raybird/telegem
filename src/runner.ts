@@ -29,6 +29,18 @@ type AIConfig = {
 const gemini = new GeminiAgent();
 const opencode = new OpencodeAgent();
 const runnerSharedSecret = process.env.RUNNER_SHARED_SECRET?.trim() || null;
+const serializeGemini =
+  (process.env.RUNNER_SERIALIZE_GEMINI || 'true').trim().toLowerCase() !== 'false';
+let geminiExecutionQueue: Promise<void> = Promise.resolve();
+
+function runGeminiInQueue<T>(task: () => Promise<T>): Promise<T> {
+  const pending = geminiExecutionQueue.then(task);
+  geminiExecutionQueue = pending.then(
+    () => undefined,
+    () => undefined
+  );
+  return pending;
+}
 
 type RunnerStats = {
   startedAt: number;
@@ -274,8 +286,12 @@ async function executeTask(
 
   const output =
     request.task === 'chat'
-      ? await gemini.chat(request.input, options)
-      : await gemini.summarize(request.input, options);
+      ? await (serializeGemini
+          ? runGeminiInQueue(() => gemini.chat(request.input!, options))
+          : gemini.chat(request.input, options))
+      : await (serializeGemini
+          ? runGeminiInQueue(() => gemini.summarize(request.input!, options))
+          : gemini.summarize(request.input, options));
   return { provider: 'gemini', output };
 }
 

@@ -59,6 +59,7 @@ docker compose exec agent-runner sh -lc "cd /app/workspace && opencode run -c"
 - 一般使用不需要手動進容器
 - `/new` 會讓下一則一般對話訊息強制使用新 session
 - 在 `telenexus` 容器手動執行 CLI，可能與 runner 實際脈絡不一致
+- `RUNNER_SERIALIZE_GEMINI=true`（預設）：在 runner 內序列化 Gemini 任務，降低併發導致的 `SIGKILL` 風險
 
 ## Memoria 自動同步
 

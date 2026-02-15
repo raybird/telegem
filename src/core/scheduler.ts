@@ -290,6 +290,15 @@ export class Scheduler {
     return normalized.slice(0, maxLength - 1) + '…';
   }
 
+  private shouldRetryAiResponse(response: string): boolean {
+    const normalized = response.trim();
+    return (
+      normalized.startsWith('Error calling Gemini: Process terminated with signal SIGKILL') ||
+      normalized.startsWith('Error calling Gemini: Process exited with code 1') ||
+      normalized.startsWith('✨ 5分鐘內未完成')
+    );
+  }
+
   /**
    * 從 TeleNexus 內建記憶檢索長期上下文（不依賴 provider hook）
    */
@@ -368,7 +377,12 @@ AI Response:
 `.trim();
 
       // 3. 呼叫 Gemini CLI
-      const response = await this.gemini.chat(fullPrompt);
+      let response = await this.gemini.chat(fullPrompt);
+      if (this.shouldRetryAiResponse(response)) {
+        console.warn(`[Scheduler] Task #${schedule.id} first attempt failed, retrying once...`);
+        await new Promise((resolve) => setTimeout(resolve, 2500));
+        response = await this.gemini.chat(fullPrompt);
+      }
       console.log(
         `[Scheduler] Task #${schedule.id} completed. Response length: ${response.length}`
       );
