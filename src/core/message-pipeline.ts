@@ -17,7 +17,7 @@ type MessagePipelineOptions = {
   chatRunnerPercent: number;
   chatRunnerOnlyUsers: Set<string>;
   shouldSummarize: (content: string) => boolean;
-  buildPrompt: (userMessage: string) => string;
+  buildPrompt: (userMessage: string, userId: string) => string;
   enqueueMemoriaSync?: (turn: MemoriaSyncTurn) => void;
   recordRuntimeIssue: (scope: string, error: unknown) => void;
   writeContextSnapshots: () => void;
@@ -118,7 +118,7 @@ export function createMessagePipeline(options: MessagePipelineOptions) {
 
       let promptForAgent = msg.content.trim();
       if (!isPassthroughCommand) {
-        promptForAgent = options.buildPrompt(msg.content);
+        promptForAgent = options.buildPrompt(msg.content, userId);
       }
 
       if (isPassthroughCommand) {

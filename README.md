@@ -89,7 +89,8 @@ docker compose exec agent-runner sh -lc "cd /app/workspace && opencode run -c"
 補充：
 
 - `/new` 會讓下一則一般對話訊息強制使用新 session（不接續）
-- passthrough 指令（如 `/compress`）在 Gemini 路徑會略過記憶檢索 hook，避免控制指令被長期記憶干擾
+- 一般對話的記憶檢索由 TeleNexus 在分派前統一注入，與 provider hook 解耦
+- passthrough 指令（如 `/compress`）仍維持直通 CLI，不額外包裝 TeleNexus 一般 prompt
 - 預設啟用 Memoria 自動同步（auto 模式）：每次成功對話會背景呼叫 `workspace/Memoria/cli sync`
 - 在 `telenexus` 容器手動跑 CLI，可能與 runner 的實際執行脈絡不同
 
@@ -99,9 +100,10 @@ Memoria 同步可用環境變數調整：
 - `MEMORIA_HOME`（預設 `/app/workspace/Memoria`）
 - `MEMORIA_CLI_PATH`（預設 `$MEMORIA_HOME/cli`）
 - `MEMORIA_SYNC_TIMEOUT_MS`（預設 `20000`）
-- `MEMORIA_HOOK_QUEUE_FILE`（預設 `/app/data/memoria-hook-queue.jsonl`）
-- `MEMORIA_HOOK_FLUSH_SIGNAL`（預設 `/app/data/memoria-hook-flush.signal`）
-- `MEMORIA_HOOK_QUEUE_POLL_MS`（預設 `5000`）
+- `MEMORIA_HOOK_QUEUE_ENABLED`（預設 `false`，hook-free 模式）
+- `MEMORIA_HOOK_QUEUE_FILE`（僅在啟用 hook queue 時使用）
+- `MEMORIA_HOOK_FLUSH_SIGNAL`（僅在啟用 hook queue 時使用）
+- `MEMORIA_HOOK_QUEUE_POLL_MS`（僅在啟用 hook queue 時使用）
 
 ---
 

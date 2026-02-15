@@ -142,7 +142,11 @@ function loadChatPromptConfig(): ChatPromptConfig {
   };
 }
 
-function buildChatPrompt(config: ChatPromptConfig, userMessage: string): string {
+function buildChatPrompt(
+  config: ChatPromptConfig,
+  userMessage: string,
+  memoryContext = ''
+): string {
   const sections: string[] = [];
 
   sections.push('System: ' + config.roleSystem);
@@ -163,6 +167,10 @@ function buildChatPrompt(config: ChatPromptConfig, userMessage: string): string 
     sections.push(`【工作目錄限制 - 重要】\n${lines}`);
   }
 
+  if (memoryContext.trim().length > 0) {
+    sections.push(memoryContext.trim());
+  }
+
   sections.push(`User Message:\n${userMessage}`);
 
   if (config.includeAiResponseSuffix) {
@@ -170,6 +178,111 @@ function buildChatPrompt(config: ChatPromptConfig, userMessage: string): string 
   }
 
   return sections.join('\n\n').trim();
+}
+
+function extractQueryKeywords(text: string): string[] {
+  const stopwords = new Set([
+    '請',
+    '幫我',
+    '一下',
+    '這個',
+    '那個',
+    '今天',
+    '現在',
+    '可以',
+    '是否',
+    '如何',
+    '什麼',
+    '哪裡',
+    'then',
+    'that',
+    'this',
+    'with',
+    'from',
+    'what',
+    'when',
+    'where',
+    'which',
+    'would',
+    'should',
+    'could',
+    'please',
+    'help'
+  ]);
+
+  const tokens = text
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}_-]+/gu, ' ')
+    .split(/\s+/)
+    .map((item) => item.trim())
+    .filter((item) => item.length >= 2 && !stopwords.has(item));
+
+  const unique: string[] = [];
+  for (const token of tokens) {
+    if (!unique.includes(token)) {
+      unique.push(token);
+    }
+    if (unique.length >= 8) break;
+  }
+  return unique;
+}
+
+function truncateInline(text: string, maxLength: number): string {
+  const normalized = text.replace(/\s+/g, ' ').trim();
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+  return normalized.slice(0, maxLength - 1) + '…';
+}
+
+function buildMemoryContext(memory: MemoryManager, userId: string, userMessage: string): string {
+  const recent = memory.getRecentMessages(userId, 80);
+  if (recent.length === 0) {
+    return '';
+  }
+
+  const keywords = extractQueryKeywords(userMessage);
+  const loweredKeywords = keywords.map((item) => item.toLowerCase());
+  const currentMessage = userMessage.trim();
+
+  const scored = recent
+    .filter((item) => item.content.trim().length > 0 && item.content.trim() !== currentMessage)
+    .map((item) => {
+      const content = item.content.toLowerCase();
+      let score = 0;
+      for (const keyword of loweredKeywords) {
+        if (content.includes(keyword)) {
+          score += 1;
+        }
+      }
+      return { ...item, score };
+    });
+
+  const matches =
+    loweredKeywords.length > 0
+      ? scored
+          .filter((item) => item.score > 0)
+          .sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+            return b.timestamp - a.timestamp;
+          })
+          .slice(0, 5)
+      : [];
+
+  const fallbackRecent = recent.slice(0, 3);
+  const selected = matches.length > 0 ? matches : fallbackRecent;
+
+  if (selected.length === 0) {
+    return '';
+  }
+
+  const lines = selected.map((item) => {
+    const role = item.role === 'user' ? 'User' : 'AI';
+    const time = new Date(item.timestamp).toISOString().slice(0, 16).replace('T', ' ');
+    return `- [${role}] (${time}) ${truncateInline(item.content, 180)}`;
+  });
+
+  return ['【記憶參考（TeleNexus）】', ...lines].join('\n');
 }
 
 function toErrorMessage(error: unknown): string {
@@ -309,7 +422,7 @@ function writeContextSnapshots(memory: MemoryManager): void {
       '- Input channel: Telegram -> CommandRouter -> Scheduler/Agent',
       '- Scheduler source of truth: SQLite schedules table',
       '- Agent runtime: Gemini/Opencode CLI executed from workspace/',
-      '- Long-term memory hook: workspace/.gemini/hooks/retrieve-memory.sh',
+      '- Long-term memory: TeleNexus provider-agnostic retrieval before chat dispatch',
       '- Main runtime service: TeleNexus orchestrator'
     ].join('\n');
 
@@ -512,9 +625,10 @@ async function bootstrap() {
     chatRunnerPercent,
     chatRunnerOnlyUsers,
     shouldSummarize,
-    buildPrompt: (userMessage: string) => {
+    buildPrompt: (userMessage: string, userId: string) => {
       const promptConfig = loadChatPromptConfig();
-      return buildChatPrompt(promptConfig, userMessage);
+      const memoryContext = buildMemoryContext(memory, userId, userMessage);
+      return buildChatPrompt(promptConfig, userMessage, memoryContext);
     },
     enqueueMemoriaSync: (turn) => {
       memoriaSync.enqueueTurn(turn);
@@ -550,9 +664,10 @@ async function bootstrap() {
     chatRunnerPercent,
     chatRunnerOnlyUsers,
     shouldSummarize,
-    buildPrompt: (userMessage: string) => {
+    buildPrompt: (userMessage: string, userId: string) => {
       const promptConfig = loadChatPromptConfig();
-      return buildChatPrompt(promptConfig, userMessage);
+      const memoryContext = buildMemoryContext(memory, userId, userMessage);
+      return buildChatPrompt(promptConfig, userMessage, memoryContext);
     },
     enqueueMemoriaSync: (turn) => {
       memoriaSync.enqueueTurn(turn);

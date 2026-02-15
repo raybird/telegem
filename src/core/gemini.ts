@@ -196,7 +196,8 @@ ${text}
           cwd: 'workspace',
           env: {
             ...process.env,
-            GEMINI_PROJECT_DIR: process.env.GEMINI_PROJECT_DIR || process.cwd()
+            GEMINI_PROJECT_DIR: process.env.GEMINI_PROJECT_DIR || process.cwd(),
+            GEMINI_BYPASS_MEMORY_HOOK: '1'
           }
         });
         stdout = result.stdout;

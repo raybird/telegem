@@ -39,7 +39,7 @@ passthrough_commands:
 - 若未設定，系統預設使用上述三個指令
 - 命中白名單時，主程式會將原始指令直接送給底層 CLI
 - passthrough 流程不會額外套 TeleNexus 摘要/上下文包裝
-- Gemini 的 passthrough 請求會略過記憶檢索 hook，避免控制指令被記憶內容干擾
+- 一般對話的記憶檢索由 TeleNexus 在分派前統一注入，與 provider hook 解耦
 
 ## Runner Session Context（重要）
 
@@ -71,6 +71,7 @@ MEMORIA_SYNC_ENABLED=auto
 MEMORIA_HOME=/app/workspace/Memoria
 MEMORIA_CLI_PATH=/app/workspace/Memoria/cli
 MEMORIA_SYNC_TIMEOUT_MS=20000
+MEMORIA_HOOK_QUEUE_ENABLED=false
 MEMORIA_HOOK_QUEUE_FILE=/app/data/memoria-hook-queue.jsonl
 MEMORIA_HOOK_FLUSH_SIGNAL=/app/data/memoria-hook-flush.signal
 MEMORIA_HOOK_QUEUE_POLL_MS=5000
@@ -82,5 +83,5 @@ MEMORIA_HOOK_QUEUE_POLL_MS=5000
 - `MEMORIA_SYNC_ENABLED=on`：強制啟用（即使 CLI 缺失也會持續嘗試）
 - `MEMORIA_SYNC_ENABLED=off`：完全停用同步
 - 同步失敗只記錄 warning，不會中斷主對話流程
-- Gemini `AfterAgent` hook 會把本輪結果先落盤到 queue，再由背景同步器處理
-- `SessionEnd` hook 會寫入 flush 訊號，加速關閉前的最後一輪 queue 處理
+- `MEMORIA_HOOK_QUEUE_ENABLED=false`（預設）：完全 hook-free，只走 TeleNexus pipeline 同步
+- 只有在 `MEMORIA_HOOK_QUEUE_ENABLED=true` 時，才會啟用 hook queue 檔案輪詢與 flush 訊號機制

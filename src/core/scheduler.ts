@@ -4,77 +4,6 @@ import fs from 'fs';
 import yaml from 'js-yaml';
 import type { AIAgent } from './agent.js';
 import type { Connector } from '../types/index.js';
-import { spawn } from 'child_process';
-
-type RunOptions = {
-  cwd?: string;
-  env?: NodeJS.ProcessEnv;
-  timeoutMs?: number;
-  stdin?: string;
-};
-
-function runProcess(
-  command: string,
-  args: string[],
-  options: RunOptions = {}
-): Promise<{ stdout: string; stderr: string }> {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
-      cwd: options.cwd,
-      env: options.env,
-      stdio: ['pipe', 'pipe', 'pipe']
-    });
-
-    let stdout = '';
-    let stderr = '';
-    const timer = options.timeoutMs
-      ? setTimeout(() => {
-          child.kill('SIGTERM');
-          const err: any = new Error('Process timed out');
-          err.code = 'ETIMEDOUT';
-          reject(err);
-        }, options.timeoutMs)
-      : null;
-
-    child.stdout?.on('data', (chunk) => {
-      stdout += chunk.toString();
-    });
-    child.stderr?.on('data', (chunk) => {
-      stderr += chunk.toString();
-    });
-
-    child.on('error', (err) => {
-      if (timer) clearTimeout(timer);
-      reject(err);
-    });
-
-    child.on('close', (code, signal) => {
-      if (timer) clearTimeout(timer);
-      if (signal) {
-        const err: any = new Error(`Process terminated with signal ${signal}`);
-        err.signal = signal;
-        err.stdout = stdout;
-        err.stderr = stderr;
-        reject(err);
-        return;
-      }
-      if (code && code !== 0) {
-        const err: any = new Error(`Process exited with code ${code}`);
-        err.code = code;
-        err.stdout = stdout;
-        err.stderr = stderr;
-        reject(err);
-        return;
-      }
-      resolve({ stdout, stderr });
-    });
-
-    if (options.stdin && child.stdin) {
-      child.stdin.write(options.stdin);
-    }
-    child.stdin?.end();
-  });
-}
 
 export class Scheduler {
   private jobs: Map<number, Cron> = new Map();
@@ -306,38 +235,111 @@ export class Scheduler {
     };
   }
 
+  private extractKeywords(text: string): string[] {
+    const stopwords = new Set([
+      '請',
+      '幫我',
+      '一下',
+      '這個',
+      '那個',
+      '今天',
+      '現在',
+      '可以',
+      '是否',
+      '如何',
+      '什麼',
+      '哪裡',
+      'then',
+      'that',
+      'this',
+      'with',
+      'from',
+      'what',
+      'when',
+      'where',
+      'which',
+      'would',
+      'should',
+      'could',
+      'please',
+      'help'
+    ]);
+
+    const tokens = text
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}_-]+/gu, ' ')
+      .split(/\s+/)
+      .map((item) => item.trim())
+      .filter((item) => item.length >= 2 && !stopwords.has(item));
+
+    const unique: string[] = [];
+    for (const token of tokens) {
+      if (!unique.includes(token)) {
+        unique.push(token);
+      }
+      if (unique.length >= 8) break;
+    }
+    return unique;
+  }
+
+  private truncateInline(text: string, maxLength: number): string {
+    const normalized = text.replace(/\s+/g, ' ').trim();
+    if (normalized.length <= maxLength) {
+      return normalized;
+    }
+    return normalized.slice(0, maxLength - 1) + '…';
+  }
+
   /**
-   * 從 MCP Memory 檢索長期記憶
-   * 呼叫 retrieve-memory.sh 並解析結果
+   * 從 TeleNexus 內建記憶檢索長期上下文（不依賴 provider hook）
    */
-  private async retrieveLongTermMemory(prompt: string): Promise<string> {
+  private async retrieveLongTermMemory(userId: string, prompt: string): Promise<string> {
     try {
-      const projectDir = process.env.GEMINI_PROJECT_DIR || process.cwd();
-      const hookPath = `${projectDir}/workspace/.gemini/hooks/retrieve-memory.sh`;
-      const input = JSON.stringify({ prompt });
-
-      console.log(`[Scheduler] Retrieving long-term memory for prompt...`);
-
-      // 執行 hook script
-      const { stdout } = await runProcess('bash', [hookPath], {
-        env: {
-          ...process.env,
-          GEMINI_PROJECT_DIR: process.env.GEMINI_PROJECT_DIR || process.cwd()
-        },
-        stdin: input
-      });
-
-      // 解析 JSON 回應
-      const response = JSON.parse(stdout.trim());
-
-      if (response.systemMessage) {
-        console.log(
-          `[Scheduler] Retrieved memory context: ${response.systemMessage.substring(0, 100)}...`
-        );
-        return response.systemMessage;
+      const recent = this.memory.getRecentMessages(userId, 80);
+      if (recent.length === 0) {
+        return '';
       }
 
-      return '';
+      const keywords = this.extractKeywords(prompt);
+      const loweredKeywords = keywords.map((item) => item.toLowerCase());
+
+      const scored = recent
+        .filter((item) => item.content.trim().length > 0)
+        .map((item) => {
+          const content = item.content.toLowerCase();
+          let score = 0;
+          for (const keyword of loweredKeywords) {
+            if (content.includes(keyword)) {
+              score += 1;
+            }
+          }
+          return { ...item, score };
+        });
+
+      const matches =
+        loweredKeywords.length > 0
+          ? scored
+              .filter((item) => item.score > 0)
+              .sort((a, b) => {
+                if (b.score !== a.score) return b.score - a.score;
+                return b.timestamp - a.timestamp;
+              })
+              .slice(0, 5)
+          : recent.slice(0, 3);
+
+      if (matches.length === 0) {
+        return '';
+      }
+
+      const lines = matches.map((item) => {
+        const role = item.role === 'user' ? 'User' : 'AI';
+        const time = new Date(item.timestamp).toISOString().slice(0, 16).replace('T', ' ');
+        return `- [${role}] (${time}) ${this.truncateInline(item.content, 180)}`;
+      });
+
+      const context = ['【記憶參考（TeleNexus）】', ...lines].join('\n');
+      console.log(`[Scheduler] Retrieved memory context lines: ${lines.length}`);
+      return context;
     } catch (error) {
       console.error('[Scheduler] Failed to retrieve long-term memory:', error);
       return '';
@@ -350,7 +352,7 @@ export class Scheduler {
   private async executeTask(schedule: Schedule): Promise<void> {
     try {
       // 1. 檢索長期記憶 (MCP Memory)
-      const longTermMemory = await this.retrieveLongTermMemory(schedule.prompt);
+      const longTermMemory = await this.retrieveLongTermMemory(schedule.user_id, schedule.prompt);
 
       // 2. 組合 Prompt
       const fullPrompt = `
@@ -564,7 +566,7 @@ AI Response:
         .join('\n\n');
 
       // 檢索長期記憶
-      const longTermMemory = await this.retrieveLongTermMemory('對話回顧 追蹤 待辦');
+      const longTermMemory = await this.retrieveLongTermMemory(userId, '對話回顧 追蹤 待辦');
 
       // 組合追蹤提醒 Prompt
       const reflectionPrompt = `

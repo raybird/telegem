@@ -62,6 +62,14 @@ function parsePollMs(raw: string | undefined, fallback: number): number {
   return parsed;
 }
 
+function parseBool(raw: string | undefined, fallback: boolean): boolean {
+  if (!raw) return fallback;
+  const normalized = raw.trim().toLowerCase();
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+  if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
+  return fallback;
+}
+
 function ensureDir(targetDir: string): void {
   fs.mkdirSync(targetDir, { recursive: true });
 }
@@ -194,6 +202,7 @@ export class MemoriaSyncBridge {
   private readonly hookQueueFile: string;
   private readonly hookFlushSignalFile: string;
   private readonly hookQueuePollMs: number;
+  private readonly hookQueueEnabled: boolean;
   private queue: Promise<void>;
   private disabled: boolean;
   private hookPollTimer: NodeJS.Timeout | null;
@@ -222,6 +231,7 @@ export class MemoriaSyncBridge {
         path.join(this.projectDir, 'data', 'memoria-hook-flush.signal')
     );
     this.hookQueuePollMs = parsePollMs(process.env.MEMORIA_HOOK_QUEUE_POLL_MS, 5000);
+    this.hookQueueEnabled = parseBool(process.env.MEMORIA_HOOK_QUEUE_ENABLED, false);
     this.queue = Promise.resolve();
     this.disabled = false;
     this.hookPollTimer = null;
@@ -246,9 +256,15 @@ export class MemoriaSyncBridge {
 
     try {
       ensureDir(this.tempDir);
-      ensureDir(path.dirname(this.hookQueueFile));
+      if (this.hookQueueEnabled) {
+        ensureDir(path.dirname(this.hookQueueFile));
+      }
       console.log(`[MemoriaSync] Enabled. memoriaHome=${this.memoriaHome}`);
-      this.startHookQueuePolling();
+      if (this.hookQueueEnabled) {
+        this.startHookQueuePolling();
+      } else {
+        console.log('[MemoriaSync] Hook queue polling disabled (hook-free mode).');
+      }
     } catch (error) {
       console.warn('[MemoriaSync] Failed to prepare temp dir, disabling:', error);
       this.disabled = true;
