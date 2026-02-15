@@ -4,6 +4,8 @@ import type { CommandRouter } from './command-router.js';
 import type { MemoriaSyncTurn } from './memoria-sync.js';
 import type { MemoryManager } from './memory.js';
 import type { Scheduler } from './scheduler.js';
+import fs from 'fs';
+import path from 'path';
 
 type MessagePipelineOptions = {
   connector: Connector;
@@ -23,6 +25,69 @@ type MessagePipelineOptions = {
   writeContextSnapshots: () => void;
 };
 
+type FileDirective = {
+  path: string;
+  caption?: string;
+};
+
+function extractFileDirectives(response: string): {
+  cleanedText: string;
+  directives: FileDirective[];
+} {
+  const directives: FileDirective[] = [];
+  const markerRegex = /\[\[SEND_FILE:\s*([^\]|]+?)(?:\s*\|\s*([^\]]+))?\s*\]\]/g;
+  const cleanedText = response.replace(
+    markerRegex,
+    (_full, rawPath: string, rawCaption?: string) => {
+      const filePath = (rawPath || '').trim();
+      if (!filePath) {
+        return '';
+      }
+      const caption = (rawCaption || '').trim();
+      directives.push({ path: filePath, ...(caption ? { caption } : {}) });
+      return '';
+    }
+  );
+
+  return {
+    cleanedText: cleanedText.replace(/\n{3,}/g, '\n\n').trim(),
+    directives
+  };
+}
+
+function resolveProjectFilePath(rawPath: string): string | null {
+  const projectDir = process.env.GEMINI_PROJECT_DIR?.trim() || process.cwd();
+  const normalizedProjectDir = path.resolve(projectDir);
+  const resolved = path.isAbsolute(rawPath)
+    ? path.resolve(rawPath)
+    : path.resolve(normalizedProjectDir, rawPath);
+
+  if (resolved === normalizedProjectDir || !resolved.startsWith(normalizedProjectDir + path.sep)) {
+    return null;
+  }
+
+  return resolved;
+}
+
+function resolveTempFilePath(rawPath: string): string | null {
+  const resolved = resolveProjectFilePath(rawPath);
+  if (!resolved) {
+    return null;
+  }
+
+  const projectDir = process.env.GEMINI_PROJECT_DIR?.trim() || process.cwd();
+  const tempDir = path.resolve(projectDir, 'workspace', 'temp');
+  if (resolved === tempDir || resolved.startsWith(tempDir + path.sep)) {
+    return resolved;
+  }
+
+  return null;
+}
+
+function formatFileValidationError(targetPath: string, reason: string): string {
+  return `⚠️ 檔案傳送略過：${targetPath}（${reason}）`;
+}
+
 function hashToBucket(input: string): number {
   let hash = 2166136261;
   for (let i = 0; i < input.length; i += 1) {
@@ -34,6 +99,7 @@ function hashToBucket(input: string): number {
 
 export function createMessagePipeline(options: MessagePipelineOptions) {
   const pendingNewSessionUsers = new Set<string>();
+  const maxSendFileBytes = 45 * 1024 * 1024;
   const thinkingMessages = [
     '🤔 思考中...',
     '🧠 正在理解問題...',
@@ -127,10 +193,13 @@ export function createMessagePipeline(options: MessagePipelineOptions) {
         console.log(`📤 [System] Sending prompt to AI (length: ${promptForAgent.length} chars)`);
       }
 
-      const response = await activeAgent.chat(promptForAgent, {
+      const rawResponse = await activeAgent.chat(promptForAgent, {
         isPassthroughCommand,
         forceNewSession
       });
+
+      const { cleanedText, directives } = extractFileDirectives(rawResponse);
+      const response = cleanedText || rawResponse;
 
       console.log(`📥 [AI] Reply length: ${response.length}`);
 
@@ -162,6 +231,57 @@ export function createMessagePipeline(options: MessagePipelineOptions) {
         await connector.editMessage(targetChatId, placeholderMsgId, response);
       } else {
         await connector.sendMessage(targetChatId, response);
+      }
+
+      if (directives.length > 0) {
+        for (const directive of directives) {
+          const resolvedPath = resolveProjectFilePath(directive.path);
+          if (!resolvedPath) {
+            await connector.sendMessage(
+              targetChatId,
+              formatFileValidationError(directive.path, '只允許專案目錄內路徑')
+            );
+            continue;
+          }
+
+          if (!resolveTempFilePath(directive.path)) {
+            await connector.sendMessage(
+              targetChatId,
+              formatFileValidationError(directive.path, '自動回傳檔案僅允許 workspace/temp/ 路徑')
+            );
+            continue;
+          }
+
+          if (!fs.existsSync(resolvedPath)) {
+            await connector.sendMessage(
+              targetChatId,
+              formatFileValidationError(directive.path, '檔案不存在')
+            );
+            continue;
+          }
+
+          const stat = fs.statSync(resolvedPath);
+          if (!stat.isFile()) {
+            await connector.sendMessage(
+              targetChatId,
+              formatFileValidationError(directive.path, '目標不是檔案')
+            );
+            continue;
+          }
+
+          if (stat.size > maxSendFileBytes) {
+            await connector.sendMessage(
+              targetChatId,
+              formatFileValidationError(
+                directive.path,
+                `檔案過大（${Math.ceil(stat.size / 1024 / 1024)}MB > ${Math.floor(maxSendFileBytes / 1024 / 1024)}MB）`
+              )
+            );
+            continue;
+          }
+
+          await connector.sendFile(targetChatId, resolvedPath, directive.caption);
+        }
       }
     } catch (error) {
       console.error('❌ Error processing message:', error);

@@ -23,6 +23,11 @@ export interface Connector {
   sendMessage(chatId: string, text: string): Promise<void>;
 
   /**
+   * 發送檔案（例如文件、報告）
+   */
+  sendFile(chatId: string, filePath: string, caption?: string): Promise<void>;
+
+  /**
    * 發送一個佔位訊息（例如 "Thinking..."），並回傳該訊息的 ID，以便後續編輯
    * @returns messageId
    */

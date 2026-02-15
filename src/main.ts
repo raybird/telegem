@@ -167,6 +167,10 @@ function buildChatPrompt(
     sections.push(`【工作目錄限制 - 重要】\n${lines}`);
   }
 
+  sections.push(
+    '【檔案回傳協議】\n若使用者要求你把檔案直接傳到 Telegram，請先將檔案輸出到 workspace/temp/，再在回覆中加入標記：[[SEND_FILE: workspace/temp/檔名 | 可選說明]]。\n可同時放多個標記，系統會依序送出檔案。'
+  );
+
   if (memoryContext.trim().length > 0) {
     sections.push(memoryContext.trim());
   }

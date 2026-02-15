@@ -55,6 +55,11 @@ class CaptureConnector implements Connector {
     this.messages.push({ id: randomUUID(), text });
   }
 
+  async sendFile(_chatId: string, filePath: string, caption?: string): Promise<void> {
+    const text = caption ? `[file] ${filePath}\n${caption}` : `[file] ${filePath}`;
+    this.messages.push({ id: randomUUID(), text });
+  }
+
   async sendPlaceholder(_chatId: string, text: string): Promise<string> {
     const id = randomUUID();
     this.messages.push({ id, text });

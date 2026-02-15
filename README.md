@@ -89,6 +89,8 @@ docker compose exec agent-runner sh -lc "cd /app/workspace && opencode run -c"
 補充：
 
 - `/new` 會讓下一則一般對話訊息強制使用新 session（不接續）
+- `/send_file 路徑 | 說明` 可把專案目錄內檔案回傳到 Telegram（例如 `/send_file workspace/context/runner-status.md | 最新 runner 狀態`）
+- 也可在一般對話要求 AI 直接回傳檔案；AI 會透過 `[[SEND_FILE: workspace/temp/檔名 | 說明]]` 協議觸發附件傳送（自動模式僅允許 `workspace/temp/`）
 - 一般對話的記憶檢索由 TeleNexus 在分派前統一注入，與 provider hook 解耦
 - passthrough 指令（如 `/compress`）仍維持直通 CLI，不額外包裝 TeleNexus 一般 prompt
 - 預設啟用 Memoria 自動同步（auto 模式）：每次成功對話會背景呼叫 `workspace/Memoria/cli sync`
@@ -101,6 +103,7 @@ Memoria 同步可用環境變數調整：
 - `MEMORIA_CLI_PATH`（預設 `$MEMORIA_HOME/cli`）
 - `MEMORIA_SYNC_TIMEOUT_MS`（預設 `20000`）
 - `MEMORIA_HOOK_QUEUE_ENABLED`（預設 `false`，hook-free 模式）
+- `SEND_FILE_STRICT_TEMP_ONLY=true|false`（預設 `false`；設為 `true` 時連 `/send_file` 也僅允許 `workspace/temp/`）
 - `MEMORIA_HOOK_QUEUE_FILE`（僅在啟用 hook queue 時使用）
 - `MEMORIA_HOOK_FLUSH_SIGNAL`（僅在啟用 hook queue 時使用）
 - `MEMORIA_HOOK_QUEUE_POLL_MS`（僅在啟用 hook queue 時使用）

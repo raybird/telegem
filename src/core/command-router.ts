@@ -2,6 +2,7 @@ import type { Connector, UnifiedMessage } from '../types/index.js';
 import type { MemoryManager } from './memory.js';
 import type { Scheduler } from './scheduler.js';
 import fs from 'fs';
+import path from 'path';
 import yaml from 'js-yaml';
 
 type CommandContext = {
@@ -20,8 +21,21 @@ type CommandDefinition = {
   execute: (context: CommandContext) => Promise<void>;
 };
 
+function parseBoolEnv(raw: string | undefined, fallback: boolean): boolean {
+  if (!raw) return fallback;
+  const normalized = raw.trim().toLowerCase();
+  if (['1', 'true', 'yes', 'on'].includes(normalized)) return true;
+  if (['0', 'false', 'no', 'off'].includes(normalized)) return false;
+  return fallback;
+}
+
 export class CommandRouter {
   private commands: CommandDefinition[] = [];
+  private readonly maxSendFileBytes = 45 * 1024 * 1024;
+  private readonly sendFileStrictTempOnly = parseBoolEnv(
+    process.env.SEND_FILE_STRICT_TEMP_ONLY,
+    false
+  );
   private defaultPassthroughCommandWhitelist: Set<string> = new Set([
     '/compress',
     '/compact',
@@ -132,6 +146,7 @@ export class CommandRouter {
 🛠 **基本指令**
 - \`/reset\`: 清除 AI 短期記憶 (Context Window)
 - \`/new\`: 下一則訊息使用新會話（不接續 CLI 舊 session）
+- \`/send_file 路徑 | 說明\`: 回傳伺服器上的檔案到 Telegram
 - \`/start\`: 顯示此說明訊息
 
 📅 **排程管理功能**
@@ -175,6 +190,77 @@ export class CommandRouter {
           userId,
           '🆕 已建立新會話。下一則訊息將使用新的 CLI session（不接續上一段對話）。'
         );
+      }
+    });
+
+    this.registerCommand({
+      name: 'send_file',
+      match: (content) => content.startsWith('/send_file '),
+      execute: async ({ userId, connector, content }) => {
+        const raw = content.replace('/send_file ', '').trim();
+        if (!raw) {
+          await connector.sendMessage(
+            userId,
+            '❌ 格式錯誤。使用：/send_file 路徑 | 說明（可省略）'
+          );
+          return;
+        }
+
+        const [rawPathPart, rawCaptionPart] = raw.split('|');
+        const pathPart = (rawPathPart || '').trim();
+        const caption = (rawCaptionPart || '').trim();
+
+        if (!pathPart) {
+          await connector.sendMessage(userId, '❌ 請提供檔案路徑。');
+          return;
+        }
+
+        const projectDir = process.env.GEMINI_PROJECT_DIR?.trim() || process.cwd();
+        const resolvedPath = path.isAbsolute(pathPart)
+          ? path.resolve(pathPart)
+          : path.resolve(projectDir, pathPart);
+        const normalizedProjectDir = path.resolve(projectDir);
+        const normalizedTempDir = path.resolve(normalizedProjectDir, 'workspace', 'temp');
+
+        if (!resolvedPath.startsWith(normalizedProjectDir + path.sep)) {
+          await connector.sendMessage(userId, '❌ 安全限制：只能傳送專案目錄內的檔案。');
+          return;
+        }
+
+        if (
+          this.sendFileStrictTempOnly &&
+          !(
+            resolvedPath === normalizedTempDir ||
+            resolvedPath.startsWith(normalizedTempDir + path.sep)
+          )
+        ) {
+          await connector.sendMessage(
+            userId,
+            '❌ 目前為嚴格模式：僅允許傳送 workspace/temp/ 內檔案。'
+          );
+          return;
+        }
+
+        if (!fs.existsSync(resolvedPath)) {
+          await connector.sendMessage(userId, `❌ 找不到檔案：${resolvedPath}`);
+          return;
+        }
+
+        const stat = fs.statSync(resolvedPath);
+        if (!stat.isFile()) {
+          await connector.sendMessage(userId, '❌ 指定路徑不是檔案。');
+          return;
+        }
+
+        if (stat.size > this.maxSendFileBytes) {
+          await connector.sendMessage(
+            userId,
+            `❌ 檔案過大（${Math.ceil(stat.size / 1024 / 1024)}MB）。目前上限為 ${Math.floor(this.maxSendFileBytes / 1024 / 1024)}MB。`
+          );
+          return;
+        }
+
+        await connector.sendFile(userId, resolvedPath, caption || undefined);
       }
     });
 

@@ -1,6 +1,7 @@
 import { Telegraf } from 'telegraf';
 import { Agent } from 'https';
 import { createConnection } from 'net';
+import fs from 'fs';
 import type { Connector, UnifiedMessage } from '../types/index.js';
 
 const DEFAULT_TELEGRAM_API_TIMEOUT_MS = 15000;
@@ -273,6 +274,22 @@ export class TelegramConnector implements Connector {
       }
     } catch (error) {
       console.error(`[Telegram] Failed to send message to ${chatId}:`, error);
+    }
+  }
+
+  async sendFile(chatId: string, filePath: string, caption?: string): Promise<void> {
+    try {
+      const stream = fs.createReadStream(filePath);
+      const label = `sendDocument chat=${chatId} file=${filePath}`;
+      await this.callTelegram(label, () =>
+        this.bot.telegram.sendDocument(
+          chatId,
+          { source: stream, filename: filePath.split('/').pop() || 'document' },
+          caption ? { caption } : undefined
+        )
+      );
+    } catch (error) {
+      console.error(`[Telegram] Failed to send file ${filePath} to ${chatId}:`, error);
     }
   }
 

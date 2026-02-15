@@ -89,3 +89,10 @@ MEMORIA_HOOK_QUEUE_POLL_MS=5000
 - 同步失敗只記錄 warning，不會中斷主對話流程
 - `MEMORIA_HOOK_QUEUE_ENABLED=false`（預設）：完全 hook-free，只走 TeleNexus pipeline 同步
 - 只有在 `MEMORIA_HOOK_QUEUE_ENABLED=true` 時，才會啟用 hook queue 檔案輪詢與 flush 訊號機制
+
+## Telegram 檔案回傳
+
+- 一般對話若要觸發檔案回傳，AI 需輸出：`[[SEND_FILE: workspace/temp/檔名 | 可選說明]]`
+- 自動檔案回傳只允許 `workspace/temp/` 路徑
+- 可用 `/send_file 路徑 | 說明` 手動回傳專案內檔案
+- `SEND_FILE_STRICT_TEMP_ONLY=true`：啟用後，連 `/send_file` 也僅允許 `workspace/temp/`

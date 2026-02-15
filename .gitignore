@@ -14,6 +14,7 @@ workspace/.gemini/cache/
 workspace/.gemini/.credentials
 workspace/.gemini/skills/*
 !workspace/.gemini/skills/.gitkeep
+workspace/.gemini/skills-backups/
 
 # Workspace temp files
 workspace/temp/
