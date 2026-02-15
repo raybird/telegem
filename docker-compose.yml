@@ -32,6 +32,7 @@ services:
       - ${WEB_PORT:-3030}:${WEB_PORT:-3030}
     volumes:
       - ./data:/app/data
+      - ./workspace:/app/workspace
       - ./workspace/.gemini:/app/workspace/.gemini
       - gemini_workspace_skills:/app/workspace/.gemini/skills
       - ./workspace/.opencode:/app/workspace/.opencode
