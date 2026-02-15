@@ -33,5 +33,6 @@
 - `docs/current-chat-prompt.md`
 - `docs/chat-prompt-config-proposal.md`
 - `docs/memory-improvement-plan.md`
+- `docs/memory-v3-architecture-plan.md`
 - `docs/flow-old-vs-new.md`
 - `docs/commit-split-plan.md`
