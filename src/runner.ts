@@ -31,6 +31,7 @@ const opencode = new OpencodeAgent();
 const runnerSharedSecret = process.env.RUNNER_SHARED_SECRET?.trim() || null;
 const serializeGemini =
   (process.env.RUNNER_SERIALIZE_GEMINI || 'true').trim().toLowerCase() !== 'false';
+const zombieWarnThreshold = Number.parseInt(process.env.RUNNER_ZOMBIE_WARN_THRESHOLD || '8', 10);
 let geminiExecutionQueue: Promise<void> = Promise.resolve();
 
 function runGeminiInQueue<T>(task: () => Promise<T>): Promise<T> {
@@ -109,6 +110,30 @@ function resolveStatusPath(): string {
   return path.resolve(projectDir, 'workspace', 'context', 'runner-status.md');
 }
 
+function getZombieProcessCount(): number {
+  try {
+    const entries = fs.readdirSync('/proc', { withFileTypes: true });
+    let count = 0;
+    for (const entry of entries) {
+      if (!entry.isDirectory() || !/^\d+$/.test(entry.name)) {
+        continue;
+      }
+      try {
+        const stat = fs.readFileSync(`/proc/${entry.name}/stat`, 'utf8');
+        const match = stat.match(/^\d+\s+\(.+\)\s+([A-Z])/);
+        if (match?.[1] === 'Z') {
+          count += 1;
+        }
+      } catch {
+        // Process may have already exited between readdir and read.
+      }
+    }
+    return count;
+  } catch {
+    return -1;
+  }
+}
+
 function writeRunnerStatus(): void {
   try {
     const statusPath = resolveStatusPath();
@@ -130,6 +155,8 @@ function writeRunnerStatus(): void {
               .reduce((acc, item) => acc + item.durationMs, 0) / recentSuccess
           )
         : 0;
+    const zombieCount = getZombieProcessCount();
+    const zombieWarn = zombieCount >= 0 && zombieCount >= zombieWarnThreshold;
 
     const lines = [
       '# Runner Status',
@@ -144,6 +171,9 @@ function writeRunnerStatus(): void {
       `- Last 5m Requests: ${recentOutcomes.length}`,
       `- Last 5m Success Rate: ${recentRate}%`,
       `- Last 5m Avg Duration (success): ${recentAvgDuration}ms`,
+      `- Zombie Processes: ${zombieCount >= 0 ? zombieCount : 'unavailable'}`,
+      `- Zombie Warn Threshold: ${Number.isFinite(zombieWarnThreshold) ? zombieWarnThreshold : 8}`,
+      `- Zombie Health: ${zombieWarn ? 'warning' : 'ok'}`,
       `- Audit Log: ${resolveAuditPath()}`,
       '',
       '## Last Request',

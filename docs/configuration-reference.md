@@ -16,6 +16,8 @@ RUNNER_SHARED_SECRET=change_this_to_a_long_random_secret
 # runner 穩定性
 RUNNER_FAILURE_THRESHOLD=3
 RUNNER_COOLDOWN_MS=60000
+RUNNER_SERIALIZE_GEMINI=true
+RUNNER_ZOMBIE_WARN_THRESHOLD=8
 
 # context 快照刷新
 CONTEXT_REFRESH_MS=60000
@@ -60,6 +62,7 @@ docker compose exec agent-runner sh -lc "cd /app/workspace && opencode run -c"
 - `/new` 會讓下一則一般對話訊息強制使用新 session
 - 在 `telenexus` 容器手動執行 CLI，可能與 runner 實際脈絡不一致
 - `RUNNER_SERIALIZE_GEMINI=true`（預設）：在 runner 內序列化 Gemini 任務，降低併發導致的 `SIGKILL` 風險
+- `RUNNER_ZOMBIE_WARN_THRESHOLD=8`（預設）：寫入 `runner-status.md` 的殭屍進程告警門檻
 
 ## Memoria 自動同步
 
